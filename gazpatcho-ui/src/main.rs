@@ -26,18 +26,22 @@ fn main() {
             .always_auto_resize(true)
             .movable(false)
             .build(ui, || {
-                if unsafe { imgui_sys::igBeginPopupContextWindow(ptr::null(), 1) } {
-                    MenuItem::new(im_str!("Load")).build(ui);
-                    MenuItem::new(im_str!("Save as")).build(ui);
-                    ui.separator();
-                    MenuItem::new(im_str!("Sound output")).build(ui);
-                    MenuItem::new(im_str!("Mixer")).build(ui);
-                    MenuItem::new(im_str!("Oscillator")).build(ui);
-                    unsafe { imgui_sys::igEndPopup() };
-                }
+                register_popup_context(ui);
             });
 
         style_vars.pop(ui);
         style_color.pop(ui);
     });
+}
+
+fn register_popup_context(ui: &Ui<'_>) {
+    if unsafe { imgui_sys::igBeginPopupContextWindow(ptr::null(), 1) } {
+        MenuItem::new(im_str!("Load")).build(ui);
+        MenuItem::new(im_str!("Save as")).build(ui);
+        ui.separator();
+        MenuItem::new(im_str!("Sound output")).build(ui);
+        MenuItem::new(im_str!("Mixer")).build(ui);
+        MenuItem::new(im_str!("Oscillator")).build(ui);
+        unsafe { imgui_sys::igEndPopup() };
+    }
 }
