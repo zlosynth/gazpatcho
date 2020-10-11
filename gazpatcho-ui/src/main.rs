@@ -1,19 +1,20 @@
 mod system;
+mod vector2;
 
 use std::ptr;
 
 use imgui::*;
 
+use vector2::Vec2;
+
 struct State {
-    scrolling_x: f32,
-    scrolling_y: f32,
+    scrolling: Vec2,
     cursor: MouseCursor,
 }
 
 fn main() {
     let mut state = State {
-        scrolling_x: 0.0,
-        scrolling_y: 0.0,
+        scrolling: Vec2::zeroed(),
         cursor: MouseCursor::Arrow,
     };
 
@@ -59,34 +60,23 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
             let draw_list = ui.get_window_draw_list();
             draw_list
                 .add_rect(
-                    [state.scrolling_x + 200.0, state.scrolling_y + 200.0],
-                    [state.scrolling_x + 300.0, state.scrolling_y + 300.0],
+                    [200.0, 200.0] + state.scrolling,
+                    [300.0, 300.0] + state.scrolling,
                     [1.0, 1.0, 1.0],
                 )
                 .build();
 
-            register_window_scrolling(
-                ui,
-                &mut state.scrolling_x,
-                &mut state.scrolling_y,
-                &mut state.cursor,
-            );
+            register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
         });
 }
 
-fn register_window_scrolling(
-    ui: &Ui<'_>,
-    scrolling_x: &mut f32,
-    scrolling_y: &mut f32,
-    cursor: &mut MouseCursor,
-) {
+fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut Vec2, cursor: &mut MouseCursor) {
     if ui.is_window_hovered() {
         if ui.is_mouse_clicked(MouseButton::Left) {
             *cursor = MouseCursor::ResizeAll;
         } else if ui.is_mouse_dragging(MouseButton::Left) {
             *cursor = MouseCursor::ResizeAll;
-            *scrolling_x += ui.io().mouse_delta[0];
-            *scrolling_y += ui.io().mouse_delta[1];
+            *scrolling += ui.io().mouse_delta;
         } else if ui.is_mouse_released(MouseButton::Left) {
             *cursor = MouseCursor::Arrow;
         }
