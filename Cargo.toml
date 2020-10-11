@@ -1,10 +1,4 @@
-[package]
-name = "gazpatcho"
-version = "0.1.0"
-authors = ["Petr Horáček <hrck@protonmail.com>"]
-edition = "2018"
-license = "GPL-3.0-or-later"
-repository = "https://github.com/zlosynth/gazpatcho"
-readme = "README.md"
-
-[dependencies]
+[workspace]
+members = [
+    "gazpatcho-ui",
+]
