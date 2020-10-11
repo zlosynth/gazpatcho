@@ -35,26 +35,6 @@ fn main() {
                     MenuItem::new(im_str!("Oscillator")).build(ui);
                     unsafe { imgui_sys::igEndPopup() };
                 }
-
-                ChildWindow::new("child")
-                    .size([400.0, 200.0])
-                    .border(true)
-                    .build(ui, || {
-                        for i in 0..10 {
-                            ui.text(format!("Scrolling Text {}", i));
-                        }
-                    });
-
-                ui.same_line(0.0);
-
-                ChildWindow::new("child2")
-                    .size([0.0, 400.0])
-                    .border(true)
-                    .build(ui, || {
-                        for i in 0..10 {
-                            ui.text(format!("Scrolling Text {}", i));
-                        }
-                    });
             });
 
         style_vars.pop(ui);
