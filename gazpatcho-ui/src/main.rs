@@ -4,13 +4,22 @@ use std::ptr;
 
 use imgui::*;
 
-struct State {}
+struct State {
+    scrolling_x: f32,
+    scrolling_y: f32,
+    cursor: MouseCursor,
+}
 
 fn main() {
-    let mut state = State {};
+    let mut state = State {
+        scrolling_x: 0.0,
+        scrolling_y: 0.0,
+        cursor: MouseCursor::Arrow,
+    };
 
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
+        ui.set_mouse_cursor(Some(state.cursor));
         set_styles(ui, || {
             show_main_window(ui, &mut state);
         })
@@ -45,7 +54,43 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
         .movable(false)
         .build(ui, || {
             register_popup_context(ui);
+
+            // Draw circle to test scrolling
+            let draw_list = ui.get_window_draw_list();
+            draw_list
+                .add_rect(
+                    [state.scrolling_x + 200.0, state.scrolling_y + 200.0],
+                    [state.scrolling_x + 300.0, state.scrolling_y + 300.0],
+                    [1.0, 1.0, 1.0],
+                )
+                .build();
+
+            register_window_scrolling(
+                ui,
+                &mut state.scrolling_x,
+                &mut state.scrolling_y,
+                &mut state.cursor,
+            );
         });
+}
+
+fn register_window_scrolling(
+    ui: &Ui<'_>,
+    scrolling_x: &mut f32,
+    scrolling_y: &mut f32,
+    cursor: &mut MouseCursor,
+) {
+    if ui.is_window_hovered() {
+        if ui.is_mouse_clicked(MouseButton::Left) {
+            *cursor = MouseCursor::ResizeAll;
+        } else if ui.is_mouse_dragging(MouseButton::Left) {
+            *cursor = MouseCursor::ResizeAll;
+            *scrolling_x += ui.io().mouse_delta[0];
+            *scrolling_y += ui.io().mouse_delta[1];
+        } else if ui.is_mouse_released(MouseButton::Left) {
+            *cursor = MouseCursor::Arrow;
+        }
+    }
 }
 
 fn register_popup_context(ui: &Ui<'_>) {
