@@ -7,31 +7,41 @@ use imgui::*;
 fn main() {
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
-        let style_vars = ui.push_style_vars(&[
-            StyleVar::WindowRounding(0.0),
-            StyleVar::ChildRounding(0.0),
-            StyleVar::FrameRounding(0.0),
-            StyleVar::GrabRounding(0.0),
-            StyleVar::PopupRounding(0.0),
-            StyleVar::ScrollbarRounding(0.0),
-        ]);
-
-        let style_color = ui.push_style_color(StyleColor::WindowBg, [0.2, 0.2, 0.2, 1.0]);
-
-        Window::new(im_str!("Hello world"))
-            .position([0.0, 0.0], Condition::Always)
-            .size(ui.io().display_size, Condition::Always)
-            .title_bar(false)
-            .resizable(false)
-            .always_auto_resize(true)
-            .movable(false)
-            .build(ui, || {
-                register_popup_context(ui);
-            });
-
-        style_vars.pop(ui);
-        style_color.pop(ui);
+        set_styles(ui, || {
+            register_main_window(ui);
+        })
     });
+}
+
+fn set_styles<F: FnOnce()>(ui: &Ui<'_>, f: F) {
+    let style_vars = ui.push_style_vars(&[
+        StyleVar::WindowRounding(0.0),
+        StyleVar::ChildRounding(0.0),
+        StyleVar::FrameRounding(0.0),
+        StyleVar::GrabRounding(0.0),
+        StyleVar::PopupRounding(0.0),
+        StyleVar::ScrollbarRounding(0.0),
+    ]);
+
+    let style_color = ui.push_style_color(StyleColor::WindowBg, [0.2, 0.2, 0.2, 1.0]);
+
+    f();
+
+    style_vars.pop(ui);
+    style_color.pop(ui);
+}
+
+fn register_main_window(ui: &Ui<'_>) {
+    Window::new(im_str!("Hello world"))
+        .position([0.0, 0.0], Condition::Always)
+        .size(ui.io().display_size, Condition::Always)
+        .title_bar(false)
+        .resizable(false)
+        .always_auto_resize(true)
+        .movable(false)
+        .build(ui, || {
+            register_popup_context(ui);
+        });
 }
 
 fn register_popup_context(ui: &Ui<'_>) {
