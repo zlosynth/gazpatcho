@@ -4,11 +4,15 @@ use std::ptr;
 
 use imgui::*;
 
+struct State {}
+
 fn main() {
+    let mut state = State {};
+
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
         set_styles(ui, || {
-            register_main_window(ui);
+            show_main_window(ui, &mut state);
         })
     });
 }
@@ -31,7 +35,7 @@ fn set_styles<F: FnOnce()>(ui: &Ui<'_>, f: F) {
     style_color.pop(ui);
 }
 
-fn register_main_window(ui: &Ui<'_>) {
+fn show_main_window(ui: &Ui<'_>, state: &mut State) {
     Window::new(im_str!("Hello world"))
         .position([0.0, 0.0], Condition::Always)
         .size(ui.io().display_size, Condition::Always)
