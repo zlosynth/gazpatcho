@@ -1,3 +1,4 @@
+// TODO: Turn this into a wrapper over [f32; 2] and introduce deref. That may help to get rid of .into()
 use std::convert::From;
 use std::ops::{Add, AddAssign};
 
