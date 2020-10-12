@@ -44,7 +44,7 @@ impl Node {
     }
 }
 
-fn main() {
+pub fn run() {
     let mut state = State {
         scrolling: Vec2::zeroed(),
         cursor: MouseCursor::Arrow,
