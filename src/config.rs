@@ -94,29 +94,34 @@ impl NodeClass {
         &self.output_pins
     }
 
-    pub(crate) fn instantiate(&self, id: String, position: Vec2) -> internal::Node {
+    // TODO: Implement Into/From on internal::Pin vs config::Pin
+
+    pub(crate) fn instantiate(&self, id: String) -> internal::Node {
         internal::Node {
-            id,
-            position,
-            class: self.name.clone(),
-            label: self.label.clone(),
-            input_pins: self
-                .input_pins
-                .iter()
-                .map(|p| internal::Pin {
-                    class: p.name().to_string(),
-                    label: p.label().map(|l| l.to_string()),
-                })
-                .collect(),
-            output_pins: self
-                .output_pins
-                .iter()
-                .map(|p| internal::Pin {
-                    class: p.name().to_string(),
-                    label: p.label().map(|l| l.to_string()),
-                })
-                .collect(),
-            size: Vec2::zero(),
+            spec: internal::NodeSpec {
+                id,
+                class: self.name.clone(),
+                label: self.label.clone(),
+                input_pins: self
+                    .input_pins
+                    .iter()
+                    .map(|p| internal::Pin {
+                        class: p.name().to_string(),
+                        label: p.label().to_string(),
+                    })
+                    .collect(),
+                output_pins: self
+                    .output_pins
+                    .iter()
+                    .map(|p| internal::Pin {
+                        class: p.name().to_string(),
+                        label: p.label().to_string(),
+                    })
+                    .collect(),
+            },
+            state: internal::NodeState {
+                position: Vec2::zero(),
+            },
         }
     }
 }
@@ -124,25 +129,20 @@ impl NodeClass {
 #[derive(Debug)]
 pub struct Pin {
     name: String,
-    label: Option<String>,
+    label: String,
 }
 
 impl Pin {
-    pub fn new(name: String) -> Self {
-        Self { name, label: None }
+    pub fn new(name: String, label: String) -> Self {
+        Self { name, label }
     }
 
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    pub fn set_label(mut self, label: String) -> Self {
-        self.label = Some(label);
-        self
-    }
-
-    pub fn label(&self) -> Option<&str> {
-        self.label.as_deref()
+    pub fn label(&self) -> &str {
+        &self.label
     }
 }
 
@@ -203,22 +203,22 @@ mod tests {
     #[test]
     fn must_add_input_pin_to_node_class() {
         let _node_class = NodeClass::new("class_name".into(), "Node Label".into())
-            .must_add_input_pin(Pin::new("pin_name".into()));
+            .must_add_input_pin(Pin::new("pin_name".into(), "Pin Label".into()));
     }
 
     #[test]
     #[should_panic(expected = "Input Pin named \"pin_name\" already exists in the given NodeClass")]
     fn panic_on_duplicate_input_pin_name_added_to_config() {
         let _node_class = NodeClass::new("class_name".into(), "Node Label".into())
-            .must_add_input_pin(Pin::new("pin_name".into()))
-            .must_add_input_pin(Pin::new("pin_name".into()));
+            .must_add_input_pin(Pin::new("pin_name".into(), "Pin Label".into()))
+            .must_add_input_pin(Pin::new("pin_name".into(), "Pin Label".into()));
     }
 
     #[test]
     fn iterate_input_pins_of_node_class() {
         let node_class = NodeClass::new("class_name".into(), "Node Label".into())
-            .must_add_input_pin(Pin::new("pin_name_1".into()))
-            .must_add_input_pin(Pin::new("pin_name_2".into()));
+            .must_add_input_pin(Pin::new("pin_name_1".into(), "Pin Label".into()))
+            .must_add_input_pin(Pin::new("pin_name_2".into(), "Pin Label".into()));
 
         let mut iter = node_class.input_pins().iter();
         assert_eq!(iter.next().unwrap().name(), "pin_name_1");
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn must_add_output_pin_to_node_class() {
         let _node_class = NodeClass::new("class_name".into(), "Node Label".into())
-            .must_add_output_pin(Pin::new("pin_name".into()));
+            .must_add_output_pin(Pin::new("pin_name".into(), "Pin Label".into()));
     }
 
     #[test]
@@ -238,15 +238,15 @@ mod tests {
     )]
     fn panic_on_duplicate_output_pin_name_added_to_config() {
         let _node_class = NodeClass::new("class_name".into(), "Node Label".into())
-            .must_add_output_pin(Pin::new("pin_name".into()))
-            .must_add_output_pin(Pin::new("pin_name".into()));
+            .must_add_output_pin(Pin::new("pin_name".into(), "Pin Label".into()))
+            .must_add_output_pin(Pin::new("pin_name".into(), "Pin Label".into()));
     }
 
     #[test]
     fn iterate_output_pins_of_node_class() {
         let node_class = NodeClass::new("class_name".into(), "Node Label".into())
-            .must_add_output_pin(Pin::new("pin_name_1".into()))
-            .must_add_output_pin(Pin::new("pin_name_2".into()));
+            .must_add_output_pin(Pin::new("pin_name_1".into(), "Pin Label".into()))
+            .must_add_output_pin(Pin::new("pin_name_2".into(), "Pin Label".into()));
 
         let mut iter = node_class.output_pins().iter();
         assert_eq!(iter.next().unwrap().name(), "pin_name_1");
@@ -256,34 +256,29 @@ mod tests {
 
     #[test]
     fn initialize_pin() {
-        let _pin = Pin::new("pin_name".into());
+        let _pin = Pin::new("pin_name".into(), "Pin Label".into());
     }
 
     #[test]
     fn get_pin_name() {
-        let pin = Pin::new("pin_name".into());
+        let pin = Pin::new("pin_name".into(), "Pin Label".into());
 
         assert_eq!(pin.name(), "pin_name");
     }
 
     #[test]
-    fn set_pin_label() {
-        let _pin = Pin::new("pin_name".into()).set_label("Pin Label".into());
-    }
-
-    #[test]
     fn get_pin_label() {
-        let pin = Pin::new("pin_name".into()).set_label("Pin Label".into());
+        let pin = Pin::new("pin_name".into(), "Pin Label".into());
 
-        assert_eq!(pin.label().unwrap(), "Pin Label");
+        assert_eq!(pin.label(), "Pin Label");
     }
 
     #[test]
     fn instantiate_node() {
         let node_class = NodeClass::new("class_name".into(), "Node Label".into())
-            .must_add_output_pin(Pin::new("pin_name".into()).set_label("Input".into()))
-            .must_add_output_pin(Pin::new("output".into()).set_label("Output".into()));
+            .must_add_output_pin(Pin::new("pin_name".into(), "Input".into()))
+            .must_add_output_pin(Pin::new("output".into(), "Output".into()));
 
-        let _node = node_class.instantiate("#1".into(), Vec2::zero());
+        let _node = node_class.instantiate("#1".into());
     }
 }

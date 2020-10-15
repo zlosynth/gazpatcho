@@ -9,18 +9,18 @@ fn main() {
     let config = config::Config::new()
         .must_add_node_class(
             config::NodeClass::new("oscillator".into(), "Oscillator".into())
-                .must_add_input_pin(config::Pin::new("freq".into()).set_label("Frequency".into()))
-                .must_add_input_pin(config::Pin::new("sync".into()).set_label("Sync".into()))
-                .must_add_input_pin(
-                    config::Pin::new("waveform".into()).set_label("Waveform".into()),
-                )
-                .must_add_output_pin(config::Pin::new("out".into()).set_label("Output".into())),
+                .must_add_input_pin(config::Pin::new("freq".into(), "Frequency".into()))
+                .must_add_input_pin(config::Pin::new("sync".into(), "Sync".into()))
+                .must_add_input_pin(config::Pin::new("waveform".into(), "Waveform".into()))
+                .must_add_output_pin(config::Pin::new("out".into(), "Output".into()))
+                .must_add_output_pin(config::Pin::new("out2".into(), "Out".into()))
+                .must_add_output_pin(config::Pin::new("out3".into(), "Long output".into())),
         )
         .must_add_node_class(
             config::NodeClass::new(".mixer".into(), "Mixer".into())
-                .must_add_input_pin(config::Pin::new("in1".into()).set_label("Input 1".into()))
-                .must_add_input_pin(config::Pin::new("in2".into()).set_label("Input 2".into()))
-                .must_add_output_pin(config::Pin::new("out".into()).set_label("Output".into())),
+                .must_add_input_pin(config::Pin::new("in1".into(), "Input 1".into()))
+                .must_add_input_pin(config::Pin::new("in2".into(), "Input 2".into()))
+                .must_add_output_pin(config::Pin::new("out".into(), "Output".into())),
         );
 
     // let handle = gazpatcho::run(config);

@@ -15,3 +15,7 @@ imgui-winit-support = "0.5"
 clipboard = "0.5"
 glium = { version = "0.27", default-features = true }
 image = "0.23"
+
+[dev-dependencies]
+parking_lot = "0.11"
+lazy_static = "1.1"
