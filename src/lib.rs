@@ -78,7 +78,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
         .always_auto_resize(true)
         .movable(false)
         .build(ui, || {
-            register_popup_context(ui);
+            register_popup_context(ui, state.config.node_classes());
 
             register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
 
@@ -195,14 +195,17 @@ fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut Vec2, cursor: &mut Mou
     }
 }
 
-fn register_popup_context(ui: &Ui<'_>) {
+fn register_popup_context(ui: &Ui<'_>, classes: &Vec<config::NodeClass>) {
     if unsafe { imgui_sys::igBeginPopupContextWindow(ptr::null(), 1) } {
         MenuItem::new(im_str!("Load")).build(ui);
         MenuItem::new(im_str!("Save as")).build(ui);
+
         ui.separator();
-        MenuItem::new(im_str!("Sound output")).build(ui);
-        MenuItem::new(im_str!("Mixer")).build(ui);
-        MenuItem::new(im_str!("Oscillator")).build(ui);
+
+        for class in classes.iter() {
+            MenuItem::new(&ImString::new(class.label())).build(ui);
+        }
+
         unsafe { imgui_sys::igEndPopup() };
     }
 }
