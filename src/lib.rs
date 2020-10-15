@@ -87,7 +87,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
             let a =
                 state.nodes[0].output_slot_position(0) + Vec2 { x: 0.0, y: 5.0 } + state.scrolling;
             let b =
-                state.nodes[1].input_slot_position(2) + Vec2 { x: 0.0, y: 5.0 } + state.scrolling;
+                state.nodes[1].input_slot_position(1) + Vec2 { x: 0.0, y: 5.0 } + state.scrolling;
             draw_list
                 .add_bezier_curve(
                     a.into(),
@@ -138,6 +138,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                         }
                     }
 
+                    // Draw the box
                     draw_list
                         .add_rect(
                             (node.position + state.scrolling).into(),
@@ -154,6 +155,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                         )
                         .build();
 
+                    // Draw pin marks
                     for i in 0..node.input_pins.len() {
                         draw_list
                             .add_rect(
@@ -165,7 +167,6 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                             .filled(true)
                             .build();
                     }
-
                     for i in 0..node.output_pins.len() {
                         draw_list
                             .add_rect(
