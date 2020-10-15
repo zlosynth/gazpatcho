@@ -9,14 +9,14 @@ pub struct Vec2 {
 }
 
 impl Vec2 {
-    pub fn zeroed() -> Self {
+    pub fn zero() -> Self {
         Self { x: 0.0, y: 0.0 }
     }
 }
 
 impl Default for Vec2 {
     fn default() -> Self {
-        Self::zeroed()
+        Self::zero()
     }
 }
 

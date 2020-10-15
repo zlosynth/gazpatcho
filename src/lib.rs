@@ -1,20 +1,20 @@
-// gazpatcho - ui
-// graphity - building graphs of f32 flows
-// noise mother (abnoisexous) - sound modules, sources, edit, ...
-// zlosynth-sandbox
-//
-//
-// zlosynth-box-mk1
+pub mod config;
+
+mod internal;
 mod system;
-mod vector2;
+mod vec2;
 
 use std::ptr;
 
 use imgui::*;
 
-use vector2::Vec2;
+use crate::vec2::Vec2;
+
+// ---------------------------
 
 struct State {
+    // TODO: User config
+    // TODO: Internal state
     scrolling: Vec2,
     cursor: MouseCursor,
     nodes: Vec<Node>,
@@ -44,9 +44,9 @@ impl Node {
     }
 }
 
-pub fn run() {
+pub fn run(_config: config::Config) {
     let mut state = State {
-        scrolling: Vec2::zeroed(),
+        scrolling: Vec2::zero(),
         cursor: MouseCursor::Arrow,
         nodes: Vec::new(),
     };
@@ -54,7 +54,7 @@ pub fn run() {
     state.nodes.push(Node {
         name: "Oscillator".to_owned(),
         position: Vec2 { x: 300.0, y: 400.0 },
-        size: Vec2::zeroed(),
+        size: Vec2::zero(),
         inputs: 3,
         outputs: 1,
     });
@@ -62,7 +62,7 @@ pub fn run() {
     state.nodes.push(Node {
         name: "System Output".to_owned(),
         position: Vec2 { x: 400.0, y: 700.0 },
-        size: Vec2::zeroed(),
+        size: Vec2::zero(),
         inputs: 3,
         outputs: 1,
     });
@@ -165,19 +165,6 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                             state.cursor = MouseCursor::Arrow;
                         }
                     }
-
-                    //
-                    // ImGui::InvisibleButton("node", node->Size);
-                    // if (ImGui::IsItemHovered())
-                    // {
-                    // node_hovered_in_scene = node->ID;
-                    // open_context_menu |= ImGui::IsMouseClicked(1);
-                    // }
-                    // bool node_moving_active = ImGui::IsItemActive();
-                    // if (node_widgets_active || node_moving_active)
-                    // node_selected = node->ID;
-                    // if (node_moving_active && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
-                    // node->Pos = node->Pos + io.MouseDelta;
 
                     draw_list
                         .add_rect(
