@@ -15,57 +15,29 @@ use crate::vec2::Vec2;
 struct State {
     // TODO: User config
     // TODO: Internal state
+    config: config::Config,
     scrolling: Vec2,
     cursor: MouseCursor,
-    nodes: Vec<Node>,
+    nodes: Vec<internal::Node>,
 }
 
-struct Node {
-    name: String,
-    position: Vec2,
-    size: Vec2,
-    inputs: u32,
-    outputs: u32,
-}
-
-impl Node {
-    pub fn input_slot_position(&self, slot_no: u32) -> Vec2 {
-        Vec2 {
-            x: self.position.x,
-            y: self.position.y + 29.0 + 17.0 * slot_no as f32,
-        }
-    }
-
-    pub fn output_slot_position(&self, slot_no: u32) -> Vec2 {
-        Vec2 {
-            x: self.position.x + self.size.x,
-            y: self.position.y + 29.0 + 17.0 * slot_no as f32,
-        }
-    }
-}
-
-pub fn run(_config: config::Config) {
+pub fn run(config_: config::Config) {
     let mut state = State {
+        config: config_,
         scrolling: Vec2::zero(),
         cursor: MouseCursor::Arrow,
         nodes: Vec::new(),
     };
 
-    state.nodes.push(Node {
-        name: "Oscillator".to_owned(),
-        position: Vec2 { x: 300.0, y: 400.0 },
-        size: Vec2::zero(),
-        inputs: 3,
-        outputs: 1,
-    });
-
-    state.nodes.push(Node {
-        name: "System Output".to_owned(),
-        position: Vec2 { x: 400.0, y: 700.0 },
-        size: Vec2::zero(),
-        inputs: 3,
-        outputs: 1,
-    });
+    for (i, class) in state.config.node_classes().iter().enumerate() {
+        state.nodes.push(class.instantiate(
+            format!("{}", i),
+            Vec2 {
+                x: (i * 3 + 1) as f32 * 100.0,
+                y: (i + 1) as f32 * 100.0,
+            },
+        ));
+    }
 
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
@@ -140,7 +112,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                     );
 
                     ui.group(|| {
-                        ui.text(format!("{}", &node.name));
+                        ui.text(format!("{}", &node.label));
                         ui.text("Frequency");
                         ui.same_line(100.0);
                         ui.text("Output");
@@ -154,7 +126,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                     channels.set_current(0);
                     ui.set_cursor_screen_pos((node.position + state.scrolling).into());
 
-                    ui.invisible_button(&ImString::new(&node.name), node.size.into());
+                    ui.invisible_button(&ImString::new(&node.id), node.size.into());
                     if ui.is_item_active() {
                         if ui.is_mouse_clicked(MouseButton::Left) {
                             state.cursor = MouseCursor::Hand;
@@ -182,7 +154,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                         )
                         .build();
 
-                    for i in 0..node.inputs {
+                    for i in 0..node.input_pins.len() {
                         draw_list
                             .add_rect(
                                 (node.input_slot_position(i) + state.scrolling).into(),
@@ -194,7 +166,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                             .build();
                     }
 
-                    for i in 0..node.outputs {
+                    for i in 0..node.output_pins.len() {
                         draw_list
                             .add_rect(
                                 (node.output_slot_position(i) + state.scrolling).into(),
