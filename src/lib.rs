@@ -104,7 +104,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                     widget::pin::Pin::new(im_str!("pin3"), im_str!("Pin Label"))
                         .orientation(widget::pin::Orientation::Right),
                 )
-                .build(ui, |pin_id| {
+                .callback(|pin_id| {
                     if ui.is_item_active() {
                         if ui.is_mouse_clicked(MouseButton::Left) {
                             println!("Clicked {}", pin_id);
@@ -116,7 +116,8 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                             println!("Let go {}", pin_id);
                         }
                     }
-                });
+                })
+                .build(ui);
 
             // for node in state.nodes.iter_mut() {
             //     node.build(ui, &state.scrolling);

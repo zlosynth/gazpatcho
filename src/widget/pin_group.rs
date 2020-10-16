@@ -8,16 +8,24 @@ use crate::widget::pin::{self, Pin};
 const PIN_HORIZONTAL_SPACING: f32 = 10.0;
 const PIN_VERTICAL_SPACING: f32 = 10.0;
 
-pub struct PinGroup<'a> {
+pub struct PinGroup<'a, F>
+where
+    F: Fn(imgui::ImString),
+{
     position: [f32; 2],
     pins: Vec<Pin<'a>>,
+    callback: Option<F>,
 }
 
-impl<'a> PinGroup<'a> {
+impl<'a, F> PinGroup<'a, F>
+where
+    F: Fn(imgui::ImString),
+{
     pub fn new() -> Self {
         Self {
             position: [0.0, 0.0],
             pins: Vec::new(),
+            callback: None,
         }
     }
 
@@ -31,7 +39,12 @@ impl<'a> PinGroup<'a> {
         self
     }
 
-    pub fn build<F: Fn(imgui::ImString)>(self, ui: &imgui::Ui, f: F) {
+    pub fn callback(mut self, callback: F) -> Self {
+        self.callback = Some(callback);
+        self
+    }
+
+    pub fn build(self, ui: &imgui::Ui) {
         let position = self.position;
         let size = self.get_size(ui);
 
@@ -59,7 +72,9 @@ impl<'a> PinGroup<'a> {
                     }
                 };
 
-                f(pin_id.into());
+                if let Some(callback) = self.callback.as_ref() {
+                    callback(pin_id.into());
+                }
             }
         });
     }
