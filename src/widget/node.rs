@@ -15,6 +15,7 @@ where
 {
     Label(Label<'a>),
     PinGroup(PinGroup<'a, F>),
+    Space(f32),
 }
 
 pub struct Node<'a, F>
@@ -74,6 +75,9 @@ where
                     pin_group.position(cursor).build(ui);
                     cursor[1] += component_height;
                 }
+                Component::Space(space) => {
+                    cursor[1] += space;
+                }
             };
         }
     }
@@ -85,6 +89,7 @@ where
                 .map(|c| match c {
                     Component::Label(label) => label.get_size(ui),
                     Component::PinGroup(pin_group) => pin_group.get_size(ui),
+                    Component::Space(space) => [0.0, *space],
                 })
                 .fold([0.0 as f32, 0.0], |a, b| [a[0].max(b[0]), a[1] + b[1]])
         };

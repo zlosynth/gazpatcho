@@ -6,10 +6,7 @@ const BLACK: [f32; 3] = [0.0, 0.0, 0.0];
 
 const TEXT_COLOR: [f32; 3] = BLACK;
 
-const PADDING_TOP: f32 = 10.0;
-const PADDING_BOTTOM: f32 = 15.0;
-const PADDING_LEFT: f32 = 10.0;
-const PADDING_RIGHT: f32 = 10.0;
+const PADDING: f32 = 10.0;
 
 pub struct Label<'a> {
     text: &'a imgui::ImStr,
@@ -32,14 +29,14 @@ impl<'a> Label<'a> {
     pub fn get_size(&self, ui: &imgui::Ui<'_>) -> [f32; 2] {
         vec2::sum(&[
             ui.calc_text_size(self.text, false, 0.0),
-            [PADDING_LEFT + PADDING_RIGHT, PADDING_TOP + PADDING_BOTTOM],
+            [PADDING * 2.0, PADDING * 2.0],
         ])
     }
 
     pub fn build(self, ui: &imgui::Ui<'_>) {
         let draw_list = ui.get_window_draw_list();
         draw_list.add_text(
-            vec2::sum(&[self.position, [PADDING_LEFT, PADDING_TOP]]),
+            vec2::sum(&[self.position, [PADDING, PADDING]]),
             TEXT_COLOR,
             self.text,
         );

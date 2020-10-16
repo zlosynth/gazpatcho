@@ -95,6 +95,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                 .add_component(widget::node::Component::Label(widget::label::Label::new(
                     im_str!("Node Label"),
                 )))
+                .add_component(widget::node::Component::Space(5.0))
                 .add_component(widget::node::Component::PinGroup(
                     widget::pin_group::PinGroup::new()
                         .add_pin(
@@ -123,6 +124,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                             }
                         }),
                 ))
+                .add_component(widget::node::Component::Space(10.0))
                 .build(ui);
 
             // for node in state.nodes.iter_mut() {
