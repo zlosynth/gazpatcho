@@ -1,6 +1,7 @@
 extern crate imgui;
 
 use crate::vec2;
+use crate::widget::label::Label;
 use crate::widget::pin_group::PinGroup;
 
 const BLACK: [f32; 3] = [0.1, 0.1, 0.1];
@@ -12,6 +13,7 @@ pub enum Component<'a, F>
 where
     F: Fn(imgui::ImString),
 {
+    Label(Label<'a>),
     PinGroup(PinGroup<'a, F>),
 }
 
@@ -58,10 +60,19 @@ where
                 .build();
         }
 
+        let mut cursor = position;
+
         for component in self.components.into_iter() {
             match component {
+                Component::Label(label) => {
+                    let component_height = label.get_size(ui)[1];
+                    label.position(cursor).build(ui);
+                    cursor[1] += component_height;
+                }
                 Component::PinGroup(pin_group) => {
-                    pin_group.position(position).build(ui);
+                    let component_height = pin_group.get_size(ui)[1];
+                    pin_group.position(cursor).build(ui);
+                    cursor[1] += component_height;
                 }
             };
         }
@@ -72,6 +83,7 @@ where
             self.components
                 .iter()
                 .map(|c| match c {
+                    Component::Label(label) => label.get_size(ui),
                     Component::PinGroup(pin_group) => pin_group.get_size(ui),
                 })
                 .fold([0.0 as f32, 0.0], |a, b| [a[0].max(b[0]), a[1] + b[1]])

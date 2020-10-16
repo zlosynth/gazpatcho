@@ -92,6 +92,9 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
 
             widget::node::Node::new(im_str!("node1"))
                 .position([100.0 + state.scrolling.x, 100.0 + state.scrolling.y])
+                .add_component(widget::node::Component::Label(widget::label::Label::new(
+                    im_str!("Node Label"),
+                )))
                 .add_component(widget::node::Component::PinGroup(
                     widget::pin_group::PinGroup::new()
                         .add_pin(
