@@ -33,12 +33,14 @@ impl Node {
                 }
             }
         });
+
         for input_pin in self.input_pins.iter() {
             pin_group = pin_group.add_pin(
                 widget::pin::Pin::new(&input_pin.class, &input_pin.label)
                     .orientation(widget::pin::Orientation::Left),
             );
         }
+
         for output_pin in self.output_pins.iter() {
             pin_group = pin_group.add_pin(
                 widget::pin::Pin::new(&output_pin.class, &output_pin.label)
@@ -46,20 +48,18 @@ impl Node {
             );
         }
 
-        let position = &mut self.position;
-
         widget::node::Node::new(&self.id)
-            .position(vec2::sum(&[*position, offset]))
+            .position(vec2::sum(&[self.position, offset]))
             .add_component(widget::node::Component::Label(widget::label::Label::new(
                 &self.label,
             )))
             .add_component(widget::node::Component::Space(5.0))
             .add_component(widget::node::Component::PinGroup(pin_group))
             .add_component(widget::node::Component::Space(10.0))
-            .build(ui, || {
-                if ui.is_item_active() && ui.is_mouse_dragging(imgui::MouseButton::Left) {
-                    *position = vec2::sum(&[*position, ui.io().mouse_delta]);
-                }
-            });
+            .build(ui);
+
+        if ui.is_item_active() && ui.is_mouse_dragging(imgui::MouseButton::Left) {
+            self.position = vec2::sum(&[self.position, ui.io().mouse_delta]);
+        }
     }
 }

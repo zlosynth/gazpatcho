@@ -50,47 +50,44 @@ where
         self
     }
 
-    pub fn build<BF: FnOnce()>(self, ui: &imgui::Ui<'_>, f: BF) {
+    pub fn build(self, ui: &imgui::Ui<'_>) {
         let position = self.position;
         let size = self.get_size(ui);
 
-        ui.group(|| {
-            {
-                let draw_list = ui.get_window_draw_list();
-                draw_list
-                    .add_rect(position, vec2::sum(&[position, size]), BACKGROUND_COLOR)
-                    .filled(true)
-                    .build();
-                draw_list
-                    .add_rect(position, vec2::sum(&[position, size]), FRAME_COLOR)
-                    .filled(false)
-                    .build();
-            }
+        {
+            let draw_list = ui.get_window_draw_list();
+            draw_list
+                .add_rect(position, vec2::sum(&[position, size]), BACKGROUND_COLOR)
+                .filled(true)
+                .build();
+            draw_list
+                .add_rect(position, vec2::sum(&[position, size]), FRAME_COLOR)
+                .filled(false)
+                .build();
+        }
 
-            ui.set_cursor_screen_pos(position);
-            ui.invisible_button(self.id, size);
-            f();
+        let mut cursor = position;
 
-            let mut cursor = position;
+        for component in self.components.into_iter() {
+            match component {
+                Component::Label(label) => {
+                    let component_height = label.get_size(ui)[1];
+                    label.position(cursor).build(ui);
+                    cursor[1] += component_height;
+                }
+                Component::PinGroup(pin_group) => {
+                    let component_height = pin_group.get_size(ui)[1];
+                    pin_group.position(cursor).build(ui);
+                    cursor[1] += component_height;
+                }
+                Component::Space(space) => {
+                    cursor[1] += space;
+                }
+            };
+        }
 
-            for component in self.components.into_iter() {
-                match component {
-                    Component::Label(label) => {
-                        let component_height = label.get_size(ui)[1];
-                        label.position(cursor).build(ui);
-                        cursor[1] += component_height;
-                    }
-                    Component::PinGroup(pin_group) => {
-                        let component_height = pin_group.get_size(ui)[1];
-                        pin_group.position(cursor).build(ui);
-                        cursor[1] += component_height;
-                    }
-                    Component::Space(space) => {
-                        cursor[1] += space;
-                    }
-                };
-            }
-        });
+        ui.set_cursor_screen_pos(position);
+        ui.invisible_button(self.id, size);
     }
 
     fn get_size(&self, ui: &imgui::Ui<'_>) -> [f32; 2] {
