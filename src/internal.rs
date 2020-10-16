@@ -60,16 +60,7 @@ impl Node {
         self.build_background_button(ui, &node_size, position_offset);
 
         // Draw the box background
-        {
-            draw_list
-                .add_rect(
-                    (self.position + *position_offset).into(),
-                    (self.position + node_size + *position_offset).into(),
-                    WHITE,
-                )
-                .filled(true)
-                .build();
-        }
+        self.build_background(&draw_list, &node_size, position_offset);
 
         // Draw title
         self.build_title(&draw_list, position_offset);
@@ -141,14 +132,6 @@ impl Node {
         }
     }
 
-    fn build_title(&self, draw_list: &imgui::WindowDrawList, position_offset: &Vec2) {
-        draw_list.add_text(
-            [NODE_PADDING, NODE_PADDING] + self.position + *position_offset,
-            BLACK,
-            &imgui::ImString::new(&self.label),
-        );
-    }
-
     fn build_background_button(
         &mut self,
         ui: &imgui::Ui<'_>,
@@ -167,6 +150,30 @@ impl Node {
                 //state.cursor = MouseCursor::Arrow;
             }
         }
+    }
+
+    fn build_background(
+        &self,
+        draw_list: &imgui::WindowDrawList,
+        node_size: &[f32; 2],
+        position_offset: &Vec2,
+    ) {
+        draw_list
+            .add_rect(
+                (self.position + *position_offset).into(),
+                (self.position + *node_size + *position_offset).into(),
+                WHITE,
+            )
+            .filled(true)
+            .build();
+    }
+
+    fn build_title(&self, draw_list: &imgui::WindowDrawList, position_offset: &Vec2) {
+        draw_list.add_text(
+            [NODE_PADDING, NODE_PADDING] + self.position + *position_offset,
+            BLACK,
+            &imgui::ImString::new(&self.label),
+        );
     }
 }
 
