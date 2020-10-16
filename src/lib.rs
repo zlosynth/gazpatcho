@@ -90,14 +90,21 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
 
             register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
 
-            widget::pin::Pin::new(im_str!("pin1"), im_str!("Pin Label"))
+            widget::pin_group::PinGroup::new()
                 .position([100.0 + state.scrolling.x, 100.0 + state.scrolling.y])
-                .build(ui);
-
-            widget::pin::Pin::new(im_str!("pin2"), im_str!("Pin Label"))
-                .position([100.0 + state.scrolling.x, 200.0 + state.scrolling.y])
-                .orientation(widget::pin::Orientation::Right)
-                .build(ui);
+                .add_pin(
+                    widget::pin::Pin::new(im_str!("pin1"), im_str!("Pin Label"))
+                        .orientation(widget::pin::Orientation::Left),
+                )
+                .add_pin(
+                    widget::pin::Pin::new(im_str!("pin2"), im_str!("Pin Label 2"))
+                        .orientation(widget::pin::Orientation::Left),
+                )
+                .add_pin(
+                    widget::pin::Pin::new(im_str!("pin3"), im_str!("Pin Label"))
+                        .orientation(widget::pin::Orientation::Right),
+                )
+                .build(ui, |pin_id| {});
 
             // for node in state.nodes.iter_mut() {
             //     node.build(ui, &state.scrolling);
