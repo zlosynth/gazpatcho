@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate imgui;
+
 pub mod config;
 
 mod internal;
@@ -5,19 +8,9 @@ mod system;
 mod vec2;
 mod widget;
 
-#[cfg(test)]
-mod test;
-
 use std::ptr;
 
-#[macro_use]
-extern crate imgui;
-
 use imgui::*;
-
-#[cfg(test)]
-#[macro_use]
-extern crate lazy_static;
 
 use crate::vec2::Vec2;
 
@@ -41,7 +34,10 @@ pub fn run(config_: config::Config) {
     };
 
     for (i, class) in state.config.node_classes().iter().enumerate() {
-        state.nodes.push(class.instantiate(format!("{}", i)));
+        println!("X {}", class.name());
+        state
+            .nodes
+            .push(class.instantiate(imgui::ImString::from(format!("{}", i))));
     }
 
     let s = system::System::init("Gazpatcho");
@@ -90,42 +86,9 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
 
             register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
 
-            widget::node::Node::new(im_str!("node1"))
-                .position([100.0 + state.scrolling.x, 100.0 + state.scrolling.y])
-                .add_component(widget::node::Component::Label(widget::label::Label::new(
-                    im_str!("Node Label"),
-                )))
-                .add_component(widget::node::Component::Space(5.0))
-                .add_component(widget::node::Component::PinGroup(
-                    widget::pin_group::PinGroup::new()
-                        .add_pin(
-                            widget::pin::Pin::new(im_str!("pin1"), im_str!("Pin Label"))
-                                .orientation(widget::pin::Orientation::Left),
-                        )
-                        .add_pin(
-                            widget::pin::Pin::new(im_str!("pin2"), im_str!("Pin Label 2"))
-                                .orientation(widget::pin::Orientation::Left),
-                        )
-                        .add_pin(
-                            widget::pin::Pin::new(im_str!("pin3"), im_str!("Pin Label"))
-                                .orientation(widget::pin::Orientation::Right),
-                        )
-                        .callback(|pin_id| {
-                            if ui.is_item_active() {
-                                if ui.is_mouse_clicked(MouseButton::Left) {
-                                    println!("Clicked {}", pin_id);
-                                }
-                                if ui.is_mouse_dragging(MouseButton::Left) {
-                                    println!("Dragging {}", pin_id);
-                                }
-                                if ui.is_mouse_released(MouseButton::Left) {
-                                    println!("Let go {}", pin_id);
-                                }
-                            }
-                        }),
-                ))
-                .add_component(widget::node::Component::Space(10.0))
-                .build(ui, || {});
+            for node in state.nodes.iter_mut() {
+                node.draw(ui, [state.scrolling.x, state.scrolling.y]);
+            }
 
             // for node in state.nodes.iter_mut() {
             //     node.build(ui, &state.scrolling);

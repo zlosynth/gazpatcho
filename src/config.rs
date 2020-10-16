@@ -1,3 +1,5 @@
+extern crate imgui;
+
 use std::string::String;
 
 use crate::internal;
@@ -96,28 +98,28 @@ impl NodeClass {
 
     // TODO: Implement Into/From on internal::Pin vs config::Pin
 
-    pub(crate) fn instantiate(&self, id: String) -> internal::Node {
+    pub(crate) fn instantiate(&self, id: imgui::ImString) -> internal::Node {
         internal::Node {
             id,
-            class: self.name.clone(),
-            label: self.label.clone(),
+            class: imgui::ImString::from(self.name.clone()),
+            label: imgui::ImString::from(self.label.clone()),
             input_pins: self
                 .input_pins
                 .iter()
                 .map(|p| internal::Pin {
-                    class: p.name().to_string(),
-                    label: p.label().to_string(),
+                    class: imgui::ImString::from(p.name().to_string()),
+                    label: imgui::ImString::from(p.label().to_string()),
                 })
                 .collect(),
             output_pins: self
                 .output_pins
                 .iter()
                 .map(|p| internal::Pin {
-                    class: p.name().to_string(),
-                    label: p.label().to_string(),
+                    class: imgui::ImString::from(p.name().to_string()),
+                    label: imgui::ImString::from(p.label().to_string()),
                 })
                 .collect(),
-            position: Vec2::zero(),
+            position: [0.0, 0.0],
         }
     }
 }
@@ -275,6 +277,6 @@ mod tests {
             .must_add_output_pin(Pin::new("pin_name".into(), "Input".into()))
             .must_add_output_pin(Pin::new("output".into(), "Output".into()));
 
-        let _node = node_class.instantiate("#1".into());
+        let _node = node_class.instantiate(imgui::ImString::from("#1".to_string()));
     }
 }

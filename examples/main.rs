@@ -23,7 +23,6 @@ fn main() {
                 .must_add_output_pin(config::Pin::new("out".into(), "Output".into())),
         );
 
-    // let handle = gazpatcho::run(config);
     let handle = gazpatcho::run(config);
 
     //     loop {
