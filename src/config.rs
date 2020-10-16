@@ -96,31 +96,18 @@ impl NodeClass {
         &self.output_pins
     }
 
-    // TODO: Implement Into/From on internal::Pin vs config::Pin
-
-    pub(crate) fn instantiate(&self, id: imgui::ImString) -> internal::Node {
-        internal::Node {
-            id,
-            class: imgui::ImString::from(self.name.clone()),
-            label: imgui::ImString::from(self.label.clone()),
-            input_pins: self
-                .input_pins
-                .iter()
-                .map(|p| internal::Pin {
-                    class: imgui::ImString::from(p.name().to_string()),
-                    label: imgui::ImString::from(p.label().to_string()),
-                })
-                .collect(),
-            output_pins: self
-                .output_pins
-                .iter()
-                .map(|p| internal::Pin {
-                    class: imgui::ImString::from(p.name().to_string()),
-                    label: imgui::ImString::from(p.label().to_string()),
-                })
-                .collect(),
-            position: [0.0, 0.0],
+    pub(crate) fn instantiate(&self, id: String) -> internal::Node {
+        let mut node_builder =
+            internal::NodeBuilder::new(id, self.name.clone(), self.label.clone());
+        for pin in self.input_pins.iter() {
+            node_builder =
+                node_builder.add_input_pin(pin.name().to_string(), pin.label().to_string());
         }
+        for pin in self.output_pins.iter() {
+            node_builder =
+                node_builder.add_output_pin(pin.name().to_string(), pin.label().to_string());
+        }
+        node_builder.build()
     }
 }
 
@@ -277,6 +264,6 @@ mod tests {
             .must_add_output_pin(Pin::new("pin_name".into(), "Input".into()))
             .must_add_output_pin(Pin::new("output".into(), "Output".into()));
 
-        let _node = node_class.instantiate(imgui::ImString::from("#1".to_string()));
+        let _node = node_class.instantiate("1".to_string());
     }
 }

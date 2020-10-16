@@ -34,10 +34,9 @@ pub fn run(config_: config::Config) {
     };
 
     for (i, class) in state.config.node_classes().iter().enumerate() {
-        println!("X {}", class.name());
-        state
-            .nodes
-            .push(class.instantiate(imgui::ImString::from(format!("{}", i))));
+        println!("Y {}", class.name());
+        state.nodes.push(class.instantiate("1".to_string()));
+        state.nodes.push(class.instantiate("2".to_string()));
     }
 
     let s = system::System::init("Gazpatcho");

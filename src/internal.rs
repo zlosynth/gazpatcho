@@ -4,18 +4,58 @@ use crate::widget;
 
 use crate::vec2;
 
+pub struct NodeBuilder(Node);
+
+impl NodeBuilder {
+    pub fn new(id: String, class: String, label: String) -> Self {
+        Self(Node {
+            class: imgui::ImString::from(class.clone()),
+            id: imgui::ImString::from(id.clone()),
+            im_id: imgui::ImString::from(format!("{}:{}", class, id)),
+            label: imgui::ImString::from(label),
+            input_pins: Vec::new(),
+            output_pins: Vec::new(),
+            position: [0.0, 0.0],
+        })
+    }
+
+    pub fn add_input_pin(mut self, class: String, label: String) -> Self {
+        self.0.input_pins.push(Pin {
+            id: imgui::ImString::from(format!("{}:{}", self.0.im_id, class)),
+            class: imgui::ImString::from(class),
+            label: imgui::ImString::from(label),
+        });
+        self
+    }
+
+    pub fn add_output_pin(mut self, class: String, label: String) -> Self {
+        self.0.output_pins.push(Pin {
+            id: imgui::ImString::from(format!("{}:{}:{}", self.0.class, self.0.id, class)),
+            class: imgui::ImString::from(class),
+            label: imgui::ImString::from(label),
+        });
+        self
+    }
+
+    pub fn build(self) -> Node {
+        self.0
+    }
+}
+
 pub struct Node {
-    pub class: imgui::ImString,
-    pub id: imgui::ImString,
-    pub label: imgui::ImString,
-    pub input_pins: Vec<Pin>,
-    pub output_pins: Vec<Pin>,
-    pub position: [f32; 2],
+    class: imgui::ImString,
+    id: imgui::ImString,
+    im_id: imgui::ImString, // TODO: Rename to address
+    label: imgui::ImString,
+    input_pins: Vec<Pin>,
+    output_pins: Vec<Pin>,
+    position: [f32; 2],
 }
 
 pub struct Pin {
-    pub class: imgui::ImString,
-    pub label: imgui::ImString,
+    id: imgui::ImString, // TODO: Rename to address
+    class: imgui::ImString,
+    label: imgui::ImString,
 }
 
 impl Node {
@@ -36,19 +76,19 @@ impl Node {
 
         for input_pin in self.input_pins.iter() {
             pin_group = pin_group.add_pin(
-                widget::pin::Pin::new(&input_pin.class, &input_pin.label)
+                widget::pin::Pin::new(&input_pin.id, &input_pin.label)
                     .orientation(widget::pin::Orientation::Left),
             );
         }
 
         for output_pin in self.output_pins.iter() {
             pin_group = pin_group.add_pin(
-                widget::pin::Pin::new(&output_pin.class, &output_pin.label)
+                widget::pin::Pin::new(&output_pin.id, &output_pin.label)
                     .orientation(widget::pin::Orientation::Right),
             );
         }
 
-        widget::node::Node::new(&self.id)
+        widget::node::Node::new(&self.im_id)
             .position(vec2::sum(&[self.position, offset]))
             .add_component(widget::node::Component::Label(widget::label::Label::new(
                 &self.label,
