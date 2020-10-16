@@ -125,7 +125,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                         }),
                 ))
                 .add_component(widget::node::Component::Space(10.0))
-                .build(ui);
+                .build(ui, || {});
 
             // for node in state.nodes.iter_mut() {
             //     node.build(ui, &state.scrolling);

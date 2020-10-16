@@ -50,7 +50,7 @@ where
         self
     }
 
-    pub fn build(self, ui: &imgui::Ui<'_>) {
+    pub fn build<BF: FnOnce()>(self, ui: &imgui::Ui<'_>, f: BF) {
         let position = self.position;
         let size = self.get_size(ui);
 
@@ -66,6 +66,10 @@ where
                     .filled(false)
                     .build();
             }
+
+            ui.set_cursor_screen_pos(position);
+            ui.invisible_button(self.id, size);
+            f();
 
             let mut cursor = position;
 
