@@ -65,12 +65,15 @@ fn set_styles<F: FnOnce()>(ui: &Ui<'_>, f: F) {
         StyleVar::ScrollbarRounding(0.0),
     ]);
 
-    let style_color = ui.push_style_color(StyleColor::WindowBg, [0.2, 0.2, 0.2, 1.0]);
+    let style_colors = ui.push_style_colors(&[
+        (StyleColor::WindowBg, [1.0, 1.0, 1.0, 1.0]),
+        (StyleColor::Text, [0.0, 0.0, 0.0, 1.0]),
+    ]);
 
     f();
 
     style_vars.pop(ui);
-    style_color.pop(ui);
+    style_colors.pop(ui);
 }
 
 fn show_main_window(ui: &Ui<'_>, state: &mut State) {

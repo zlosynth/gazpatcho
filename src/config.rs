@@ -98,30 +98,26 @@ impl NodeClass {
 
     pub(crate) fn instantiate(&self, id: String) -> internal::Node {
         internal::Node {
-            spec: internal::NodeSpec {
-                id,
-                class: self.name.clone(),
-                label: self.label.clone(),
-                input_pins: self
-                    .input_pins
-                    .iter()
-                    .map(|p| internal::Pin {
-                        class: p.name().to_string(),
-                        label: p.label().to_string(),
-                    })
-                    .collect(),
-                output_pins: self
-                    .output_pins
-                    .iter()
-                    .map(|p| internal::Pin {
-                        class: p.name().to_string(),
-                        label: p.label().to_string(),
-                    })
-                    .collect(),
-            },
-            state: internal::NodeState {
-                position: Vec2::zero(),
-            },
+            id,
+            class: self.name.clone(),
+            label: self.label.clone(),
+            input_pins: self
+                .input_pins
+                .iter()
+                .map(|p| internal::Pin {
+                    class: p.name().to_string(),
+                    label: p.label().to_string(),
+                })
+                .collect(),
+            output_pins: self
+                .output_pins
+                .iter()
+                .map(|p| internal::Pin {
+                    class: p.name().to_string(),
+                    label: p.label().to_string(),
+                })
+                .collect(),
+            position: Vec2::zero(),
         }
     }
 }
