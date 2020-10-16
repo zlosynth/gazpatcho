@@ -46,6 +46,10 @@ impl<'a> Pin<'a> {
         }
     }
 
+    pub fn get_id(&self) -> &imgui::ImStr {
+        self.id
+    }
+
     pub fn position(mut self, position: [f32; 2]) -> Self {
         self.position = position;
         self
@@ -56,13 +60,13 @@ impl<'a> Pin<'a> {
         self
     }
 
+    pub fn get_orientation(&self) -> &Orientation {
+        &self.orientation
+    }
+
     pub fn get_size(&self, ui: &imgui::Ui) -> [f32; 2] {
         let width = ui.calc_text_size(self.label, false, 0.0)[0] + PADDING_INNER + PADDING_OUTER;
         [width, HEIGHT]
-    }
-
-    pub fn get_orientation(&self) -> &Orientation {
-        &self.orientation
     }
 
     pub fn build(self, ui: &imgui::Ui) {

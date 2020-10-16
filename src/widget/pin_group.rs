@@ -31,7 +31,7 @@ impl<'a> PinGroup<'a> {
         self
     }
 
-    pub fn build<F: Fn(&imgui::ImStr)>(self, ui: &imgui::Ui, f: F) {
+    pub fn build<F: Fn(imgui::ImString)>(self, ui: &imgui::Ui, f: F) {
         let position = self.position;
         let size = self.get_size(ui);
 
@@ -41,6 +41,7 @@ impl<'a> PinGroup<'a> {
         ui.group(|| {
             for pin in self.pins.into_iter() {
                 let pin_size = pin.get_size(ui);
+                let pin_id = pin.get_id().to_string();
 
                 match pin.get_orientation() {
                     pin::Orientation::Left => {
@@ -57,6 +58,8 @@ impl<'a> PinGroup<'a> {
                         right_pin_cursor += pin_size[1] + PIN_VERTICAL_SPACING;
                     }
                 };
+
+                f(pin_id.into());
             }
         });
     }
