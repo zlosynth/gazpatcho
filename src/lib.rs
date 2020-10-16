@@ -3,6 +3,7 @@ pub mod config;
 mod internal;
 mod system;
 mod vec2;
+mod widget;
 
 #[cfg(test)]
 mod test;
@@ -66,7 +67,7 @@ fn set_styles<F: FnOnce()>(ui: &Ui<'_>, f: F) {
     ]);
 
     let style_colors = ui.push_style_colors(&[
-        (StyleColor::WindowBg, [1.0, 1.0, 1.0, 1.0]),
+        (StyleColor::WindowBg, [0.0, 1.0, 0.0, 1.0]),
         (StyleColor::Text, [0.0, 0.0, 0.0, 1.0]),
     ]);
 
@@ -89,9 +90,18 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
 
             register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
 
-            for node in state.nodes.iter_mut() {
-                node.build(ui, &state.scrolling);
-            }
+            widget::pin::Pin::new(im_str!("pin1"), im_str!("Pin Label"))
+                .position([100.0 + state.scrolling.x, 100.0 + state.scrolling.y])
+                .build(ui);
+
+            widget::pin::Pin::new(im_str!("pin2"), im_str!("Pin Label"))
+                .position([100.0 + state.scrolling.x, 200.0 + state.scrolling.y])
+                .orientation(widget::pin::Orientation::Right)
+                .build(ui);
+
+            // for node in state.nodes.iter_mut() {
+            //     node.build(ui, &state.scrolling);
+            // }
 
             //     let draw_list = ui.get_window_draw_list();
 
