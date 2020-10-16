@@ -3,7 +3,6 @@ extern crate imgui;
 use std::string::String;
 
 use crate::internal;
-use crate::vec2::Vec2;
 
 #[derive(Debug)]
 pub struct Config {
@@ -35,6 +34,12 @@ impl Config {
 
     pub fn node_classes(&self) -> &Vec<NodeClass> {
         &self.node_classes
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

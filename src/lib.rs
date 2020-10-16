@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate imgui;
 
 pub mod config;
@@ -34,9 +33,8 @@ pub fn run(config_: config::Config) {
     };
 
     for (i, class) in state.config.node_classes().iter().enumerate() {
-        println!("Y {}", class.name());
-        state.nodes.push(class.instantiate("1".to_string()));
-        state.nodes.push(class.instantiate("2".to_string()));
+        state.nodes.push(class.instantiate(i.to_string()));
+        state.nodes.push(class.instantiate(i.to_string()));
     }
 
     let s = system::System::init("Gazpatcho");
@@ -253,7 +251,7 @@ fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut Vec2, cursor: &mut Mou
     }
 }
 
-fn register_popup_context(ui: &Ui<'_>, classes: &Vec<config::NodeClass>) {
+fn register_popup_context(ui: &Ui<'_>, classes: &[config::NodeClass]) {
     if unsafe { imgui_sys::igBeginPopupContextWindow(ptr::null(), 1) } {
         MenuItem::new(im_str!("Load")).build(ui);
         MenuItem::new(im_str!("Save as")).build(ui);

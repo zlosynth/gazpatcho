@@ -1,7 +1,5 @@
 extern crate imgui;
 
-use std::cmp;
-
 use crate::vec2;
 use crate::widget::pin::{self, Pin};
 

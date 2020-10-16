@@ -1,7 +1,7 @@
 extern crate gazpatcho;
 
-use std::thread;
-use std::time::Duration;
+// use std::thread;
+// use std::time::Duration;
 
 use gazpatcho::config;
 
@@ -23,7 +23,7 @@ fn main() {
                 .must_add_output_pin(config::Pin::new("out4".into(), "Output".into())),
         );
 
-    let handle = gazpatcho::run(config);
+    let _handle = gazpatcho::run(config);
 
     //     loop {
     //         let nodes = handle.state().nodes();
