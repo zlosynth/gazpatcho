@@ -99,14 +99,12 @@ impl NodeClass {
     pub(crate) fn instantiate(&self, id: String) -> internal::Node {
         let mut node_builder =
             internal::NodeBuilder::new(id, self.name.clone(), self.label.clone());
-        for pin in self.input_pins.iter() {
-            node_builder =
-                node_builder.add_input_pin(pin.name().to_string(), pin.label().to_string());
-        }
-        for pin in self.output_pins.iter() {
-            node_builder =
-                node_builder.add_output_pin(pin.name().to_string(), pin.label().to_string());
-        }
+        node_builder = self.input_pins.iter().fold(node_builder, |b, p| {
+            b.add_input_pin(p.name().to_string(), p.label().to_string())
+        });
+        node_builder = self.output_pins.iter().fold(node_builder, |b, p| {
+            b.add_output_pin(p.name().to_string(), p.label().to_string())
+        });
         node_builder.build()
     }
 }
