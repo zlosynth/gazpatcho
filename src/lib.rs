@@ -67,7 +67,7 @@ fn set_styles<F: FnOnce()>(ui: &Ui<'_>, f: F) {
     ]);
 
     let style_colors = ui.push_style_colors(&[
-        (StyleColor::WindowBg, [0.0, 1.0, 0.0, 1.0]),
+        (StyleColor::WindowBg, [1.0, 1.0, 1.0, 1.0]),
         (StyleColor::Text, [0.0, 0.0, 0.0, 1.0]),
     ]);
 

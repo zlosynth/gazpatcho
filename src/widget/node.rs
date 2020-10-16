@@ -8,6 +8,7 @@ const BLACK: [f32; 3] = [0.1, 0.1, 0.1];
 const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
 
 const BACKGROUND_COLOR: [f32; 3] = WHITE;
+const FRAME_COLOR: [f32; 3] = BLACK;
 
 pub enum Component<'a, F>
 where
@@ -53,33 +54,39 @@ where
         let position = self.position;
         let size = self.get_size(ui);
 
-        {
-            let draw_list = ui.get_window_draw_list();
-            draw_list
-                .add_rect(position, vec2::sum(&[position, size]), WHITE)
-                .filled(true)
-                .build();
-        }
+        ui.group(|| {
+            {
+                let draw_list = ui.get_window_draw_list();
+                draw_list
+                    .add_rect(position, vec2::sum(&[position, size]), BACKGROUND_COLOR)
+                    .filled(true)
+                    .build();
+                draw_list
+                    .add_rect(position, vec2::sum(&[position, size]), FRAME_COLOR)
+                    .filled(false)
+                    .build();
+            }
 
-        let mut cursor = position;
+            let mut cursor = position;
 
-        for component in self.components.into_iter() {
-            match component {
-                Component::Label(label) => {
-                    let component_height = label.get_size(ui)[1];
-                    label.position(cursor).build(ui);
-                    cursor[1] += component_height;
-                }
-                Component::PinGroup(pin_group) => {
-                    let component_height = pin_group.get_size(ui)[1];
-                    pin_group.position(cursor).build(ui);
-                    cursor[1] += component_height;
-                }
-                Component::Space(space) => {
-                    cursor[1] += space;
-                }
-            };
-        }
+            for component in self.components.into_iter() {
+                match component {
+                    Component::Label(label) => {
+                        let component_height = label.get_size(ui)[1];
+                        label.position(cursor).build(ui);
+                        cursor[1] += component_height;
+                    }
+                    Component::PinGroup(pin_group) => {
+                        let component_height = pin_group.get_size(ui)[1];
+                        pin_group.position(cursor).build(ui);
+                        cursor[1] += component_height;
+                    }
+                    Component::Space(space) => {
+                        cursor[1] += space;
+                    }
+                };
+            }
+        });
     }
 
     fn get_size(&self, ui: &imgui::Ui<'_>) -> [f32; 2] {
