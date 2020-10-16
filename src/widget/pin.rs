@@ -3,7 +3,7 @@ extern crate imgui;
 use crate::vec2;
 
 const BLACK: [f32; 3] = [0.0, 0.0, 0.0];
-const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
+const GRAY: [f32; 3] = [0.9, 0.9, 0.9];
 
 const HEIGHT: f32 = 17.0;
 
@@ -15,7 +15,7 @@ const MARK_WIDTH: f32 = 3.0;
 
 const TEXT_COLOR: [f32; 3] = BLACK;
 const MARK_COLOR: [f32; 3] = BLACK;
-const BACKGROUND_COLOR: [f32; 3] = WHITE;
+const HIGHLIGHT_COLOR: [f32; 3] = GRAY;
 
 pub struct Pin<'a> {
     id: &'a imgui::ImStr,
@@ -84,7 +84,7 @@ impl<'a> Pin<'a> {
                         .add_rect(
                             self.position,
                             vec2::sum(&[self.position, size]),
-                            BACKGROUND_COLOR,
+                            HIGHLIGHT_COLOR,
                         )
                         .filled(true)
                         .build();

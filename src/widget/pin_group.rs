@@ -79,7 +79,7 @@ where
         });
     }
 
-    fn get_size(&self, ui: &imgui::Ui) -> [f32; 2] {
+    pub fn get_size(&self, ui: &imgui::Ui) -> [f32; 2] {
         let (left_pins_length, left_pins_height, max_left_pin_width) = self
             .pins
             .iter()

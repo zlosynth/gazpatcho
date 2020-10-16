@@ -90,33 +90,36 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
 
             register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
 
-            widget::pin_group::PinGroup::new()
+            widget::node::Node::new(im_str!("node1"))
                 .position([100.0 + state.scrolling.x, 100.0 + state.scrolling.y])
-                .add_pin(
-                    widget::pin::Pin::new(im_str!("pin1"), im_str!("Pin Label"))
-                        .orientation(widget::pin::Orientation::Left),
-                )
-                .add_pin(
-                    widget::pin::Pin::new(im_str!("pin2"), im_str!("Pin Label 2"))
-                        .orientation(widget::pin::Orientation::Left),
-                )
-                .add_pin(
-                    widget::pin::Pin::new(im_str!("pin3"), im_str!("Pin Label"))
-                        .orientation(widget::pin::Orientation::Right),
-                )
-                .callback(|pin_id| {
-                    if ui.is_item_active() {
-                        if ui.is_mouse_clicked(MouseButton::Left) {
-                            println!("Clicked {}", pin_id);
-                        }
-                        if ui.is_mouse_dragging(MouseButton::Left) {
-                            println!("Dragging {}", pin_id);
-                        }
-                        if ui.is_mouse_released(MouseButton::Left) {
-                            println!("Let go {}", pin_id);
-                        }
-                    }
-                })
+                .add_component(widget::node::Component::PinGroup(
+                    widget::pin_group::PinGroup::new()
+                        .add_pin(
+                            widget::pin::Pin::new(im_str!("pin1"), im_str!("Pin Label"))
+                                .orientation(widget::pin::Orientation::Left),
+                        )
+                        .add_pin(
+                            widget::pin::Pin::new(im_str!("pin2"), im_str!("Pin Label 2"))
+                                .orientation(widget::pin::Orientation::Left),
+                        )
+                        .add_pin(
+                            widget::pin::Pin::new(im_str!("pin3"), im_str!("Pin Label"))
+                                .orientation(widget::pin::Orientation::Right),
+                        )
+                        .callback(|pin_id| {
+                            if ui.is_item_active() {
+                                if ui.is_mouse_clicked(MouseButton::Left) {
+                                    println!("Clicked {}", pin_id);
+                                }
+                                if ui.is_mouse_dragging(MouseButton::Left) {
+                                    println!("Dragging {}", pin_id);
+                                }
+                                if ui.is_mouse_released(MouseButton::Left) {
+                                    println!("Let go {}", pin_id);
+                                }
+                            }
+                        }),
+                ))
                 .build(ui);
 
             // for node in state.nodes.iter_mut() {
