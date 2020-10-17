@@ -25,6 +25,7 @@ struct State {
     nodes: Vec<internal::Node>,
     scrolling: Vec2,
     cursor: MouseCursor,
+    previously_selected_pin: Option<imgui::ImString>,
 }
 
 pub fn run(config_: config::Config) {
@@ -33,6 +34,7 @@ pub fn run(config_: config::Config) {
         nodes: Vec::new(),
         scrolling: Vec2::zero(),
         cursor: MouseCursor::Arrow,
+        previously_selected_pin: None,
     };
 
     for (i, class) in state.config.node_classes().iter().enumerate() {
@@ -87,8 +89,10 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
             register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
 
             let mut node_to_move = None;
+            let mut selected_pin = None;
             for (i, node) in state.nodes.iter_mut().enumerate() {
                 node.draw(ui, [state.scrolling.x, state.scrolling.y]);
+
                 if node.active {
                     node_to_move = Some(i);
 
@@ -96,15 +100,36 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                         node.position = vec2::sum(&[node.position, ui.io().mouse_delta]);
                     }
                 }
-                //if let Some(active_pin_addres) = node.active_pin {
-                // TODO
-                // if dragging
-                //     get position of the pin
-                //}
+
+                if node.selected_pin.is_some() {
+                    selected_pin = node.selected_pin.clone();
+                }
             }
             if let Some(node_to_move) = node_to_move {
                 let node_to_move = state.nodes.remove(node_to_move);
                 state.nodes.push(node_to_move);
+            }
+            // TODO: Organize this
+            // TODO: Make sure patch can go only between different nodes
+            // TODO: Make sure that patch can only go between input and output
+            if ui.is_mouse_clicked(imgui::MouseButton::Left) {
+                if let Some(selected_pin) = selected_pin {
+                    if let Some(previously_selected_pin) = &state.previously_selected_pin {
+                        if selected_pin == *previously_selected_pin {
+                            state.previously_selected_pin = None;
+                        } else {
+                            println!(
+                                "Found connection {} {}",
+                                previously_selected_pin, selected_pin
+                            );
+                            state.previously_selected_pin = None;
+                        }
+                    } else {
+                        state.previously_selected_pin = Some(selected_pin);
+                    }
+                } else {
+                    state.previously_selected_pin = None;
+                }
             }
 
             // TODO: if done dragging and is over another visible pin ...
