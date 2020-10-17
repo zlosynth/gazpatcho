@@ -99,7 +99,6 @@ impl Node {
             .add_component(widget::node::Component::PinGroup(pin_group))
             .add_component(widget::node::Component::Space(10.0))
             .build(ui);
-        // TODO: With this we are also moving the background with node on top of it, fix it
         unsafe {
             imgui::sys::igSetItemAllowOverlap();
         }
