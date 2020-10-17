@@ -90,10 +90,6 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
             for (i, node) in state.nodes.iter_mut().enumerate() {
                 node.draw(ui, [state.scrolling.x, state.scrolling.y]);
                 if node.active {
-                    println!("Node {} active", node.address);
-
-                    node.active = false;
-
                     node_to_move = Some(i);
 
                     if ui.is_mouse_dragging(imgui::MouseButton::Left) {

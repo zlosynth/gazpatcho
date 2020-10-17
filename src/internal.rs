@@ -103,8 +103,6 @@ impl Node {
         unsafe {
             imgui::sys::igSetItemAllowOverlap();
         }
-        if ui.is_item_active() {
-            self.active = true;
-        }
+        self.active = ui.is_item_active();
     }
 }
