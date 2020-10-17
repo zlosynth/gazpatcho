@@ -16,11 +16,7 @@ use crate::vec2::Vec2;
 const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
 const BACKGROUND_COLOR: [f32; 3] = WHITE;
 
-// ---------------------------
-
 struct State {
-    // TODO: User config
-    // TODO: Internal state
     config: config::Config,
     nodes: Vec<internal::Node>,
     scrolling: Vec2,

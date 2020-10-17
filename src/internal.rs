@@ -96,9 +96,5 @@ impl Node {
         unsafe {
             imgui::sys::igSetItemAllowOverlap();
         }
-
-        if self.selected_pin.is_some() {
-            println!("{} {}", self.address, self.selected_pin.as_ref().unwrap());
-        }
     }
 }
