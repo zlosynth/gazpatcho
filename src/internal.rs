@@ -16,6 +16,7 @@ impl NodeBuilder {
             input_pins: Vec::new(),
             output_pins: Vec::new(),
             position: [0.0, 0.0],
+            clicked: false,
         })
     }
 
@@ -50,6 +51,7 @@ pub struct Node {
     input_pins: Vec<Pin>,
     output_pins: Vec<Pin>,
     position: [f32; 2],
+    pub clicked: bool,
 }
 
 pub struct Pin {
@@ -97,7 +99,14 @@ impl Node {
             .add_component(widget::node::Component::PinGroup(pin_group))
             .add_component(widget::node::Component::Space(10.0))
             .build(ui);
-
+        // TODO: With this we are also moving the background with node on top of it, fix it
+        unsafe {
+            imgui::sys::igSetItemAllowOverlap();
+        }
+        if ui.is_item_active() {
+            self.clicked = true;
+            println!("Active {}", self.address);
+        }
         if ui.is_item_active() && ui.is_mouse_dragging(imgui::MouseButton::Left) {
             self.position = vec2::sum(&[self.position, ui.io().mouse_delta]);
         }

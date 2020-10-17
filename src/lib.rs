@@ -81,10 +81,21 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
         .build(ui, || {
             register_popup_context(ui, state.config.node_classes());
 
-            register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
+            // register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
 
-            for node in state.nodes.iter_mut() {
+            // TODO: Keep it ordered, so the one that shows on top is active
+
+            let mut node_to_move = None;
+            for (i, node) in state.nodes.iter_mut().enumerate() {
                 node.draw(ui, [state.scrolling.x, state.scrolling.y]);
+                if node.clicked {
+                    node_to_move = Some(i);
+                    node.clicked = false;
+                }
+            }
+            if let Some(node_to_move) = node_to_move {
+                let node_to_move = state.nodes.remove(node_to_move);
+                state.nodes.push(node_to_move);
             }
 
             // for node in state.nodes.iter_mut() {
@@ -107,134 +118,6 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
             //         )
             //         .thickness(1.0)
             //         .build();
-
-            //     draw_list.channels_split(2, |channels| {
-            //         for node in state.nodes.iter_mut() {
-            //             const NODE_WINDOW_PADDING: f32 = 10.0;
-
-            //             channels.set_current(1);
-            //             ui.set_cursor_screen_pos(
-            //                 (node.position
-            //                     + state.scrolling
-            //                     + [NODE_WINDOW_PADDING, NODE_WINDOW_PADDING])
-            //                 .into(),
-            //             );
-
-            //             draw_list.add_text(
-            //                 [10.0, 10.0] + node.position + state.scrolling,
-            //                 [1.0, 1.0, 1.0],
-            //                 im_str!("Label"),
-            //             );
-
-            //             ui.group(|| {
-            //                 ui.text(format!("{}", &node.label));
-
-            //                 // -------------------------------------------------------
-            //                 let max_line_width = {
-            //                     let mut max_line_width = 0.0;
-
-            //                     let mut input_iter = node.input_pins.iter();
-            //                     let mut output_iter = node.output_pins.iter();
-
-            //                     loop {
-            //                         let input_pin = input_iter.next();
-            //                         let output_pin = output_iter.next();
-
-            //                         if input_pin.is_none() && output_pin.is_none() {
-            //                             break;
-            //                         }
-
-            //                         let mut line_width = 0.0;
-
-            //                         if let Some(pin) = input_pin {
-            //                             if let Some(label) = &pin.label {
-            //                                 line_width +=
-            //                                     ui.calc_text_size(&ImString::new(label), false, 0.0)[0];
-            //                             }
-            //                         }
-
-            //                         if let Some(pin) = output_pin {
-            //                             if let Some(label) = &pin.label {
-            //                                 line_width +=
-            //                                     ui.calc_text_size(&ImString::new(label), false, 0.0)[0];
-            //                             }
-            //                         }
-
-            //                         if line_width > max_line_width {
-            //                             max_line_width = line_width;
-            //                         }
-            //                     }
-
-            //                     max_line_width
-            //                 };
-
-            //                 ui.text("Frequency");
-            //                 ui.same_line(100.0);
-            //                 ui.text("Output");
-            //                 ui.text("Shape");
-            //                 ui.same_line(100.0);
-            //                 ui.text("Input");
-            //             });
-
-            //             node.size = Vec2::from(ui.item_rect_size())
-            //                 + [NODE_WINDOW_PADDING * 2.0, NODE_WINDOW_PADDING * 2.0];
-
-            //             channels.set_current(0);
-            //             ui.set_cursor_screen_pos((node.position + state.scrolling).into());
-
-            //             ui.invisible_button(&ImString::new(&node.id), node.size.into());
-            //             if ui.is_item_active() {
-            //                 if ui.is_mouse_clicked(MouseButton::Left) {
-            //                     state.cursor = MouseCursor::Hand;
-            //                 } else if ui.is_mouse_dragging(MouseButton::Left) {
-            //                     state.cursor = MouseCursor::Hand;
-            //                     node.position += ui.io().mouse_delta;
-            //                 } else if ui.is_mouse_released(MouseButton::Left) {
-            //                     state.cursor = MouseCursor::Arrow;
-            //                 }
-            //             }
-
-            //             // Draw the box
-            //             draw_list
-            //                 .add_rect(
-            //                     (node.position + state.scrolling).into(),
-            //                     (node.position + node.size + state.scrolling).into(),
-            //                     [0.1, 0.1, 0.1],
-            //                 )
-            //                 .filled(true)
-            //                 .build();
-            //             draw_list
-            //                 .add_rect(
-            //                     (node.position + state.scrolling).into(),
-            //                     (node.position + node.size + state.scrolling).into(),
-            //                     [1.0, 1.0, 1.0],
-            //                 )
-            //                 .build();
-
-            //             // Draw pin marks
-            //             for i in 0..node.input_pins.len() {
-            //                 draw_list
-            //                     .add_rect(
-            //                         (node.input_pin_position(i) + state.scrolling).into(),
-            //                         (node.input_pin_position(i) + [3.0, 10.0] + state.scrolling).into(),
-            //                         [1.0, 1.0, 1.0],
-            //                     )
-            //                     .filled(true)
-            //                     .build();
-            //             }
-            //             for i in 0..node.output_pins.len() {
-            //                 draw_list
-            //                     .add_rect(
-            //                         (node.output_pin_position(i) + state.scrolling).into(),
-            //                         (node.output_pin_position(i) + [-3.0, 10.0] + state.scrolling)
-            //                             .into(),
-            //                         [1.0, 1.0, 1.0],
-            //                     )
-            //                     .filled(true)
-            //                     .build();
-            //             }
-            //         }
-            //     })
         });
 }
 
