@@ -10,28 +10,19 @@ const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
 const BACKGROUND_COLOR: [f32; 3] = WHITE;
 const FRAME_COLOR: [f32; 3] = BLACK;
 
-pub enum Component<'a, F>
-where
-    F: Fn(imgui::ImString),
-{
+pub enum Component<'a> {
     Label(Label<'a>),
-    PinGroup(PinGroup<'a, F>),
+    PinGroup(PinGroup<'a>),
     Space(f32),
 }
 
-pub struct Node<'a, F>
-where
-    F: Fn(imgui::ImString),
-{
+pub struct Node<'a> {
     id: &'a imgui::ImStr,
     position: [f32; 2],
-    components: Vec<Component<'a, F>>,
+    components: Vec<Component<'a>>,
 }
 
-impl<'a, F> Node<'a, F>
-where
-    F: Fn(imgui::ImString),
-{
+impl<'a> Node<'a> {
     pub fn new(id: &'a imgui::ImStr) -> Self {
         Self {
             id,
@@ -45,7 +36,7 @@ where
         self
     }
 
-    pub fn add_component(mut self, component: Component<'a, F>) -> Self {
+    pub fn add_component(mut self, component: Component<'a>) -> Self {
         self.components.push(component);
         self
     }

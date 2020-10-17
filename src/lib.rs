@@ -96,11 +96,21 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                         node.position = vec2::sum(&[node.position, ui.io().mouse_delta]);
                     }
                 }
+                //if let Some(active_pin_addres) = node.active_pin {
+                // TODO
+                // if dragging
+                //     get position of the pin
+                //}
             }
             if let Some(node_to_move) = node_to_move {
                 let node_to_move = state.nodes.remove(node_to_move);
                 state.nodes.push(node_to_move);
             }
+
+            // TODO: if done dragging and is over another visible pin ...
+            //
+            //
+            // TODO: OR MAYBE instead of dragging make it click and click
 
             // for node in state.nodes.iter_mut() {
             //     node.build(ui, &state.scrolling);

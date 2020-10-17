@@ -62,19 +62,7 @@ pub struct Pin {
 
 impl Node {
     pub fn draw(&mut self, ui: &imgui::Ui<'_>, offset: [f32; 2]) {
-        let mut pin_group = widget::pin_group::PinGroup::new().callback(|pin_address| {
-            if ui.is_item_active() {
-                if ui.is_mouse_clicked(imgui::MouseButton::Left) {
-                    println!("Clicked {}", pin_address);
-                }
-                if ui.is_mouse_dragging(imgui::MouseButton::Left) {
-                    println!("Dragging {}", pin_address);
-                }
-                if ui.is_mouse_released(imgui::MouseButton::Left) {
-                    println!("Let go {}", pin_address);
-                }
-            }
-        });
+        let mut pin_group = widget::pin_group::PinGroup::new();
 
         for input_pin in self.input_pins.iter() {
             pin_group = pin_group.add_pin(
@@ -99,9 +87,9 @@ impl Node {
             .add_component(widget::node::Component::PinGroup(pin_group))
             .add_component(widget::node::Component::Space(10.0))
             .build(ui);
+        self.active = ui.is_item_active();
         unsafe {
             imgui::sys::igSetItemAllowOverlap();
         }
-        self.active = ui.is_item_active();
     }
 }
