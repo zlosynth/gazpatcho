@@ -16,7 +16,7 @@ impl NodeBuilder {
             input_pins: Vec::new(),
             output_pins: Vec::new(),
             position: [0.0, 0.0],
-            clicked: false,
+            active: false,
         })
     }
 
@@ -44,14 +44,14 @@ impl NodeBuilder {
 }
 
 pub struct Node {
-    address: imgui::ImString,
+    pub address: imgui::ImString,
     class: imgui::ImString,
     id: imgui::ImString,
     label: imgui::ImString,
     input_pins: Vec<Pin>,
     output_pins: Vec<Pin>,
-    position: [f32; 2],
-    pub clicked: bool,
+    pub position: [f32; 2],
+    pub active: bool,
 }
 
 pub struct Pin {
@@ -104,11 +104,7 @@ impl Node {
             imgui::sys::igSetItemAllowOverlap();
         }
         if ui.is_item_active() {
-            self.clicked = true;
-            println!("Active {}", self.address);
-        }
-        if ui.is_item_active() && ui.is_mouse_dragging(imgui::MouseButton::Left) {
-            self.position = vec2::sum(&[self.position, ui.io().mouse_delta]);
+            self.active = true;
         }
     }
 }

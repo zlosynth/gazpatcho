@@ -13,6 +13,9 @@ use imgui::*;
 
 use crate::vec2::Vec2;
 
+const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
+const BACKGROUND_COLOR: [f32; 3] = WHITE;
+
 // ---------------------------
 
 struct State {
@@ -81,16 +84,21 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
         .build(ui, || {
             register_popup_context(ui, state.config.node_classes());
 
-            // register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
-
-            // TODO: Keep it ordered, so the one that shows on top is active
+            register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
 
             let mut node_to_move = None;
             for (i, node) in state.nodes.iter_mut().enumerate() {
                 node.draw(ui, [state.scrolling.x, state.scrolling.y]);
-                if node.clicked {
+                if node.active {
+                    println!("Node {} active", node.address);
+
+                    node.active = false;
+
                     node_to_move = Some(i);
-                    node.clicked = false;
+
+                    if ui.is_mouse_dragging(imgui::MouseButton::Left) {
+                        node.position = vec2::sum(&[node.position, ui.io().mouse_delta]);
+                    }
                 }
             }
             if let Some(node_to_move) = node_to_move {
@@ -122,7 +130,12 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
 }
 
 fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut Vec2, cursor: &mut MouseCursor) {
-    if ui.is_window_hovered() {
+    let draw_list = ui.get_window_draw_list();
+    draw_list
+        .add_rect([0.0, 0.0], ui.io().display_size, BACKGROUND_COLOR)
+        .filled(true)
+        .build();
+    if ui.is_item_active() {
         if ui.is_mouse_clicked(MouseButton::Left) {
             *cursor = MouseCursor::ResizeAll;
         } else if ui.is_mouse_dragging(MouseButton::Left) {
