@@ -11,15 +11,13 @@ use std::ptr;
 
 use imgui::*;
 
-use crate::vec2::Vec2;
-
 const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
 const BACKGROUND_COLOR: [f32; 3] = WHITE;
 
 struct State {
     config: config::Config,
     nodes: Vec<internal::Node>,
-    scrolling: Vec2,
+    scrolling: [f32; 2],
     cursor: MouseCursor,
     previously_selected_pin: Option<imgui::ImString>,
 }
@@ -28,7 +26,7 @@ pub fn run(config_: config::Config) {
     let mut state = State {
         config: config_,
         nodes: Vec::new(),
-        scrolling: Vec2::zero(),
+        scrolling: [0.0, 0.0],
         cursor: MouseCursor::Arrow,
         previously_selected_pin: None,
     };
@@ -87,7 +85,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
             let mut node_to_move = None;
             let mut selected_pin = None;
             for (i, node) in state.nodes.iter_mut().enumerate() {
-                node.draw(ui, [state.scrolling.x, state.scrolling.y]);
+                node.draw(ui, state.scrolling);
 
                 if node.active {
                     node_to_move = Some(i);
@@ -140,7 +138,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
         });
 }
 
-fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut Vec2, cursor: &mut MouseCursor) {
+fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut [f32; 2], cursor: &mut MouseCursor) {
     let draw_list = ui.get_window_draw_list();
     draw_list
         .add_rect([0.0, 0.0], ui.io().display_size, BACKGROUND_COLOR)
@@ -151,7 +149,7 @@ fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut Vec2, cursor: &mut Mou
             *cursor = MouseCursor::ResizeAll;
         } else if ui.is_mouse_dragging(MouseButton::Left) {
             *cursor = MouseCursor::ResizeAll;
-            *scrolling += ui.io().mouse_delta;
+            *scrolling = vec2::sum(&[*scrolling, ui.io().mouse_delta]);
         } else if ui.is_mouse_released(MouseButton::Left) {
             *cursor = MouseCursor::Arrow;
         }
