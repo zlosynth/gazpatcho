@@ -12,7 +12,10 @@ const FRAME_COLOR: [f32; 3] = BLACK;
 
 pub enum Component<'a> {
     Label(Label<'a>),
-    PinGroup(PinGroup<'a>),
+    PinGroup {
+        pin_group: PinGroup<'a>,
+        selected_pin: &'a mut Option<imgui::ImString>,
+    },
     Space(f32),
 }
 
@@ -66,9 +69,12 @@ impl<'a> Node<'a> {
                     label.position(cursor).build(ui);
                     cursor[1] += component_height;
                 }
-                Component::PinGroup(pin_group) => {
+                Component::PinGroup {
+                    pin_group,
+                    selected_pin,
+                } => {
                     let component_height = pin_group.get_size(ui)[1];
-                    pin_group.position(cursor).build(ui);
+                    *selected_pin = pin_group.position(cursor).build(ui);
                     cursor[1] += component_height;
                 }
                 Component::Space(space) => {
@@ -87,7 +93,7 @@ impl<'a> Node<'a> {
                 .iter()
                 .map(|c| match c {
                     Component::Label(label) => label.get_size(ui),
-                    Component::PinGroup(pin_group) => pin_group.get_size(ui),
+                    Component::PinGroup { pin_group, .. } => pin_group.get_size(ui),
                     Component::Space(space) => [0.0, *space],
                 })
                 .fold([0.0 as f32, 0.0], |a, b| [a[0].max(b[0]), a[1] + b[1]])

@@ -17,6 +17,7 @@ impl NodeBuilder {
             output_pins: Vec::new(),
             position: [0.0, 0.0],
             active: false,
+            selected_pin: None,
         })
     }
 
@@ -52,6 +53,7 @@ pub struct Node {
     output_pins: Vec<Pin>,
     pub position: [f32; 2],
     pub active: bool,
+    pub selected_pin: Option<imgui::ImString>,
 }
 
 pub struct Pin {
@@ -84,12 +86,19 @@ impl Node {
                 &self.label,
             )))
             .add_component(widget::node::Component::Space(5.0))
-            .add_component(widget::node::Component::PinGroup(pin_group))
+            .add_component(widget::node::Component::PinGroup {
+                pin_group,
+                selected_pin: &mut self.selected_pin,
+            })
             .add_component(widget::node::Component::Space(10.0))
             .build(ui);
         self.active = ui.is_item_active();
         unsafe {
             imgui::sys::igSetItemAllowOverlap();
+        }
+
+        if self.selected_pin.is_some() {
+            println!("{} {}", self.address, self.selected_pin.as_ref().unwrap());
         }
     }
 }

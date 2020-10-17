@@ -69,7 +69,7 @@ impl<'a> Pin<'a> {
         [width, HEIGHT]
     }
 
-    pub fn build(self, ui: &imgui::Ui) {
+    pub fn build(self, ui: &imgui::Ui) -> bool {
         let draw_list = ui.get_window_draw_list();
 
         let size = self.get_size(ui);
@@ -113,6 +113,8 @@ impl<'a> Pin<'a> {
                 };
                 draw_list.add_text(label_position, TEXT_COLOR, self.label);
             }
-        })
+        });
+
+        ui.is_item_active()
     }
 }

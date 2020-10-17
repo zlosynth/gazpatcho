@@ -29,35 +29,43 @@ impl<'a> PinGroup<'a> {
         self
     }
 
-    pub fn build(self, ui: &imgui::Ui) {
+    pub fn build(self, ui: &imgui::Ui) -> Option<imgui::ImString> {
         let position = self.position;
         let size = self.get_size(ui);
 
         let mut left_pin_cursor = 0.0;
         let mut right_pin_cursor = 0.0;
 
-        ui.group(|| {
-            for pin in self.pins.into_iter() {
-                let pin_size = pin.get_size(ui);
-                let pin_id = pin.get_id().to_string();
+        let mut active_pin = None;
 
-                match pin.get_orientation() {
+        ui.group(|| {
+            for mut pin in self.pins.into_iter() {
+                let pin_id = imgui::ImString::from(pin.get_id().to_string());
+                let pin_size = pin.get_size(ui);
+
+                pin = match pin.get_orientation() {
                     pin::Orientation::Left => {
-                        pin.position(vec2::sum(&[position, [0.0, left_pin_cursor]]))
-                            .build(ui);
+                        let pin = pin.position(vec2::sum(&[position, [0.0, left_pin_cursor]]));
                         left_pin_cursor += pin_size[1] + PIN_VERTICAL_SPACING;
+                        pin
                     }
                     pin::Orientation::Right => {
-                        pin.position(vec2::sum(&[
+                        let pin = pin.position(vec2::sum(&[
                             position,
                             [size[0] - pin_size[0], right_pin_cursor],
-                        ]))
-                        .build(ui);
+                        ]));
                         right_pin_cursor += pin_size[1] + PIN_VERTICAL_SPACING;
+                        pin
                     }
                 };
+
+                if pin.build(ui) {
+                    active_pin = Some(pin_id);
+                }
             }
         });
+
+        active_pin
     }
 
     pub fn get_size(&self, ui: &imgui::Ui) -> [f32; 2] {
