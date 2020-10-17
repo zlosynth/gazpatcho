@@ -132,27 +132,11 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
                 }
             }
 
-            // TODO: if done dragging and is over another visible pin ...
-            //
-            //
-            // TODO: OR MAYBE instead of dragging make it click and click
-
-            // for node in state.nodes.iter_mut() {
-            //     node.build(ui, &state.scrolling);
-            // }
-
             //     let draw_list = ui.get_window_draw_list();
-
-            //     let a =
-            //         state.nodes[0].output_pin_position(0) + Vec2 { x: 0.0, y: 5.0 } + state.scrolling;
-            //     let b =
-            //         state.nodes[1].input_pin_position(1) + Vec2 { x: 0.0, y: 5.0 } + state.scrolling;
             //     draw_list
-            //         .add_bezier_curve(
-            //             a.into(),
-            //             (a + Vec2 { x: 50.0, y: 0.0 }).into(),
-            //             (b + Vec2 { x: -50.0, y: 0.0 }).into(),
-            //             b.into(),
+            //         .add_line(
+            //             a,
+            //             b,
             //             [1.0, 1.0, 1.0],
             //         )
             //         .thickness(1.0)
