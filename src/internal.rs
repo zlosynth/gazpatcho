@@ -9,9 +9,9 @@ pub struct NodeBuilder(Node);
 impl NodeBuilder {
     pub fn new(id: String, class: String, label: String) -> Self {
         Self(Node {
+            address: imgui::ImString::from(format!("{}:{}", class, id)),
             class: imgui::ImString::from(class.clone()),
             id: imgui::ImString::from(id.clone()),
-            im_id: imgui::ImString::from(format!("{}:{}", class, id)),
             label: imgui::ImString::from(label),
             input_pins: Vec::new(),
             output_pins: Vec::new(),
@@ -21,7 +21,7 @@ impl NodeBuilder {
 
     pub fn add_input_pin(mut self, class: String, label: String) -> Self {
         self.0.input_pins.push(Pin {
-            id: imgui::ImString::from(format!("{}:{}", self.0.im_id, class)),
+            address: imgui::ImString::from(format!("{}:in:{}", self.0.address, class)),
             class: imgui::ImString::from(class),
             label: imgui::ImString::from(label),
         });
@@ -30,7 +30,7 @@ impl NodeBuilder {
 
     pub fn add_output_pin(mut self, class: String, label: String) -> Self {
         self.0.output_pins.push(Pin {
-            id: imgui::ImString::from(format!("{}:{}:{}", self.0.class, self.0.id, class)),
+            address: imgui::ImString::from(format!("{}:out:{}", self.0.address, class)),
             class: imgui::ImString::from(class),
             label: imgui::ImString::from(label),
         });
@@ -43,9 +43,9 @@ impl NodeBuilder {
 }
 
 pub struct Node {
+    address: imgui::ImString,
     class: imgui::ImString,
     id: imgui::ImString,
-    im_id: imgui::ImString, // TODO: Rename to address
     label: imgui::ImString,
     input_pins: Vec<Pin>,
     output_pins: Vec<Pin>,
@@ -53,42 +53,42 @@ pub struct Node {
 }
 
 pub struct Pin {
-    id: imgui::ImString, // TODO: Rename to address
+    address: imgui::ImString,
     class: imgui::ImString,
     label: imgui::ImString,
 }
 
 impl Node {
     pub fn draw(&mut self, ui: &imgui::Ui<'_>, offset: [f32; 2]) {
-        let mut pin_group = widget::pin_group::PinGroup::new().callback(|pin_id| {
+        let mut pin_group = widget::pin_group::PinGroup::new().callback(|pin_address| {
             if ui.is_item_active() {
                 if ui.is_mouse_clicked(imgui::MouseButton::Left) {
-                    println!("Clicked {}", pin_id);
+                    println!("Clicked {}", pin_address);
                 }
                 if ui.is_mouse_dragging(imgui::MouseButton::Left) {
-                    println!("Dragging {}", pin_id);
+                    println!("Dragging {}", pin_address);
                 }
                 if ui.is_mouse_released(imgui::MouseButton::Left) {
-                    println!("Let go {}", pin_id);
+                    println!("Let go {}", pin_address);
                 }
             }
         });
 
         for input_pin in self.input_pins.iter() {
             pin_group = pin_group.add_pin(
-                widget::pin::Pin::new(&input_pin.id, &input_pin.label)
+                widget::pin::Pin::new(&input_pin.address, &input_pin.label)
                     .orientation(widget::pin::Orientation::Left),
             );
         }
 
         for output_pin in self.output_pins.iter() {
             pin_group = pin_group.add_pin(
-                widget::pin::Pin::new(&output_pin.id, &output_pin.label)
+                widget::pin::Pin::new(&output_pin.address, &output_pin.label)
                     .orientation(widget::pin::Orientation::Right),
             );
         }
 
-        widget::node::Node::new(&self.im_id)
+        widget::node::Node::new(&self.address)
             .position(vec2::sum(&[self.position, offset]))
             .add_component(widget::node::Component::Label(widget::label::Label::new(
                 &self.label,
