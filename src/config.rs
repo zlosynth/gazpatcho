@@ -2,7 +2,7 @@ extern crate imgui;
 
 use std::string::String;
 
-use crate::internal;
+use crate::model;
 
 #[derive(Debug)]
 pub struct Config {
@@ -101,9 +101,9 @@ impl NodeClass {
         &self.output_pins
     }
 
-    pub(crate) fn instantiate(&self, id: String) -> internal::Node {
+    pub(crate) fn instantiate(&self, id: String) -> model::node::Node {
         let mut node_builder =
-            internal::NodeBuilder::new(id, self.name.clone(), self.label.clone());
+            model::node::NodeBuilder::new(id, self.name.clone(), self.label.clone());
         node_builder = self.input_pins.iter().fold(node_builder, |b, p| {
             b.add_input_pin(p.name().to_string(), p.label().to_string())
         });

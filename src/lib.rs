@@ -2,7 +2,7 @@ extern crate imgui;
 
 pub mod config;
 
-mod internal;
+mod model;
 mod system;
 mod vec2;
 mod widget;
@@ -16,24 +16,21 @@ const BACKGROUND_COLOR: [f32; 3] = WHITE;
 
 struct State {
     config: config::Config,
-    nodes: Vec<internal::Node>,
-    scrolling: [f32; 2],
+    model: model::Model,
+    canvas_offset: [f32; 2],
     cursor: MouseCursor,
-    previously_selected_pin: Option<imgui::ImString>,
 }
 
 pub fn run(config_: config::Config) {
     let mut state = State {
         config: config_,
-        nodes: Vec::new(),
-        scrolling: [0.0, 0.0],
+        model: model::Model::new(),
+        canvas_offset: [0.0, 0.0],
         cursor: MouseCursor::Arrow,
-        previously_selected_pin: None,
     };
 
     for (i, class) in state.config.node_classes().iter().enumerate() {
-        state.nodes.push(class.instantiate(i.to_string()));
-        state.nodes.push(class.instantiate(i.to_string()));
+        state.model.add_node(class.instantiate(i.to_string()));
     }
 
     let s = system::System::init("Gazpatcho");
@@ -80,61 +77,9 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
         .build(ui, || {
             register_popup_context(ui, state.config.node_classes());
 
-            register_window_scrolling(ui, &mut state.scrolling, &mut state.cursor);
+            register_window_scrolling(ui, &mut state.canvas_offset, &mut state.cursor);
 
-            let mut node_to_move = None;
-            let mut selected_pin = None;
-            for (i, node) in state.nodes.iter_mut().enumerate() {
-                node.draw(ui, state.scrolling);
-
-                if node.active {
-                    node_to_move = Some(i);
-
-                    if ui.is_mouse_dragging(imgui::MouseButton::Left) {
-                        node.position = vec2::sum(&[node.position, ui.io().mouse_delta]);
-                    }
-                }
-
-                if node.selected_pin.is_some() {
-                    selected_pin = node.selected_pin.clone();
-                }
-            }
-            if let Some(node_to_move) = node_to_move {
-                let node_to_move = state.nodes.remove(node_to_move);
-                state.nodes.push(node_to_move);
-            }
-            // TODO: Organize this
-            // TODO: Make sure patch can go only between different nodes
-            // TODO: Make sure that patch can only go between input and output
-            if ui.is_mouse_clicked(imgui::MouseButton::Left) {
-                if let Some(selected_pin) = selected_pin {
-                    if let Some(previously_selected_pin) = &state.previously_selected_pin {
-                        if selected_pin == *previously_selected_pin {
-                            state.previously_selected_pin = None;
-                        } else {
-                            println!(
-                                "Found connection {} {}",
-                                previously_selected_pin, selected_pin
-                            );
-                            state.previously_selected_pin = None;
-                        }
-                    } else {
-                        state.previously_selected_pin = Some(selected_pin);
-                    }
-                } else {
-                    state.previously_selected_pin = None;
-                }
-            }
-
-            //     let draw_list = ui.get_window_draw_list();
-            //     draw_list
-            //         .add_line(
-            //             a,
-            //             b,
-            //             [1.0, 1.0, 1.0],
-            //         )
-            //         .thickness(1.0)
-            //         .build();
+            state.model.draw(ui, state.canvas_offset);
         });
 }
 

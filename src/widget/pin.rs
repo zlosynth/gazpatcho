@@ -22,6 +22,8 @@ pub struct Pin<'a> {
     label: &'a imgui::ImStr,
     position: [f32; 2],
     orientation: Orientation,
+    patch_position_subscription: Option<&'a mut [f32; 2]>,
+    active_subscription: Option<&'a mut bool>,
 }
 
 #[derive(PartialEq)]
@@ -43,11 +45,22 @@ impl<'a> Pin<'a> {
             label,
             position: [0.0, 0.0],
             orientation: Orientation::default(),
+            patch_position_subscription: None,
+            active_subscription: None,
         }
     }
 
-    pub fn get_id(&self) -> &imgui::ImStr {
-        self.id
+    pub fn patch_position_subscription(
+        mut self,
+        patch_position_subscription: &'a mut [f32; 2],
+    ) -> Self {
+        self.patch_position_subscription = Some(patch_position_subscription);
+        self
+    }
+
+    pub fn active_subscription(mut self, active_subscription: &'a mut bool) -> Self {
+        self.active_subscription = Some(active_subscription);
+        self
     }
 
     pub fn position(mut self, position: [f32; 2]) -> Self {
@@ -69,7 +82,7 @@ impl<'a> Pin<'a> {
         [width, HEIGHT]
     }
 
-    pub fn build(self, ui: &imgui::Ui) -> bool {
+    pub fn build(self, ui: &imgui::Ui) {
         let draw_list = ui.get_window_draw_list();
 
         let size = self.get_size(ui);
@@ -115,6 +128,15 @@ impl<'a> Pin<'a> {
             }
         });
 
-        ui.is_item_active()
+        if let Some(patch_position_subscription) = self.patch_position_subscription {
+            *patch_position_subscription = match &self.orientation {
+                Orientation::Left => vec2::sum(&[self.position, [0.0, (HEIGHT - 1.0) / 2.0]]),
+                Orientation::Right => vec2::sum(&[self.position, [size[0], (HEIGHT - 1.0) / 2.0]]),
+            };
+        }
+
+        if let Some(active_subscription) = self.active_subscription {
+            *active_subscription = ui.is_item_active();
+        }
     }
 }

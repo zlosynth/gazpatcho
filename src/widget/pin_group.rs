@@ -29,20 +29,18 @@ impl<'a> PinGroup<'a> {
         self
     }
 
-    pub fn build(self, ui: &imgui::Ui) -> Option<imgui::ImString> {
+    pub fn build(self, ui: &imgui::Ui) {
         let position = self.position;
         let size = self.get_size(ui);
 
         let mut left_pin_cursor = 0.0;
         let mut right_pin_cursor = 0.0;
 
-        let mut active_pin = None;
-
         ui.group(|| {
             for mut pin in self.pins.into_iter() {
-                let pin_id = imgui::ImString::from(pin.get_id().to_string());
                 let pin_size = pin.get_size(ui);
 
+                // TODO: Can this be simplified
                 pin = match pin.get_orientation() {
                     pin::Orientation::Left => {
                         let pin = pin.position(vec2::sum(&[position, [0.0, left_pin_cursor]]));
@@ -59,13 +57,9 @@ impl<'a> PinGroup<'a> {
                     }
                 };
 
-                if pin.build(ui) {
-                    active_pin = Some(pin_id);
-                }
+                pin.build(ui);
             }
         });
-
-        active_pin
     }
 
     pub fn get_size(&self, ui: &imgui::Ui) -> [f32; 2] {
