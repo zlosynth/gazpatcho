@@ -77,7 +77,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
         });
 }
 
-fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut [f32; 2]) {
+fn register_window_scrolling(ui: &Ui<'_>, canvas_offset: &mut [f32; 2]) {
     let draw_list = ui.get_window_draw_list();
     draw_list
         .add_rect([0.0, 0.0], ui.io().display_size, BACKGROUND_COLOR)
@@ -89,7 +89,7 @@ fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut [f32; 2]) {
         }
         if ui.is_mouse_dragging(MouseButton::Left) {
             ui.set_mouse_cursor(Some(imgui::MouseCursor::ResizeAll));
-            *scrolling = vec2::sum(&[*scrolling, ui.io().mouse_delta]);
+            *canvas_offset = vec2::sum(&[*canvas_offset, ui.io().mouse_delta]);
         }
     }
 }
