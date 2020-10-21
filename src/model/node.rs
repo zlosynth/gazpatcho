@@ -8,6 +8,10 @@ impl Model {
     pub fn add_node(&mut self, node: Node) {
         self.nodes.push(node);
     }
+
+    pub fn iter_nodes(&self) -> std::slice::Iter<Node> {
+        self.nodes.iter()
+    }
 }
 
 #[derive(Debug)]
@@ -105,6 +109,11 @@ impl Node {
             );
         }
 
+        println!(
+            "Drawing node in position {:?}, result {:?}",
+            self.position,
+            vec2::sum(&[self.position, canvas_offset])
+        );
         widget::node::Node::new(&self.address)
             .position(vec2::sum(&[self.position, canvas_offset]))
             .add_component(widget::node::Component::Label(widget::label::Label::new(
@@ -120,8 +129,12 @@ impl Node {
         }
     }
 
+    pub fn set_position(&mut self, position: [f32; 2]) {
+        self.position = position;
+    }
+
     pub fn set_delta_position(&mut self, delta_position: [f32; 2]) {
-        self.position = vec2::sum(&[self.position, delta_position])
+        self.position = vec2::sum(&[self.position, delta_position]);
     }
 }
 

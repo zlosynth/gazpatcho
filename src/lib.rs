@@ -29,10 +29,6 @@ pub fn run(config_: config::Config) {
         cursor: MouseCursor::Arrow,
     };
 
-    for (i, class) in state.config.node_classes().iter().enumerate() {
-        state.model.add_node(class.instantiate(i.to_string()));
-    }
-
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
         ui.set_mouse_cursor(Some(state.cursor));
@@ -57,7 +53,7 @@ fn set_styles<F: FnOnce()>(ui: &Ui<'_>, f: F) {
 
     let style_colors = ui.push_style_colors(&[
         (StyleColor::WindowBg, [1.0, 1.0, 1.0, 1.0]),
-        (StyleColor::Text, [0.0, 0.0, 0.0, 1.0]),
+        (StyleColor::Text, [1.0, 1.0, 1.0, 1.0]),
     ]);
 
     f();
@@ -75,7 +71,7 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
         .always_auto_resize(true)
         .movable(false)
         .build(ui, || {
-            register_popup_context(ui, state.config.node_classes());
+            register_popup_context(ui, state);
 
             register_window_scrolling(ui, &mut state.canvas_offset, &mut state.cursor);
 
@@ -101,15 +97,27 @@ fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut [f32; 2], cursor: &mut
     }
 }
 
-fn register_popup_context(ui: &Ui<'_>, classes: &[config::NodeClass]) {
+fn register_popup_context(ui: &Ui<'_>, state: &mut State) {
     if unsafe { imgui_sys::igBeginPopupContextWindow(ptr::null(), 1) } {
+        let absolute_position = vec2::sum(&[
+            ui.mouse_pos_on_opening_current_popup(),
+            [-state.canvas_offset[0], -state.canvas_offset[1]],
+        ]);
+
         MenuItem::new(im_str!("Load")).build(ui);
         MenuItem::new(im_str!("Save as")).build(ui);
 
         ui.separator();
 
-        for class in classes.iter() {
-            MenuItem::new(&ImString::new(class.label())).build(ui);
+        for class in state.config.node_classes().iter() {
+            if MenuItem::new(&ImString::new(class.label())).build(ui) {
+                let id = state.model.iter_nodes().len();
+
+                let mut node = class.instantiate(id.to_string());
+                node.set_position(absolute_position);
+
+                state.model.add_node(node);
+            }
         }
 
         unsafe { imgui_sys::igEndPopup() };
