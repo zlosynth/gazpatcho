@@ -25,6 +25,12 @@ impl Model {
             if node.active() {
                 active_node_index = Some(i);
 
+                if ui.is_mouse_down(imgui::MouseButton::Left)
+                    || ui.is_mouse_dragging(imgui::MouseButton::Left)
+                {
+                    ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
+                }
+
                 if ui.is_mouse_dragging(imgui::MouseButton::Left) {
                     node.set_delta_position(ui.io().mouse_delta);
                 }

@@ -93,6 +93,7 @@ impl<'a> Pin<'a> {
                 ui.set_cursor_screen_pos(highlight_position);
                 ui.invisible_button(self.id, size);
                 if ui.is_item_hovered() {
+                    ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
                     draw_list
                         .add_rect(
                             self.position,

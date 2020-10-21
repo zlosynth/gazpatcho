@@ -31,10 +31,6 @@ pub fn run(config_: config::Config) {
 
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
-        ui.set_mouse_cursor(Some(state.cursor));
-        if ui.is_mouse_released(MouseButton::Left) {
-            state.cursor = MouseCursor::Arrow;
-        }
         set_styles(ui, || {
             show_main_window(ui, &mut state);
         })
@@ -77,26 +73,25 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
         .build(ui, || {
             register_popup_context(ui, state);
 
-            register_window_scrolling(ui, &mut state.canvas_offset, &mut state.cursor);
+            register_window_scrolling(ui, &mut state.canvas_offset);
 
             state.model.draw(ui, state.canvas_offset);
         });
 }
 
-fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut [f32; 2], cursor: &mut MouseCursor) {
+fn register_window_scrolling(ui: &Ui<'_>, scrolling: &mut [f32; 2]) {
     let draw_list = ui.get_window_draw_list();
     draw_list
         .add_rect([0.0, 0.0], ui.io().display_size, BACKGROUND_COLOR)
         .filled(true)
         .build();
     if ui.is_item_active() {
-        if ui.is_mouse_clicked(MouseButton::Left) {
-            *cursor = MouseCursor::ResizeAll;
-        } else if ui.is_mouse_dragging(MouseButton::Left) {
-            *cursor = MouseCursor::ResizeAll;
+        if ui.is_mouse_down(MouseButton::Left) {
+            ui.set_mouse_cursor(Some(imgui::MouseCursor::ResizeAll));
+        }
+        if ui.is_mouse_dragging(MouseButton::Left) {
+            ui.set_mouse_cursor(Some(imgui::MouseCursor::ResizeAll));
             *scrolling = vec2::sum(&[*scrolling, ui.io().mouse_delta]);
-        } else if ui.is_mouse_released(MouseButton::Left) {
-            *cursor = MouseCursor::Arrow;
         }
     }
 }
