@@ -18,7 +18,6 @@ struct State {
     config: config::Config,
     model: model::Model,
     canvas_offset: [f32; 2],
-    cursor: MouseCursor,
 }
 
 pub fn run(config_: config::Config) {
@@ -26,7 +25,6 @@ pub fn run(config_: config::Config) {
         config: config_,
         model: model::Model::new(),
         canvas_offset: [0.0, 0.0],
-        cursor: MouseCursor::Arrow,
     };
 
     let s = system::System::init("Gazpatcho");
