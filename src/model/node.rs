@@ -109,11 +109,6 @@ impl Node {
             );
         }
 
-        println!(
-            "Drawing node in position {:?}, result {:?}",
-            self.position,
-            vec2::sum(&[self.position, canvas_offset])
-        );
         widget::node::Node::new(&self.address)
             .position(vec2::sum(&[self.position, canvas_offset]))
             .add_component(widget::node::Component::Label(widget::label::Label::new(
