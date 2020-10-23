@@ -9,6 +9,7 @@ use crate::widget;
 
 impl Model {
     pub fn add_node(&mut self, node: Node) {
+        // TODO: Get it from method
         let index = NodeIndex(node.address.clone());
         self.nodes.insert(index.clone(), node);
         self.nodes_order.push(index);
@@ -18,8 +19,8 @@ impl Model {
         self.nodes.iter()
     }
 
-    pub fn get_pin(&self, node_index: &NodeIndex, pin_index: &PinIndex) -> Option<&Pin> {
-        Some(self.nodes.get(node_index)?.pins.get(pin_index)?)
+    pub fn get_pin(&self, index: &PinIndex) -> Option<&Pin> {
+        Some(self.nodes.get(&(*index).0)?.pins.get(index)?)
     }
 }
 
@@ -50,11 +51,13 @@ impl NodeBuilder {
             node_index = self.0.address.clone(),
             pin_class = class.clone()
         ));
-        let index = PinIndex(address.clone());
+        // TODO: Get it from method
+        let index = PinIndex(NodeIndex(self.0.address.clone()), address.clone());
         self.0.input_pins_order.push(index.clone());
         self.0.pins.insert(
-            index,
+            index.clone(),
             Pin {
+                index,
                 address,
                 class: imgui::ImString::from(class),
                 label: imgui::ImString::from(label),
@@ -73,11 +76,13 @@ impl NodeBuilder {
             node_index = self.0.address.clone(),
             pin_class = class.clone()
         ));
-        let index = PinIndex(address.clone());
+        // TODO: Get it from method
+        let index = PinIndex(NodeIndex(self.0.address.clone()), address.clone());
         self.0.output_pins_order.push(index.clone());
         self.0.pins.insert(
-            index,
+            index.clone(),
             Pin {
+                index,
                 address,
                 class: imgui::ImString::from(class),
                 label: imgui::ImString::from(label),
@@ -111,6 +116,10 @@ pub struct Node {
 }
 
 impl Node {
+    pub fn index(&self) -> NodeIndex {
+        NodeIndex(self.address.clone())
+    }
+
     pub fn active(&self) -> bool {
         self.active
     }
@@ -172,7 +181,7 @@ impl Node {
 }
 
 #[derive(Hash, Eq, PartialEq, Clone, Debug)]
-pub struct PinIndex(imgui::ImString);
+pub struct PinIndex(NodeIndex, imgui::ImString);
 
 #[derive(PartialEq, Debug)]
 pub enum Direction {
@@ -182,6 +191,7 @@ pub enum Direction {
 
 #[derive(Debug)]
 pub struct Pin {
+    index: PinIndex,
     address: imgui::ImString,
     label: imgui::ImString,
     class: imgui::ImString,
@@ -191,7 +201,15 @@ pub struct Pin {
 }
 
 impl Pin {
+    pub fn index(&self) -> &PinIndex {
+        &self.index
+    }
+
     pub fn active(&self) -> bool {
         self.active
+    }
+
+    pub fn patch_position(&self) -> [f32; 2] {
+        self.patch_position
     }
 }
