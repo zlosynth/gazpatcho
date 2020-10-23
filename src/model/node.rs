@@ -1,4 +1,7 @@
+// TODO: Convert all to the hashmap, so it is easier to build patches and look up pins
 extern crate imgui;
+
+use std::collections::HashMap;
 
 use crate::model::Model;
 use crate::vec2;
@@ -6,11 +9,17 @@ use crate::widget;
 
 impl Model {
     pub fn add_node(&mut self, node: Node) {
-        self.nodes.push(node);
+        let index = NodeIndex(node.address.clone());
+        self.nodes.insert(index.clone(), node);
+        self.nodes_order.push(index);
     }
 
-    pub fn iter_nodes(&self) -> std::slice::Iter<Node> {
+    pub fn iter_nodes(&self) -> std::collections::hash_map::Iter<NodeIndex, Node> {
         self.nodes.iter()
+    }
+
+    pub fn get_pin(&self, node_index: &NodeIndex, pin_index: &PinIndex) -> Option<&Pin> {
+        Some(self.nodes.get(node_index)?.pins.get(pin_index)?)
     }
 }
 
@@ -27,42 +36,56 @@ impl NodeBuilder {
             )),
             class: imgui::ImString::from(class),
             label: imgui::ImString::from(label),
-            input_pins: Vec::new(),
-            output_pins: Vec::new(),
+            pins: HashMap::new(),
+            input_pins_order: Vec::new(),
+            output_pins_order: Vec::new(),
             position: [0.0, 0.0],
-            // TODO: Use subscriber reference instead
             active: false,
         })
     }
 
     pub fn add_input_pin(mut self, class: String, label: String) -> Self {
-        self.0.input_pins.push(Pin {
-            address: imgui::ImString::from(format!(
-                "{node_index}:pin:in:{pin_class}",
-                node_index = self.0.address.clone(),
-                pin_class = class.clone()
-            )),
-            class: imgui::ImString::from(class),
-            label: imgui::ImString::from(label),
-            patch_position: [0.0, 0.0],
-            active: false,
-        });
+        let address = imgui::ImString::from(format!(
+            "{node_index}:pin:in:{pin_class}",
+            node_index = self.0.address.clone(),
+            pin_class = class.clone()
+        ));
+        let index = PinIndex(address.clone());
+        self.0.input_pins_order.push(index.clone());
+        self.0.pins.insert(
+            index,
+            Pin {
+                address,
+                class: imgui::ImString::from(class),
+                label: imgui::ImString::from(label),
+                direction: Direction::Input,
+                patch_position: [0.0, 0.0],
+                active: false,
+            },
+        );
 
         self
     }
 
     pub fn add_output_pin(mut self, class: String, label: String) -> Self {
-        self.0.output_pins.push(Pin {
-            address: imgui::ImString::from(format!(
-                "{node_index}:pin:out:{pin_class}",
-                node_index = self.0.address.clone(),
-                pin_class = class.clone()
-            )),
-            class: imgui::ImString::from(class),
-            label: imgui::ImString::from(label),
-            patch_position: [0.0, 0.0],
-            active: false,
-        });
+        let address = imgui::ImString::from(format!(
+            "{node_index}:pin:out:{pin_class}",
+            node_index = self.0.address.clone(),
+            pin_class = class.clone()
+        ));
+        let index = PinIndex(address.clone());
+        self.0.output_pins_order.push(index.clone());
+        self.0.pins.insert(
+            index,
+            Pin {
+                address,
+                class: imgui::ImString::from(class),
+                label: imgui::ImString::from(label),
+                direction: Direction::Output,
+                patch_position: [0.0, 0.0],
+                active: false,
+            },
+        );
 
         self
     }
@@ -72,13 +95,17 @@ impl NodeBuilder {
     }
 }
 
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+pub struct NodeIndex(imgui::ImString);
+
 #[derive(Debug)]
 pub struct Node {
     address: imgui::ImString,
     class: imgui::ImString,
     label: imgui::ImString,
-    input_pins: Vec<Pin>,
-    output_pins: Vec<Pin>,
+    pins: HashMap<PinIndex, Pin>,
+    input_pins_order: Vec<PinIndex>,
+    output_pins_order: Vec<PinIndex>,
     position: [f32; 2],
     active: bool,
 }
@@ -89,25 +116,32 @@ impl Node {
     }
 
     pub fn draw(&mut self, ui: &imgui::Ui, canvas_offset: [f32; 2]) {
+        let mut pins_widgets: HashMap<PinIndex, widget::pin::Pin> = self
+            .pins
+            .iter_mut()
+            .map(|(i, p)| {
+                (
+                    i.clone(),
+                    widget::pin::Pin::new(&p.address, &p.label)
+                        .orientation(match p.direction {
+                            Direction::Input => widget::pin::Orientation::Left,
+                            Direction::Output => widget::pin::Orientation::Right,
+                        })
+                        .patch_position_subscription(&mut p.patch_position)
+                        .active_subscription(&mut p.active),
+                )
+            })
+            .collect();
+
         let mut pin_group = widget::pin_group::PinGroup::new();
-
-        for input_pin in self.input_pins.iter_mut() {
-            pin_group = pin_group.add_pin(
-                widget::pin::Pin::new(&input_pin.address, &input_pin.label)
-                    .orientation(widget::pin::Orientation::Left)
-                    .patch_position_subscription(&mut input_pin.patch_position)
-                    .active_subscription(&mut input_pin.active),
-            );
-        }
-
-        for output_pin in self.output_pins.iter_mut() {
-            pin_group = pin_group.add_pin(
-                widget::pin::Pin::new(&output_pin.address, &output_pin.label)
-                    .orientation(widget::pin::Orientation::Right)
-                    .patch_position_subscription(&mut output_pin.patch_position)
-                    .active_subscription(&mut output_pin.active),
-            );
-        }
+        pin_group = self
+            .input_pins_order
+            .iter()
+            .fold(pin_group, |g, i| g.add_pin(pins_widgets.remove(i).unwrap()));
+        pin_group = self
+            .output_pins_order
+            .iter()
+            .fold(pin_group, |g, i| g.add_pin(pins_widgets.remove(i).unwrap()));
 
         widget::node::Node::new(&self.address)
             .position(vec2::sum(&[self.position, canvas_offset]))
@@ -131,13 +165,33 @@ impl Node {
     pub fn set_delta_position(&mut self, delta_position: [f32; 2]) {
         self.position = vec2::sum(&[self.position, delta_position]);
     }
+
+    pub fn pins(&self) -> &std::collections::HashMap<PinIndex, Pin> {
+        &self.pins
+    }
+}
+
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+pub struct PinIndex(imgui::ImString);
+
+#[derive(PartialEq, Debug)]
+pub enum Direction {
+    Input,
+    Output,
 }
 
 #[derive(Debug)]
-struct Pin {
+pub struct Pin {
     address: imgui::ImString,
     label: imgui::ImString,
     class: imgui::ImString,
+    direction: Direction,
     patch_position: [f32; 2],
     active: bool,
+}
+
+impl Pin {
+    pub fn active(&self) -> bool {
+        self.active
+    }
 }
