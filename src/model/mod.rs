@@ -7,7 +7,6 @@ use std::collections::{HashMap, HashSet};
 
 use crate::model::node::{Node, NodeIndex, PinIndex};
 use crate::model::patch::Patch;
-use crate::vec2;
 
 pub struct Model {
     nodes: HashMap<NodeIndex, Node>,
@@ -84,14 +83,12 @@ impl Model {
         if ui.is_mouse_clicked(imgui::MouseButton::Left) {
             self.last_active_pin = match (&self.last_active_pin, &active_pin) {
                 (Some(last_active_pin), Some(active_pin)) => {
-                    self.add_patch(Patch::new(last_active_pin.clone(), active_pin.clone()));
+                    self.add_patch(Patch::new(last_active_pin, active_pin));
                     None
                 }
                 (None, Some(active_pin)) => Some(active_pin.clone()),
                 (_, None) => None,
             }
         }
-
-        // TODO: Handle active pins
     }
 }

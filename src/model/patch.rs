@@ -1,6 +1,6 @@
 extern crate imgui;
 
-use std::collections:: HashSet;
+use std::collections::HashSet;
 
 use crate::model::node::PinIndex;
 use crate::model::Model;
@@ -22,10 +22,10 @@ pub struct Patch {
 }
 
 impl Patch {
-    pub fn new(source: PinIndex, destination: PinIndex) -> Self {
+    pub fn new(source: &PinIndex, destination: &PinIndex) -> Self {
         Self {
-            source,
-            destination,
+            source: source.clone(),
+            destination: destination.clone(),
         }
     }
 
