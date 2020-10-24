@@ -7,27 +7,15 @@ mod system;
 mod vec2;
 mod widget;
 
-use std::ptr;
-
 use imgui::*;
 
-struct State {
-    config: config::Config,
-    model: model::Model,
-    canvas_offset: [f32; 2],
-}
-
 pub fn run(config_: config::Config) {
-    let mut state = State {
-        config: config_,
-        model: model::Model::new(),
-        canvas_offset: [0.0, 0.0],
-    };
+    let mut model = model::Model::new(config_);
 
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
         set_styles(ui, || {
-            show_main_window(ui, &mut state);
+            show_main_window(ui, &mut model);
         })
     });
 }
@@ -57,7 +45,7 @@ fn set_styles<F: FnOnce()>(ui: &Ui<'_>, f: F) {
     style_colors.pop(ui);
 }
 
-fn show_main_window(ui: &Ui<'_>, state: &mut State) {
+fn show_main_window(ui: &Ui<'_>, model: &mut model::Model) {
     println!("A {:?}", ui.io().display_size);
     Window::new(im_str!("Gazpatcho"))
         .position([0.0, 0.0], Condition::Always)
@@ -68,35 +56,6 @@ fn show_main_window(ui: &Ui<'_>, state: &mut State) {
         .scroll_bar(false)
         .title_bar(false)
         .build(ui, || {
-            register_popup_context(ui, state);
-
-            state.model.draw(ui);
+            model.draw(ui);
         });
-}
-
-fn register_popup_context(ui: &Ui<'_>, state: &mut State) {
-    if unsafe { imgui_sys::igBeginPopupContextWindow(ptr::null(), 1) } {
-        let absolute_position = vec2::sum(&[
-            ui.mouse_pos_on_opening_current_popup(),
-            [-state.canvas_offset[0], -state.canvas_offset[1]],
-        ]);
-
-        MenuItem::new(im_str!("Load")).build(ui);
-        MenuItem::new(im_str!("Save as")).build(ui);
-
-        ui.separator();
-
-        for class in state.config.node_classes().iter() {
-            if MenuItem::new(&ImString::new(class.label())).build(ui) {
-                let id = state.model.nodes().len();
-
-                let mut node = class.instantiate(id.to_string());
-                node.set_position(absolute_position);
-
-                state.model.add_node(node);
-            }
-        }
-
-        unsafe { imgui_sys::igEndPopup() };
-    }
 }
