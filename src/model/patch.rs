@@ -24,6 +24,15 @@ impl Model {
                 .build();
         }
     }
+
+    pub fn draw_patch_draft(&self, ui: &imgui::Ui, last_active_pin: &PinAddress) {
+        let source = self.get_pin(last_active_pin).unwrap().patch_position();
+        let destination = ui.io().mouse_pos;
+        let draw_list = ui.get_window_draw_list();
+        draw_list
+            .add_line(source, destination, [0.0, 0.0, 0.0])
+            .build();
+    }
 }
 
 #[derive(Hash, Eq, PartialEq, Debug)]

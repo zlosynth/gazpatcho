@@ -30,16 +30,8 @@ impl Model {
     pub fn draw(&mut self, ui: &imgui::Ui, canvas_offset: [f32; 2]) {
         let active_pin = self.draw_nodes(ui, canvas_offset);
 
-        // TODO: Move to its own module
-        {
-            if let Some(last_active_pin) = &self.last_active_pin {
-                let source = self.get_pin(last_active_pin).unwrap().patch_position();
-                let destination = ui.io().mouse_pos;
-                let draw_list = ui.get_window_draw_list();
-                draw_list
-                    .add_line(source, destination, [0.0, 0.0, 0.0])
-                    .build();
-            }
+        if let Some(last_active_pin) = &self.last_active_pin {
+            self.draw_patch_draft(ui, &last_active_pin);
         }
 
         self.draw_patches(ui);
