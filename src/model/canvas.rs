@@ -3,14 +3,15 @@ extern crate imgui;
 use crate::model::Model;
 use crate::vec2;
 
-const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
-const BACKGROUND_COLOR: [f32; 3] = WHITE;
-
 impl Model {
     pub(super) fn draw_canvas(&mut self, ui: &imgui::Ui) {
         let draw_list = ui.get_window_draw_list();
         draw_list
-            .add_rect([0.0, 0.0], ui.window_size(), BACKGROUND_COLOR)
+            .add_rect(
+                [0.0, 0.0],
+                ui.window_size(),
+                ui.style_color(imgui::StyleColor::WindowBg),
+            )
             .filled(true)
             .build();
 
