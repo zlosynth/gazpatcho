@@ -5,19 +5,21 @@ pub mod patch;
 
 use std::collections::{HashMap, HashSet};
 
-use crate::model::node::{Node, NodeIndex, PinIndex};
+use crate::model::node::{Node, NodeIndex, PinAddress};
 use crate::model::patch::Patch;
 
 pub struct Model {
+    node_index_counter: usize,
     nodes: HashMap<NodeIndex, Node>,
     nodes_order: Vec<NodeIndex>,
+    last_active_pin: Option<PinAddress>,
     patches: HashSet<Patch>,
-    last_active_pin: Option<PinIndex>,
 }
 
 impl Model {
     pub fn new() -> Self {
         Self {
+            node_index_counter: 0,
             nodes: HashMap::new(),
             nodes_order: Vec::new(),
             patches: HashSet::new(),
@@ -35,7 +37,7 @@ impl Model {
         for (index, node) in self.nodes.iter_mut() {
             if node.active() {
                 self.nodes_order.retain(|i| i != index);
-                self.nodes_order.push((*index).clone());
+                self.nodes_order.push(*index);
 
                 if ui.is_mouse_down(imgui::MouseButton::Left)
                     || ui.is_mouse_dragging(imgui::MouseButton::Left)
@@ -50,11 +52,9 @@ impl Model {
                 continue;
             }
 
-            for (index, pin) in node.pins().iter() {
-                if pin.active() {
-                    if ui.is_mouse_clicked(imgui::MouseButton::Left) {
-                        active_pin = Some(index.clone());
-                    }
+            for (pin_index, pin) in node.pins().iter() {
+                if pin.active() && ui.is_mouse_clicked(imgui::MouseButton::Left) {
+                    active_pin = Some(PinAddress::new(*index, *pin_index));
                 }
             }
         }
@@ -81,13 +81,19 @@ impl Model {
         }
 
         if ui.is_mouse_clicked(imgui::MouseButton::Left) {
+            let mut new_patch = None;
+
             self.last_active_pin = match (&self.last_active_pin, &active_pin) {
                 (Some(last_active_pin), Some(active_pin)) => {
-                    self.add_patch(Patch::new(last_active_pin, active_pin));
+                    new_patch = Some(Patch::new(*last_active_pin, *active_pin));
                     None
                 }
-                (None, Some(active_pin)) => Some(active_pin.clone()),
+                (None, Some(active_pin)) => Some(*active_pin),
                 (_, None) => None,
+            };
+
+            if let Some(new_patch) = new_patch {
+                self.add_patch(new_patch);
             }
         }
     }

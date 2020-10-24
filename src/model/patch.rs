@@ -2,7 +2,7 @@ extern crate imgui;
 
 use std::collections::HashSet;
 
-use crate::model::node::PinIndex;
+use crate::model::node::PinAddress;
 use crate::model::Model;
 
 impl Model {
@@ -17,23 +17,23 @@ impl Model {
 
 #[derive(Hash, Eq, PartialEq, Debug)]
 pub struct Patch {
-    source: PinIndex,
-    destination: PinIndex,
+    source: PinAddress,
+    destination: PinAddress,
 }
 
 impl Patch {
-    pub fn new(source: &PinIndex, destination: &PinIndex) -> Self {
+    pub fn new(source: PinAddress, destination: PinAddress) -> Self {
         Self {
-            source: source.clone(),
-            destination: destination.clone(),
+            source,
+            destination,
         }
     }
 
-    pub fn source(&self) -> &PinIndex {
+    pub fn source(&self) -> &PinAddress {
         &self.source
     }
 
-    pub fn destination(&self) -> &PinIndex {
+    pub fn destination(&self) -> &PinAddress {
         &self.destination
     }
 }
