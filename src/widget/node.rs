@@ -4,12 +4,6 @@ use crate::vec2;
 use crate::widget::label::Label;
 use crate::widget::pin_group::PinGroup;
 
-const BLACK: [f32; 3] = [0.1, 0.1, 0.1];
-const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
-
-const BACKGROUND_COLOR: [f32; 3] = WHITE;
-const FRAME_COLOR: [f32; 3] = BLACK;
-
 pub enum Component<'a> {
     Label(Label<'a>),
     PinGroup(PinGroup<'a>),
@@ -48,11 +42,19 @@ impl<'a> Node<'a> {
         {
             let draw_list = ui.get_window_draw_list();
             draw_list
-                .add_rect(position, vec2::sum(&[position, size]), BACKGROUND_COLOR)
+                .add_rect(
+                    position,
+                    vec2::sum(&[position, size]),
+                    ui.style_color(imgui::StyleColor::PopupBg),
+                )
                 .filled(true)
                 .build();
             draw_list
-                .add_rect(position, vec2::sum(&[position, size]), FRAME_COLOR)
+                .add_rect(
+                    position,
+                    vec2::sum(&[position, size]),
+                    ui.style_color(imgui::StyleColor::Border),
+                )
                 .filled(false)
                 .build();
         }

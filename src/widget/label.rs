@@ -2,10 +2,6 @@ extern crate imgui;
 
 use crate::vec2;
 
-const BLACK: [f32; 3] = [0.0, 0.0, 0.0];
-
-const TEXT_COLOR: [f32; 3] = BLACK;
-
 const PADDING: f32 = 10.0;
 
 pub struct Label<'a> {
@@ -37,7 +33,7 @@ impl<'a> Label<'a> {
         let draw_list = ui.get_window_draw_list();
         draw_list.add_text(
             vec2::sum(&[self.position, [PADDING, PADDING]]),
-            TEXT_COLOR,
+            ui.style_color(imgui::StyleColor::Text),
             self.text,
         );
     }

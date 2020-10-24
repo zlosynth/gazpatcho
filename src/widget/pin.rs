@@ -2,9 +2,6 @@ extern crate imgui;
 
 use crate::vec2;
 
-const BLACK: [f32; 3] = [0.0, 0.0, 0.0];
-const GRAY: [f32; 3] = [0.9, 0.9, 0.9];
-
 const HEIGHT: f32 = 17.0;
 
 const PADDING_TOP: f32 = 1.0;
@@ -12,10 +9,6 @@ const PADDING_INNER: f32 = 8.0;
 const PADDING_OUTER: f32 = 10.0;
 
 const MARK_WIDTH: f32 = 3.0;
-
-const TEXT_COLOR: [f32; 3] = BLACK;
-const MARK_COLOR: [f32; 3] = BLACK;
-const HIGHLIGHT_COLOR: [f32; 3] = GRAY;
 
 pub struct Pin<'a> {
     id: &'a imgui::ImStr,
@@ -98,7 +91,7 @@ impl<'a> Pin<'a> {
                         .add_rect(
                             self.position,
                             vec2::sum(&[self.position, size]),
-                            HIGHLIGHT_COLOR,
+                            ui.style_color(imgui::StyleColor::HeaderHovered),
                         )
                         .filled(true)
                         .build();
@@ -114,7 +107,7 @@ impl<'a> Pin<'a> {
                     .add_rect(
                         mark_position,
                         vec2::sum(&[mark_position, [MARK_WIDTH, HEIGHT]]),
-                        MARK_COLOR,
+                        ui.style_color(imgui::StyleColor::Border),
                     )
                     .filled(true)
                     .build();
@@ -125,7 +118,11 @@ impl<'a> Pin<'a> {
                     Orientation::Left => vec2::sum(&[self.position, [PADDING_OUTER, PADDING_TOP]]),
                     Orientation::Right => vec2::sum(&[self.position, [PADDING_INNER, PADDING_TOP]]),
                 };
-                draw_list.add_text(label_position, TEXT_COLOR, self.label);
+                draw_list.add_text(
+                    label_position,
+                    ui.style_color(imgui::StyleColor::Text),
+                    self.label,
+                );
             }
         });
 

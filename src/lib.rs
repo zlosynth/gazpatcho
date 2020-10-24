@@ -27,15 +27,11 @@ fn set_styles<F: FnOnce()>(ui: &imgui::Ui<'_>, f: F) {
         imgui::StyleVar::GrabRounding(0.0),
         imgui::StyleVar::PopupRounding(0.0),
         imgui::StyleVar::ScrollbarRounding(0.0),
+        imgui::StyleVar::WindowPadding([0.0, 0.0]),
     ]);
 
     let style_colors = ui.push_style_colors(&[
         (imgui::StyleColor::WindowBg, [1.0, 1.0, 1.0, 1.0]),
-        (imgui::StyleColor::Text, [0.0, 0.0, 0.0, 1.0]),
-        (imgui::StyleColor::PopupBg, [1.0, 1.0, 1.0, 1.0]),
-        (imgui::StyleColor::HeaderHovered, [0.9, 0.9, 0.9, 1.0]),
-        (imgui::StyleColor::Separator, [0.0, 0.0, 0.0, 1.0]),
-        (imgui::StyleColor::Border, [0.0, 0.0, 0.0, 1.0]),
     ]);
 
     f();
