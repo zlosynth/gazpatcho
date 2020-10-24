@@ -46,7 +46,6 @@ fn set_styles<F: FnOnce()>(ui: &Ui<'_>, f: F) {
 }
 
 fn show_main_window(ui: &Ui<'_>, model: &mut model::Model) {
-    println!("A {:?}", ui.io().display_size);
     Window::new(im_str!("Gazpatcho"))
         .position([0.0, 0.0], Condition::Always)
         .size(ui.io().display_size, Condition::Always)
