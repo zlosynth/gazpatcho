@@ -108,7 +108,7 @@ fn register_popup_context(ui: &Ui<'_>, state: &mut State) {
 
         for class in state.config.node_classes().iter() {
             if MenuItem::new(&ImString::new(class.label())).build(ui) {
-                let id = state.model.iter_nodes().len();
+                let id = state.model.nodes().len();
 
                 let mut node = class.instantiate(id.to_string());
                 node.set_position(absolute_position);

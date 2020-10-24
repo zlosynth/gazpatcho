@@ -1,6 +1,6 @@
 extern crate imgui;
 
-use std::collections::{hash_map, HashMap};
+use std::collections::HashMap;
 
 use crate::model::Model;
 use crate::vec2;
@@ -16,12 +16,45 @@ impl Model {
         self.nodes_order.push(index);
     }
 
-    pub fn iter_nodes(&self) -> hash_map::Iter<NodeIndex, Node> {
-        self.nodes.iter()
+    pub fn nodes(&self) -> &HashMap<NodeIndex, Node> {
+        &self.nodes
     }
 
     pub fn get_pin(&self, pin_addres: &PinAddress) -> Option<&Pin> {
         Some(self.nodes.get(&pin_addres.0)?.get_pin(&pin_addres.1)?)
+    }
+
+    pub fn draw_nodes(&mut self, ui: &imgui::Ui, canvas_offset: [f32; 2]) -> Option<PinAddress> {
+        for index in self.nodes_order.iter() {
+            self.nodes.get_mut(index).unwrap().draw(ui, canvas_offset);
+        }
+
+        for (node_index, node) in self.nodes.iter_mut() {
+            if node.active() {
+                self.nodes_order.retain(|i| i != node_index);
+                self.nodes_order.push(*node_index);
+
+                if ui.is_mouse_down(imgui::MouseButton::Left)
+                    || ui.is_mouse_dragging(imgui::MouseButton::Left)
+                {
+                    ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
+                }
+
+                if ui.is_mouse_dragging(imgui::MouseButton::Left) {
+                    node.set_delta_position(ui.io().mouse_delta);
+                }
+
+                continue;
+            }
+
+            for (pin_index, pin) in node.pins().iter() {
+                if pin.active() && ui.is_mouse_clicked(imgui::MouseButton::Left) {
+                    return Some(PinAddress::new(*node_index, *pin_index));
+                }
+            }
+        }
+
+        None
     }
 }
 

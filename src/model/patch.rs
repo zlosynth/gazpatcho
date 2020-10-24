@@ -13,6 +13,17 @@ impl Model {
     pub fn patches(&self) -> &HashSet<Patch> {
         &self.patches
     }
+
+    pub fn draw_patches(&self, ui: &imgui::Ui) {
+        for patch in self.patches().iter() {
+            let source = self.get_pin(patch.source()).unwrap().patch_position();
+            let destination = self.get_pin(patch.destination()).unwrap().patch_position();
+            let draw_list = ui.get_window_draw_list();
+            draw_list
+                .add_line(source, destination, [0.0, 0.0, 0.0])
+                .build();
+        }
+    }
 }
 
 #[derive(Hash, Eq, PartialEq, Debug)]

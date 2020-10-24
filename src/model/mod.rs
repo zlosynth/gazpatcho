@@ -28,36 +28,7 @@ impl Model {
     }
 
     pub fn draw(&mut self, ui: &imgui::Ui, canvas_offset: [f32; 2]) {
-        for index in self.nodes_order.iter() {
-            self.nodes.get_mut(index).unwrap().draw(ui, canvas_offset);
-        }
-
-        let mut active_pin = None;
-
-        for (index, node) in self.nodes.iter_mut() {
-            if node.active() {
-                self.nodes_order.retain(|i| i != index);
-                self.nodes_order.push(*index);
-
-                if ui.is_mouse_down(imgui::MouseButton::Left)
-                    || ui.is_mouse_dragging(imgui::MouseButton::Left)
-                {
-                    ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
-                }
-
-                if ui.is_mouse_dragging(imgui::MouseButton::Left) {
-                    node.set_delta_position(ui.io().mouse_delta);
-                }
-
-                continue;
-            }
-
-            for (pin_index, pin) in node.pins().iter() {
-                if pin.active() && ui.is_mouse_clicked(imgui::MouseButton::Left) {
-                    active_pin = Some(PinAddress::new(*index, *pin_index));
-                }
-            }
-        }
+        let active_pin = self.draw_nodes(ui, canvas_offset);
 
         // TODO: Move to its own module
         {
@@ -69,16 +40,9 @@ impl Model {
                     .add_line(source, destination, [0.0, 0.0, 0.0])
                     .build();
             }
-
-            for patch in self.patches().iter() {
-                let source = self.get_pin(patch.source()).unwrap().patch_position();
-                let destination = self.get_pin(patch.destination()).unwrap().patch_position();
-                let draw_list = ui.get_window_draw_list();
-                draw_list
-                    .add_line(source, destination, [0.0, 0.0, 0.0])
-                    .build();
-            }
         }
+
+        self.draw_patches(ui);
 
         if ui.is_mouse_clicked(imgui::MouseButton::Left) {
             let mut new_patch = None;
