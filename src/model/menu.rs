@@ -6,7 +6,7 @@ use crate::model::Model;
 use crate::vec2;
 
 impl Model {
-    pub fn draw_menu(&mut self, ui: &imgui::Ui) {
+    pub(super) fn draw_menu(&mut self, ui: &imgui::Ui) {
         if unsafe { imgui_sys::igBeginPopupContextWindow(ptr::null(), 1) } {
             let absolute_position = vec2::sum(&[
                 ui.mouse_pos_on_opening_current_popup(),

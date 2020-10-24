@@ -6,15 +6,15 @@ use crate::model::node::PinAddress;
 use crate::model::Model;
 
 impl Model {
-    pub fn add_patch(&mut self, patch: Patch) {
+    fn add_patch(&mut self, patch: Patch) {
         self.patches.insert(patch);
     }
 
-    pub fn patches(&self) -> &HashSet<Patch> {
+    fn patches(&self) -> &HashSet<Patch> {
         &self.patches
     }
 
-    pub fn draw_patches(&mut self, ui: &imgui::Ui, active_pin: &Option<PinAddress>) {
+    pub(super) fn draw_patches(&mut self, ui: &imgui::Ui, active_pin: &Option<PinAddress>) {
         for patch in self.patches().iter() {
             self.draw_patch(ui, patch);
         }
@@ -70,24 +70,24 @@ impl Model {
 }
 
 #[derive(Hash, Eq, PartialEq, Debug)]
-pub struct Patch {
+pub(super) struct Patch {
     source: PinAddress,
     destination: PinAddress,
 }
 
 impl Patch {
-    pub fn new(source: PinAddress, destination: PinAddress) -> Self {
+    fn new(source: PinAddress, destination: PinAddress) -> Self {
         Self {
             source,
             destination,
         }
     }
 
-    pub fn source(&self) -> &PinAddress {
+    fn source(&self) -> &PinAddress {
         &self.source
     }
 
-    pub fn destination(&self) -> &PinAddress {
+    fn destination(&self) -> &PinAddress {
         &self.destination
     }
 }

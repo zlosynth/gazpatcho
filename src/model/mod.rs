@@ -1,9 +1,10 @@
 extern crate imgui;
 
-pub mod canvas;
-pub mod menu;
-pub mod node;
-pub mod patch;
+pub(crate) mod node;
+
+mod canvas;
+mod menu;
+mod patch;
 
 use std::collections::{HashMap, HashSet};
 
@@ -11,7 +12,7 @@ use crate::config::Config;
 use crate::model::node::{Node, NodeIndex, PinAddress};
 use crate::model::patch::Patch;
 
-pub struct Model {
+pub(super) struct Model {
     config: Config,
     canvas_offset: [f32; 2],
     node_index_counter: usize,
@@ -22,7 +23,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(config: Config) -> Self {
+    pub(super) fn new(config: Config) -> Self {
         Self {
             config,
             canvas_offset: [0.0, 0.0],
@@ -34,7 +35,7 @@ impl Model {
         }
     }
 
-    pub fn draw(&mut self, ui: &imgui::Ui) {
+    pub(super) fn draw(&mut self, ui: &imgui::Ui) {
         self.draw_canvas(ui);
         self.draw_menu(ui);
         let active_pin = self.draw_nodes(ui);

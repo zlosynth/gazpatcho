@@ -7,7 +7,7 @@ use crate::vec2;
 use crate::widget;
 
 impl Model {
-    pub fn add_node(&mut self, node: Node) {
+    pub(super) fn add_node(&mut self, node: Node) {
         let index = NodeIndex(self.node_index_counter);
         self.node_index_counter += 1;
 
@@ -16,16 +16,16 @@ impl Model {
         self.nodes_order.push(index);
     }
 
-    pub fn nodes(&self) -> &HashMap<NodeIndex, Node> {
+    pub(super) fn nodes(&self) -> &HashMap<NodeIndex, Node> {
         &self.nodes
     }
 
     // don't accept address but 2 indexes instead?
-    pub fn get_pin(&self, pin_addres: &PinAddress) -> Option<&Pin> {
+    pub(super) fn get_pin(&self, pin_addres: &PinAddress) -> Option<&Pin> {
         Some(self.nodes.get(&pin_addres.0)?.get_pin(&pin_addres.1)?)
     }
 
-    pub fn draw_nodes(&mut self, ui: &imgui::Ui) -> Option<PinAddress> {
+    pub(super) fn draw_nodes(&mut self, ui: &imgui::Ui) -> Option<PinAddress> {
         for index in self.nodes_order.iter() {
             self.nodes
                 .get_mut(index)
@@ -63,13 +63,13 @@ impl Model {
 }
 
 #[derive(Debug)]
-pub struct NodeBuilder {
+pub(crate) struct NodeBuilder {
     node: Node,
     pin_index_counter: usize,
 }
 
 impl NodeBuilder {
-    pub fn new(id: String, class: String, label: String) -> Self {
+    pub(crate) fn new(id: String, class: String, label: String) -> Self {
         Self {
             node: Node {
                 address: imgui::ImString::from(format!(
@@ -89,11 +89,11 @@ impl NodeBuilder {
         }
     }
 
-    pub fn add_input_pin(self, class: String, label: String) -> Self {
+    pub(crate) fn add_input_pin(self, class: String, label: String) -> Self {
         self.add_pin(class, label, Direction::Input)
     }
 
-    pub fn add_output_pin(self, class: String, label: String) -> Self {
+    pub(crate) fn add_output_pin(self, class: String, label: String) -> Self {
         self.add_pin(class, label, Direction::Output)
     }
 
@@ -129,16 +129,16 @@ impl NodeBuilder {
         self
     }
 
-    pub fn build(self) -> Node {
+    pub(crate) fn build(self) -> Node {
         self.node
     }
 }
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
-pub struct NodeIndex(usize);
+pub(super) struct NodeIndex(usize);
 
 #[derive(Debug)]
-pub struct Node {
+pub(crate) struct Node {
     address: imgui::ImString,
     class: imgui::ImString,
     label: imgui::ImString,
@@ -150,11 +150,11 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn active(&self) -> bool {
+    fn active(&self) -> bool {
         self.active
     }
 
-    pub fn draw(&mut self, ui: &imgui::Ui, canvas_offset: [f32; 2]) {
+    fn draw(&mut self, ui: &imgui::Ui, canvas_offset: [f32; 2]) {
         let mut pins_widgets: HashMap<PinIndex, widget::pin::Pin> = self
             .pins
             .iter_mut()
@@ -197,34 +197,34 @@ impl Node {
         }
     }
 
-    pub fn set_position(&mut self, position: [f32; 2]) {
+    pub(super) fn set_position(&mut self, position: [f32; 2]) {
         self.position = position;
     }
 
-    pub fn set_delta_position(&mut self, delta_position: [f32; 2]) {
+    fn set_delta_position(&mut self, delta_position: [f32; 2]) {
         self.position = vec2::sum(&[self.position, delta_position]);
     }
 
-    pub fn pins(&self) -> &std::collections::HashMap<PinIndex, Pin> {
+    fn pins(&self) -> &std::collections::HashMap<PinIndex, Pin> {
         &self.pins
     }
 
-    pub fn get_pin(&self, index: &PinIndex) -> Option<&Pin> {
+    fn get_pin(&self, index: &PinIndex) -> Option<&Pin> {
         Some(self.pins.get(index)?)
     }
 }
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
-pub struct PinIndex(usize);
+struct PinIndex(usize);
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum Direction {
+pub(super) enum Direction {
     Input,
     Output,
 }
 
 #[derive(Debug)]
-pub struct Pin {
+pub(super) struct Pin {
     address: imgui::ImString,
     label: imgui::ImString,
     class: imgui::ImString,
@@ -234,28 +234,28 @@ pub struct Pin {
 }
 
 impl Pin {
-    pub fn active(&self) -> bool {
+    fn active(&self) -> bool {
         self.active
     }
 
-    pub fn direction(&self) -> Direction {
+    pub(super) fn direction(&self) -> Direction {
         self.direction
     }
 
-    pub fn patch_position(&self) -> [f32; 2] {
+    pub(super) fn patch_position(&self) -> [f32; 2] {
         self.patch_position
     }
 }
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
-pub struct PinAddress(NodeIndex, PinIndex);
+pub(super) struct PinAddress(NodeIndex, PinIndex);
 
 impl PinAddress {
-    pub fn new(node_index: NodeIndex, pin_index: PinIndex) -> Self {
+    fn new(node_index: NodeIndex, pin_index: PinIndex) -> Self {
         Self(node_index, pin_index)
     }
 
-    pub fn node_index(&self) -> NodeIndex {
+    pub(super) fn node_index(&self) -> NodeIndex {
         self.0
     }
 }
