@@ -11,9 +11,6 @@ use std::ptr;
 
 use imgui::*;
 
-const WHITE: [f32; 3] = [1.0, 1.0, 1.0];
-const BACKGROUND_COLOR: [f32; 3] = WHITE;
-
 struct State {
     config: config::Config,
     model: model::Model,
@@ -61,37 +58,20 @@ fn set_styles<F: FnOnce()>(ui: &Ui<'_>, f: F) {
 }
 
 fn show_main_window(ui: &Ui<'_>, state: &mut State) {
-    Window::new(im_str!("Hello world"))
+    println!("A {:?}", ui.io().display_size);
+    Window::new(im_str!("Gazpatcho"))
         .position([0.0, 0.0], Condition::Always)
         .size(ui.io().display_size, Condition::Always)
-        .title_bar(false)
-        .resizable(false)
         .always_auto_resize(true)
         .movable(false)
+        .resizable(false)
+        .scroll_bar(false)
+        .title_bar(false)
         .build(ui, || {
             register_popup_context(ui, state);
 
-            register_window_scrolling(ui, &mut state.canvas_offset);
-
-            state.model.draw(ui, state.canvas_offset);
+            state.model.draw(ui);
         });
-}
-
-fn register_window_scrolling(ui: &Ui<'_>, canvas_offset: &mut [f32; 2]) {
-    let draw_list = ui.get_window_draw_list();
-    draw_list
-        .add_rect([0.0, 0.0], ui.io().display_size, BACKGROUND_COLOR)
-        .filled(true)
-        .build();
-    if ui.is_item_active() {
-        if ui.is_mouse_down(MouseButton::Left) {
-            ui.set_mouse_cursor(Some(imgui::MouseCursor::ResizeAll));
-        }
-        if ui.is_mouse_dragging(MouseButton::Left) {
-            ui.set_mouse_cursor(Some(imgui::MouseCursor::ResizeAll));
-            *canvas_offset = vec2::sum(&[*canvas_offset, ui.io().mouse_delta]);
-        }
-    }
 }
 
 fn register_popup_context(ui: &Ui<'_>, state: &mut State) {

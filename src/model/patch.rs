@@ -26,7 +26,16 @@ impl Model {
 
             self.last_active_pin = match (&self.last_active_pin, &active_pin) {
                 (Some(last_active_pin), Some(active_pin)) => {
-                    new_patch = Some(Patch::new(*last_active_pin, *active_pin));
+                    if self.get_pin(last_active_pin).unwrap().direction()
+                        == self.get_pin(active_pin).unwrap().direction()
+                    {
+                        println!("Invalid combination");
+                    } else if last_active_pin.node_index() == active_pin.node_index() {
+                        println!("Cannot self link");
+                    } else {
+                        new_patch = Some(Patch::new(*last_active_pin, *active_pin));
+                    }
+
                     None
                 }
                 (None, Some(active_pin)) => Some(*active_pin),
