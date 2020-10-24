@@ -30,9 +30,7 @@ fn set_styles<F: FnOnce()>(ui: &imgui::Ui<'_>, f: F) {
         imgui::StyleVar::WindowPadding([0.0, 0.0]),
     ]);
 
-    let style_colors = ui.push_style_colors(&[
-        (imgui::StyleColor::WindowBg, [1.0, 1.0, 1.0, 1.0]),
-    ]);
+    let style_colors = ui.push_style_colors(&[(imgui::StyleColor::WindowBg, [1.0, 1.0, 1.0, 1.0])]);
 
     f();
 

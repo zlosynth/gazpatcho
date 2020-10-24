@@ -2,7 +2,7 @@ extern crate imgui;
 
 use std::collections::HashSet;
 
-use crate::model::node::PinAddress;
+use crate::model::node::{Direction, PinAddress};
 use crate::model::Model;
 
 impl Model {
@@ -25,15 +25,8 @@ impl Model {
             let mut new_patch = None;
 
             self.last_active_pin = match (&self.last_active_pin, &active_pin) {
-                (Some(last_active_pin), Some(active_pin)) => {
-                    let invalid_direction = self.get_pin(last_active_pin).unwrap().direction()
-                        == self.get_pin(active_pin).unwrap().direction();
-                    let self_loop = last_active_pin.node_index() == active_pin.node_index();
-
-                    if !invalid_direction && !self_loop {
-                        new_patch = Some(Patch::new(*last_active_pin, *active_pin));
-                    }
-
+                (Some(pin_a), Some(pin_b)) => {
+                    new_patch = self.build_patch(pin_a, pin_b);
                     None
                 }
                 (None, Some(active_pin)) => Some(*active_pin),
@@ -44,6 +37,27 @@ impl Model {
                 self.add_patch(new_patch);
             }
         }
+    }
+
+    fn build_patch(&self, pin_a: &PinAddress, pin_b: &PinAddress) -> Option<Patch> {
+        if pin_a.node_index() == pin_b.node_index() {
+            return None;
+        }
+
+        let pin_a_direction = self.get_pin(pin_a).unwrap().direction();
+        let pin_b_direction = self.get_pin(pin_b).unwrap().direction();
+
+        let (input, output) = match (pin_a_direction, pin_b_direction) {
+            (Direction::Input, Direction::Output) => (pin_a, pin_b),
+            (Direction::Output, Direction::Input) => (pin_b, pin_a),
+            _ => return None,
+        };
+
+        if self.patches().iter().any(|p| p.destination() == input) {
+            return None;
+        }
+
+        Some(Patch::new(*output, *input))
     }
 
     fn draw_patch(&self, ui: &imgui::Ui, patch: &Patch) {
