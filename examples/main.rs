@@ -21,6 +21,29 @@ fn main() {
                 .must_add_input_pin(config::Pin::new("in1".into(), "Input 1".into()))
                 .must_add_input_pin(config::Pin::new("in2".into(), "Input 2".into()))
                 .must_add_output_pin(config::Pin::new("out4".into(), "Output".into())),
+        )
+        .must_add_node_class(
+            config::NodeClass::new(".longlabel".into(), "The longest label there ever was".into())
+                .must_add_input_pin(config::Pin::new("in1".into(), "Input 1".into()))
+                .must_add_input_pin(config::Pin::new("in2".into(), "Input 2".into()))
+                .must_add_output_pin(config::Pin::new("out4".into(), "Output".into())),
+        )
+        .must_add_node_class(config::NodeClass::new(".nothing".into(), "_".into()))
+        .must_add_node_class(
+            config::NodeClass::new(".small".into(), "S".into())
+                .must_add_output_pin(config::Pin::new("out4".into(), "Out".into())),
+        )
+        .must_add_node_class(
+            config::NodeClass::new(".big".into(), "Huge".into())
+                .must_add_input_pin(config::Pin::new(
+                    "in1".into(),
+                    "Lorem ipsum samet blah blah".into(),
+                ))
+                .must_add_input_pin(config::Pin::new("in2".into(), "Input 2".into()))
+                .must_add_output_pin(config::Pin::new(
+                    "out4".into(),
+                    "Output lorem ipsum samet blablabla".into(),
+                )),
         );
 
     let _handle = gazpatcho::run(config);
