@@ -70,27 +70,31 @@ impl<'a> Pin<'a> {
         &self.orientation
     }
 
-    pub fn get_size(&self, ui: &imgui::Ui) -> [f32; 2] {
-        let width = ui.calc_text_size(self.label, false, 0.0)[0] + PADDING_INNER + PADDING_OUTER;
-        [width, HEIGHT]
+    pub fn get_width(&self, ui: &imgui::Ui) -> f32 {
+        ui.calc_text_size(self.label, false, 0.0)[0] + PADDING_INNER + PADDING_OUTER
+    }
+
+    pub fn get_height(&self) -> f32 {
+        HEIGHT
     }
 
     pub fn build(self, ui: &imgui::Ui) {
         let draw_list = ui.get_window_draw_list();
 
-        let size = self.get_size(ui);
+        let width = self.get_width(ui);
+        let height = self.get_height();
 
         ui.group(|| {
             {
                 let highlight_position = self.position;
                 ui.set_cursor_screen_pos(highlight_position);
-                ui.invisible_button(self.id, size);
+                ui.invisible_button(self.id, [width, height]);
                 if ui.is_item_hovered() {
                     ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
                     draw_list
                         .add_rect(
                             self.position,
-                            vec2::sum(&[self.position, size]),
+                            vec2::sum(&[self.position, [width, height]]),
                             ui.style_color(imgui::StyleColor::HeaderHovered),
                         )
                         .filled(true)
@@ -101,7 +105,7 @@ impl<'a> Pin<'a> {
             {
                 let mark_position = match &self.orientation {
                     Orientation::Left => self.position,
-                    Orientation::Right => vec2::sum(&[self.position, [size[0] - MARK_WIDTH, 0.0]]),
+                    Orientation::Right => vec2::sum(&[self.position, [width - MARK_WIDTH, 0.0]]),
                 };
                 draw_list
                     .add_rect(
@@ -129,7 +133,7 @@ impl<'a> Pin<'a> {
         if let Some(patch_position_subscription) = self.patch_position_subscription {
             *patch_position_subscription = match &self.orientation {
                 Orientation::Left => vec2::sum(&[self.position, [0.0, (HEIGHT - 1.0) / 2.0]]),
-                Orientation::Right => vec2::sum(&[self.position, [size[0], (HEIGHT - 1.0) / 2.0]]),
+                Orientation::Right => vec2::sum(&[self.position, [width, (HEIGHT - 1.0) / 2.0]]),
             };
         }
 

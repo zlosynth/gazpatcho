@@ -37,14 +37,16 @@ impl<'a> Node<'a> {
 
     pub fn build(self, ui: &imgui::Ui<'_>) {
         let position = self.position;
-        let size = self.get_size(ui);
+
+        let width = self.get_width(ui);
+        let height = self.get_height(ui);
 
         {
             let draw_list = ui.get_window_draw_list();
             draw_list
                 .add_rect(
                     position,
-                    vec2::sum(&[position, size]),
+                    vec2::sum(&[position, [width, height]]),
                     ui.style_color(imgui::StyleColor::PopupBg),
                 )
                 .filled(true)
@@ -52,7 +54,7 @@ impl<'a> Node<'a> {
             draw_list
                 .add_rect(
                     position,
-                    vec2::sum(&[position, size]),
+                    vec2::sum(&[position, [width, height]]),
                     ui.style_color(imgui::StyleColor::Border),
                 )
                 .filled(false)
@@ -64,13 +66,13 @@ impl<'a> Node<'a> {
         for component in self.components.into_iter() {
             match component {
                 Component::Label(label) => {
-                    let component_height = label.get_size(ui)[1];
+                    let component_height = label.get_height(ui);
                     label.position(cursor).build(ui);
                     cursor[1] += component_height;
                 }
                 Component::PinGroup(pin_group) => {
-                    let component_height = pin_group.get_size(ui)[1];
-                    pin_group.position(cursor).build(ui);
+                    let component_height = pin_group.get_height();
+                    pin_group.position(cursor).build(ui, width);
                     cursor[1] += component_height;
                 }
                 Component::Space(space) => {
@@ -80,21 +82,28 @@ impl<'a> Node<'a> {
         }
 
         ui.set_cursor_screen_pos(position);
-        ui.invisible_button(self.id, size);
+        ui.invisible_button(self.id, [width, height]);
     }
 
-    fn get_size(&self, ui: &imgui::Ui<'_>) -> [f32; 2] {
-        let components_size = {
-            self.components
-                .iter()
-                .map(|c| match c {
-                    Component::Label(label) => label.get_size(ui),
-                    Component::PinGroup(pin_group) => pin_group.get_size(ui),
-                    Component::Space(space) => [0.0, *space],
-                })
-                .fold([0.0 as f32, 0.0], |a, b| [a[0].max(b[0]), a[1] + b[1]])
-        };
+    fn get_width(&self, ui: &imgui::Ui) -> f32 {
+        self.components
+            .iter()
+            .map(|c| match c {
+                Component::Label(label) => label.get_width(ui),
+                Component::PinGroup(pin_group) => pin_group.get_min_width(ui),
+                Component::Space(_) => 0.0,
+            })
+            .fold(0.0, f32::max)
+    }
 
-        components_size
+    fn get_height(&self, ui: &imgui::Ui) -> f32 {
+        self.components
+            .iter()
+            .map(|c| match c {
+                Component::Label(label) => label.get_height(ui),
+                Component::PinGroup(pin_group) => pin_group.get_height(),
+                Component::Space(space) => *space,
+            })
+            .sum()
     }
 }

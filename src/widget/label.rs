@@ -22,11 +22,12 @@ impl<'a> Label<'a> {
         self
     }
 
-    pub fn get_size(&self, ui: &imgui::Ui<'_>) -> [f32; 2] {
-        vec2::sum(&[
-            ui.calc_text_size(self.text, false, 0.0),
-            [PADDING * 2.0, PADDING * 2.0],
-        ])
+    pub fn get_width(&self, ui: &imgui::Ui) -> f32 {
+        ui.calc_text_size(self.text, false, 0.0)[0] + PADDING * 2.0
+    }
+
+    pub fn get_height(&self, ui: &imgui::Ui) -> f32 {
+        ui.calc_text_size(self.text, false, 0.0)[1] + PADDING * 2.0
     }
 
     pub fn build(self, ui: &imgui::Ui<'_>) {

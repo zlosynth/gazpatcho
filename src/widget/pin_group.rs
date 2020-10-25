@@ -24,35 +24,67 @@ impl<'a> PinGroup<'a> {
         self
     }
 
+    pub fn get_min_width(&self, ui: &imgui::Ui) -> f32 {
+        let max_left_pin_width = self
+            .pins
+            .iter()
+            .filter(move |p| *p.get_orientation() == pin::Orientation::Left)
+            .fold(0.0, |w, p| f32::max(w, p.get_width(ui)));
+        let max_right_pin_width = self
+            .pins
+            .iter()
+            .filter(move |p| *p.get_orientation() == pin::Orientation::Right)
+            .fold(0.0, |w, p| f32::max(w, p.get_width(ui)));
+
+        max_left_pin_width + PIN_HORIZONTAL_SPACING + max_right_pin_width
+    }
+
+    pub fn get_height(&self) -> f32 {
+        let (left_pins_length, left_pins_height) = self
+            .pins
+            .iter()
+            .filter(move |p| *p.get_orientation() == pin::Orientation::Left)
+            .fold((0 as usize, 0.0), |x, p| (x.0 + 1, x.1 + p.get_height()));
+        let (right_pins_length, right_pins_height) = self
+            .pins
+            .iter()
+            .filter(move |p| *p.get_orientation() == pin::Orientation::Right)
+            .fold((0 as usize, 0.0), |x, p| (x.0 + 1, x.1 + p.get_height()));
+
+        let max_pins_length = left_pins_length.max(right_pins_length);
+        let max_pins_height = left_pins_height.max(right_pins_height);
+
+        (max_pins_length as f32 - 1.0) * PIN_VERTICAL_SPACING + max_pins_height
+    }
+
     pub fn add_pin(mut self, pin: Pin<'a>) -> Self {
         self.pins.push(pin);
         self
     }
 
-    pub fn build(self, ui: &imgui::Ui) {
+    pub fn build(self, ui: &imgui::Ui, width: f32) {
         let position = self.position;
-        let size = self.get_size(ui);
 
         let mut left_pin_cursor = 0.0;
         let mut right_pin_cursor = 0.0;
 
         ui.group(|| {
             for mut pin in self.pins.into_iter() {
-                let pin_size = pin.get_size(ui);
+                let pin_width = pin.get_width(ui);
+                let pin_height = pin.get_height();
 
-                // TODO: Can this be simplified
                 pin = match pin.get_orientation() {
                     pin::Orientation::Left => {
                         let pin = pin.position(vec2::sum(&[position, [0.0, left_pin_cursor]]));
-                        left_pin_cursor += pin_size[1] + PIN_VERTICAL_SPACING;
+                        left_pin_cursor += pin_height + PIN_VERTICAL_SPACING;
                         pin
                     }
                     pin::Orientation::Right => {
                         let pin = pin.position(vec2::sum(&[
                             position,
-                            [size[0] - pin_size[0], right_pin_cursor],
+                            [width - pin_width, right_pin_cursor],
                         ]));
-                        right_pin_cursor += pin_size[1] + PIN_VERTICAL_SPACING;
+                        right_pin_cursor += pin_height + PIN_VERTICAL_SPACING;
                         pin
                     }
                 };
@@ -60,31 +92,5 @@ impl<'a> PinGroup<'a> {
                 pin.build(ui);
             }
         });
-    }
-
-    pub fn get_size(&self, ui: &imgui::Ui) -> [f32; 2] {
-        let (left_pins_length, left_pins_height, max_left_pin_width) = self
-            .pins
-            .iter()
-            .filter(move |p| *p.get_orientation() == pin::Orientation::Left)
-            .fold((0 as usize, 0.0 as f32, 0.0 as f32), |x, p| {
-                let pin_size = p.get_size(ui);
-                (x.0 + 1, x.1 + pin_size[1], x.2.max(pin_size[0]))
-            });
-        let (right_pins_length, right_pins_height, max_right_pin_width) = self
-            .pins
-            .iter()
-            .filter(move |p| *p.get_orientation() == pin::Orientation::Right)
-            .fold((0 as usize, 0.0 as f32, 0.0 as f32), |x, p| {
-                let pin_size = p.get_size(ui);
-                (x.0 + 1, x.1 + pin_size[1], x.2.max(pin_size[0]))
-            });
-        let max_pins_length = left_pins_length.max(right_pins_length);
-        let max_pins_height = left_pins_height.max(right_pins_height);
-
-        [
-            max_left_pin_width + PIN_HORIZONTAL_SPACING + max_right_pin_width,
-            (max_pins_length as f32 - 1.0) * PIN_VERTICAL_SPACING + max_pins_height,
-        ]
     }
 }
