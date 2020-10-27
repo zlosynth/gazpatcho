@@ -33,6 +33,11 @@ fn main() {
         )
         .must_add_node_class(config::NodeClass::new(".nothing".into(), "_".into()))
         .must_add_node_class(
+            config::NodeClass::new("comment".into(), "Big Comment".into()).must_add_input_text_box(
+                config::InputTextBox::new("input_text_box_name".into(), 100, [400.0, 150.0]),
+            ),
+        )
+        .must_add_node_class(
             config::NodeClass::new(".small".into(), "S".into())
                 .must_add_output_pin(config::Pin::new("out4".into(), "Out".into())),
         )

@@ -68,6 +68,8 @@ pub(crate) struct NodeBuilder {
     pin_index_counter: usize,
 }
 
+// TODO: Most of this duplicates NodeClass from config. Think how to merge those two.
+// Only keep model, adding classes and reading state
 impl NodeBuilder {
     pub(crate) fn new(id: String, class: String, label: String) -> Self {
         Self {
@@ -82,6 +84,7 @@ impl NodeBuilder {
                 pins: HashMap::new(),
                 input_pins_order: Vec::new(),
                 output_pins_order: Vec::new(),
+                widgets: Vec::new(),
                 position: [0.0, 0.0],
                 active: false,
             },
@@ -129,6 +132,18 @@ impl NodeBuilder {
         self
     }
 
+    pub fn add_multiline_input(mut self, class: String, capacity: usize, size: [f32; 2]) -> Self {
+        self.node
+            .widgets
+            .push(Widget::MultilineInput(MultilineInput {
+                class: imgui::ImString::from(class),
+                capacity,
+                size,
+                content: imgui::ImString::with_capacity(capacity),
+            }));
+        self
+    }
+
     pub(crate) fn build(self) -> Node {
         self.node
     }
@@ -145,6 +160,7 @@ pub(crate) struct Node {
     pins: HashMap<PinIndex, Pin>,
     input_pins_order: Vec<PinIndex>,
     output_pins_order: Vec<PinIndex>,
+    widgets: Vec<Widget>,
     position: [f32; 2],
     active: bool,
 }
@@ -155,42 +171,61 @@ impl Node {
     }
 
     fn draw(&mut self, ui: &imgui::Ui, canvas_offset: [f32; 2]) {
-        let mut pins_widgets: HashMap<PinIndex, widget::pin::Pin> = self
-            .pins
-            .iter_mut()
-            .map(|(i, p)| {
-                (
-                    *i,
-                    widget::pin::Pin::new(&p.address, &p.label)
-                        .orientation(match p.direction {
-                            Direction::Input => widget::pin::Orientation::Left,
-                            Direction::Output => widget::pin::Orientation::Right,
-                        })
-                        .patch_position_subscription(&mut p.patch_position)
-                        .active_subscription(&mut p.active),
-                )
-            })
-            .collect();
-
-        let mut pin_group = widget::pin_group::PinGroup::new();
-        pin_group = self
-            .input_pins_order
-            .iter()
-            .fold(pin_group, |g, i| g.add_pin(pins_widgets.remove(i).unwrap()));
-        pin_group = self
-            .output_pins_order
-            .iter()
-            .fold(pin_group, |g, i| g.add_pin(pins_widgets.remove(i).unwrap()));
-
-        widget::node::Node::new(&self.address)
+        let mut node = widget::node::Node::new(&self.address)
             .position(vec2::sum(&[self.position, canvas_offset]))
             .add_component(widget::node::Component::Label(widget::label::Label::new(
                 &self.label,
-            )))
-            .add_component(widget::node::Component::Space(5.0))
-            .add_component(widget::node::Component::PinGroup(pin_group))
-            .add_component(widget::node::Component::Space(10.0))
-            .build(ui);
+            )));
+
+        {
+            let mut pins_widgets: HashMap<PinIndex, widget::pin::Pin> = self
+                .pins
+                .iter_mut()
+                .map(|(i, p)| {
+                    (
+                        *i,
+                        widget::pin::Pin::new(&p.address, &p.label)
+                            .orientation(match p.direction {
+                                Direction::Input => widget::pin::Orientation::Left,
+                                Direction::Output => widget::pin::Orientation::Right,
+                            })
+                            .patch_position_subscription(&mut p.patch_position)
+                            .active_subscription(&mut p.active),
+                    )
+                })
+                .collect();
+
+            if !pins_widgets.is_empty() {
+                let mut pin_group = widget::pin_group::PinGroup::new();
+                pin_group = self
+                    .input_pins_order
+                    .iter()
+                    .fold(pin_group, |g, i| g.add_pin(pins_widgets.remove(i).unwrap()));
+                pin_group = self
+                    .output_pins_order
+                    .iter()
+                    .fold(pin_group, |g, i| g.add_pin(pins_widgets.remove(i).unwrap()));
+
+                node = node
+                    .add_component(widget::node::Component::Space(5.0))
+                    .add_component(widget::node::Component::PinGroup(pin_group))
+                    .add_component(widget::node::Component::Space(10.0));
+            }
+        }
+
+        node = self.widgets.iter_mut().fold(node, |n, w| match w {
+            Widget::MultilineInput(multiline_input) => {
+                n.add_component(widget::node::Component::MultilineInput(
+                    widget::multiline_input::MultilineInput::new(
+                        &mut multiline_input.content,
+                        multiline_input.size[0],
+                        multiline_input.size[1],
+                    ),
+                ))
+            }
+        });
+
+        node.build(ui);
         self.active = ui.is_item_active();
         unsafe {
             imgui::sys::igSetItemAllowOverlap();
@@ -258,4 +293,17 @@ impl PinAddress {
     pub(super) fn node_index(&self) -> NodeIndex {
         self.0
     }
+}
+
+#[derive(Debug)]
+pub(crate) enum Widget {
+    MultilineInput(MultilineInput),
+}
+
+#[derive(Debug)]
+pub(crate) struct MultilineInput {
+    class: imgui::ImString,
+    capacity: usize,
+    size: [f32; 2],
+    content: imgui::ImString,
 }

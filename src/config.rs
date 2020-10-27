@@ -49,6 +49,7 @@ pub struct NodeClass {
     label: String,
     input_pins: Vec<Pin>,
     output_pins: Vec<Pin>,
+    widgets: Vec<Widget>,
 }
 
 impl NodeClass {
@@ -58,6 +59,7 @@ impl NodeClass {
             label,
             input_pins: Vec::new(),
             output_pins: Vec::new(),
+            widgets: Vec::new(),
         }
     }
 
@@ -81,10 +83,6 @@ impl NodeClass {
         self
     }
 
-    pub fn input_pins(&self) -> &Vec<Pin> {
-        &self.input_pins
-    }
-
     pub fn must_add_output_pin(mut self, pin: Pin) -> Self {
         if self.output_pins.iter().any(|p| p.name() == pin.name()) {
             panic!(
@@ -97,8 +95,25 @@ impl NodeClass {
         self
     }
 
-    pub fn output_pins(&self) -> &Vec<Pin> {
-        &self.output_pins
+    pub fn must_add_input_text_box(self, input_text_box: InputTextBox) -> Self {
+        self.must_add_widget(Widget::InputTextBox(input_text_box))
+    }
+
+    fn must_add_widget(mut self, widget: Widget) -> Self {
+        if self
+            .widgets
+            .iter()
+            .any(|w| w.type_name() == widget.type_name() && w.name() == widget.name())
+        {
+            panic!(
+                "{} named \"{}\" already exists in the given NodeClass",
+                widget.type_name(),
+                widget.name()
+            );
+        }
+
+        self.widgets.push(widget);
+        self
     }
 
     pub(crate) fn instantiate(&self, id: String) -> model::node::Node {
@@ -109,6 +124,13 @@ impl NodeClass {
         });
         node_builder = self.output_pins.iter().fold(node_builder, |b, p| {
             b.add_output_pin(p.name().to_string(), p.label().to_string())
+        });
+        node_builder = self.widgets.iter().fold(node_builder, |b, w| match w {
+            Widget::InputTextBox(input_text_box) => b.add_multiline_input(
+                input_text_box.name.clone(),
+                input_text_box.capacity,
+                input_text_box.size,
+            ),
         });
         node_builder.build()
     }
@@ -131,6 +153,42 @@ impl Pin {
 
     pub fn label(&self) -> &str {
         &self.label
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum Widget {
+    InputTextBox(InputTextBox),
+}
+
+impl Widget {
+    pub fn type_name(&self) -> &str {
+        match self {
+            Self::InputTextBox(_) => "Input Text Box",
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        match self {
+            Self::InputTextBox(input_text_box) => &input_text_box.name,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct InputTextBox {
+    name: String,
+    capacity: usize,
+    size: [f32; 2],
+}
+
+impl InputTextBox {
+    pub fn new(name: String, capacity: usize, size: [f32; 2]) -> Self {
+        InputTextBox {
+            name,
+            capacity,
+            size,
+        }
     }
 }
 
@@ -203,18 +261,6 @@ mod tests {
     }
 
     #[test]
-    fn iterate_input_pins_of_node_class() {
-        let node_class = NodeClass::new("class_name".into(), "Node Label".into())
-            .must_add_input_pin(Pin::new("pin_name_1".into(), "Pin Label".into()))
-            .must_add_input_pin(Pin::new("pin_name_2".into(), "Pin Label".into()));
-
-        let mut iter = node_class.input_pins().iter();
-        assert_eq!(iter.next().unwrap().name(), "pin_name_1");
-        assert_eq!(iter.next().unwrap().name(), "pin_name_2");
-        assert!(iter.next().is_none());
-    }
-
-    #[test]
     fn must_add_output_pin_to_node_class() {
         let _node_class = NodeClass::new("class_name".into(), "Node Label".into())
             .must_add_output_pin(Pin::new("pin_name".into(), "Pin Label".into()));
@@ -228,18 +274,6 @@ mod tests {
         let _node_class = NodeClass::new("class_name".into(), "Node Label".into())
             .must_add_output_pin(Pin::new("pin_name".into(), "Pin Label".into()))
             .must_add_output_pin(Pin::new("pin_name".into(), "Pin Label".into()));
-    }
-
-    #[test]
-    fn iterate_output_pins_of_node_class() {
-        let node_class = NodeClass::new("class_name".into(), "Node Label".into())
-            .must_add_output_pin(Pin::new("pin_name_1".into(), "Pin Label".into()))
-            .must_add_output_pin(Pin::new("pin_name_2".into(), "Pin Label".into()));
-
-        let mut iter = node_class.output_pins().iter();
-        assert_eq!(iter.next().unwrap().name(), "pin_name_1");
-        assert_eq!(iter.next().unwrap().name(), "pin_name_2");
-        assert!(iter.next().is_none());
     }
 
     #[test]
@@ -259,6 +293,32 @@ mod tests {
         let pin = Pin::new("pin_name".into(), "Pin Label".into());
 
         assert_eq!(pin.label(), "Pin Label");
+    }
+
+    #[test]
+    fn must_add_input_text_box_to_node_class() {
+        let _node_class =
+            NodeClass::new("class_name".into(), "Node Label".into()).must_add_input_text_box(
+                InputTextBox::new("input_text_box_name".into(), 100, [200.0, 100.0]),
+            );
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Input Text Box named \"input_text_box_name\" already exists in the given NodeClass"
+    )]
+    fn panic_on_duplicate_input_text_box_name_added_to_node_class() {
+        let _node_class = NodeClass::new("class_name".into(), "Node Label".into())
+            .must_add_input_text_box(InputTextBox::new(
+                "input_text_box_name".into(),
+                100,
+                [200.0, 100.0],
+            ))
+            .must_add_input_text_box(InputTextBox::new(
+                "input_text_box_name".into(),
+                100,
+                [200.0, 100.0],
+            ));
     }
 
     #[test]

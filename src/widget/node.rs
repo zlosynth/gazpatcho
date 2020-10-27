@@ -2,12 +2,14 @@ extern crate imgui;
 
 use crate::vec2;
 use crate::widget::label::Label;
+use crate::widget::multiline_input::MultilineInput;
 use crate::widget::pin_group::PinGroup;
 
 pub enum Component<'a> {
     Label(Label<'a>),
     PinGroup(PinGroup<'a>),
     Space(f32),
+    MultilineInput(MultilineInput<'a>),
 }
 
 pub struct Node<'a> {
@@ -78,6 +80,11 @@ impl<'a> Node<'a> {
                 Component::Space(space) => {
                     cursor[1] += space;
                 }
+                Component::MultilineInput(multiline_input) => {
+                    let component_height = multiline_input.get_height();
+                    multiline_input.position(cursor).build(ui, width);
+                    cursor[1] += component_height;
+                }
             };
         }
 
@@ -92,6 +99,7 @@ impl<'a> Node<'a> {
                 Component::Label(label) => label.get_width(ui),
                 Component::PinGroup(pin_group) => pin_group.get_min_width(ui),
                 Component::Space(_) => 0.0,
+                Component::MultilineInput(multiline_input) => multiline_input.get_min_width(),
             })
             .fold(0.0, f32::max)
     }
@@ -103,6 +111,7 @@ impl<'a> Node<'a> {
                 Component::Label(label) => label.get_height(ui),
                 Component::PinGroup(pin_group) => pin_group.get_height(),
                 Component::Space(space) => *space,
+                Component::MultilineInput(multiline_input) => multiline_input.get_height(),
             })
             .sum()
     }
