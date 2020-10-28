@@ -4,6 +4,7 @@ extern crate imgui;
 pub mod config;
 
 mod model;
+mod reactive;
 mod system;
 mod vec2;
 mod widget;
