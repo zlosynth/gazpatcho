@@ -3,8 +3,11 @@ extern crate imgui;
 
 pub mod config;
 
+mod action;
 mod model;
 mod reactive;
+mod reducer;
+mod state;
 mod system;
 mod vec2;
 mod widget;
