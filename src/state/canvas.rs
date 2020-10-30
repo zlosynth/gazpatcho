@@ -3,10 +3,6 @@ pub struct State {
 }
 
 impl State {
-    pub fn new() -> Self {
-        Self { offset: [0.0, 0.0] }
-    }
-
     pub fn offset(&self) -> [f32; 2] {
         self.offset
     }
@@ -18,6 +14,6 @@ impl State {
 
 impl Default for State {
     fn default() -> Self {
-        Self::new()
+        Self { offset: [0.0, 0.0] }
     }
 }
