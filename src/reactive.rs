@@ -1,22 +1,19 @@
 pub struct Store<S, A> {
-    state: Option<S>,
-    reducer: fn(S, A) -> S,
+    state: S,
+    reducer: fn(&mut S, A),
 }
 
 impl<S, A> Store<S, A> {
-    pub fn new(state: S, reducer: fn(S, A) -> S) -> Self {
-        Self {
-            state: Some(state),
-            reducer,
-        }
+    pub fn new(state: S, reducer: fn(&mut S, A)) -> Self {
+        Self { state, reducer }
     }
 
     pub fn state(&self) -> &S {
-        self.state.as_ref().unwrap()
+        &self.state
     }
 
     pub fn reduce(&mut self, action: A) {
-        self.state = Some((self.reducer)(self.state.take().unwrap(), action));
+        (self.reducer)(&mut self.state, action);
     }
 }
 
@@ -32,13 +29,12 @@ mod tests {
         Add(i32),
     }
 
-    fn reduce(mut state: State, action: Action) -> State {
+    fn reduce(state: &mut State, action: Action) {
         match action {
             Action::Add(num) => {
                 state.number += num;
-                state
             }
-        }
+        };
     }
 
     #[test]
