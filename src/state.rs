@@ -4,6 +4,8 @@ use std::collections::HashSet;
 
 #[derive(Getters, Default, Debug)]
 pub struct State {
+    pub offset: [f32; 2],
+
     #[getset(get = "pub")]
     node_templates: Vec<NodeTemplate>,
     #[getset(get = "pub")]

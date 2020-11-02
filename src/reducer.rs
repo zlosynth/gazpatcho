@@ -1,5 +1,5 @@
-use crate::action::canvas::Action;
-use crate::state::canvas::State;
+use crate::action::Action;
+use crate::state::State;
 use crate::vec2;
 
 pub fn reduce(state: &mut State, action: Action) {
