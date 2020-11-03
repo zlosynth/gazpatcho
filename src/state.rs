@@ -10,6 +10,22 @@ pub struct State {
     node_templates: Vec<NodeTemplate>,
     #[getset(get = "pub")]
     nodes: Vec<Node>,
+
+    #[getset(get = "pub")]
+    patches: Vec<Patch>,
+}
+
+#[derive(Getters, Debug)]
+pub struct NodeTemplate {
+    #[getset(get = "pub")]
+    label: String,
+
+    #[getset(get)]
+    class: String,
+
+    pins: Vec<Pin>,
+
+    widgets: Vec<Widget>,
 }
 
 impl State {
@@ -24,55 +40,16 @@ impl State {
 
         self.node_templates.push(node_template);
     }
-
-    pub fn add_node(&mut self, node: Node) {
-        assert!(
-            self.nodes.iter().find(|n| n.id() == node.id()).is_none(),
-            "Each Node within a state must have its unique id"
-        );
-
-        self.nodes.push(node);
-    }
-}
-
-#[derive(Getters, Debug)]
-pub struct NodeTemplate {
-    #[getset(get = "pub")]
-    label: String,
-
-    #[getset(get)]
-    class: String,
-
-    input_pins: Vec<Pin>,
-    output_pins: Vec<Pin>,
-
-    widgets: Vec<Widget>,
 }
 
 impl NodeTemplate {
-    pub fn new(
-        label: String,
-        class: String,
-        input_pins: Vec<Pin>,
-        output_pins: Vec<Pin>,
-        widgets: Vec<Widget>,
-    ) -> Self {
+    pub fn new(label: String, class: String, pins: Vec<Pin>, widgets: Vec<Widget>) -> Self {
         {
             let mut classes = HashSet::new();
-            input_pins.iter().for_each(|p| {
+            pins.iter().for_each(|p| {
                 assert!(
                     classes.insert(p.class()),
-                    "Each input pin must have its unique class"
-                );
-            });
-        }
-
-        {
-            let mut classes = HashSet::new();
-            output_pins.iter().for_each(|p| {
-                assert!(
-                    classes.insert(p.class()),
-                    "Each output pin must have its unique class"
+                    "Each pin must have its unique class"
                 );
             });
         }
@@ -99,8 +76,7 @@ impl NodeTemplate {
         NodeTemplate {
             label,
             class,
-            input_pins,
-            output_pins,
+            pins,
             widgets,
         }
     }
@@ -110,8 +86,7 @@ impl NodeTemplate {
             id: node_id,
             label: self.label.clone(),
             class: self.class.clone(),
-            input_pins: self.input_pins.clone(),
-            output_pins: self.output_pins.clone(),
+            pins: self.pins.clone(),
             widgets: self.widgets.clone(),
         }
     }
@@ -127,25 +102,46 @@ pub struct Node {
     class: String,
 
     #[getset(get = "pub")]
-    input_pins: Vec<Pin>,
-    #[getset(get = "pub")]
-    output_pins: Vec<Pin>,
+    pins: Vec<Pin>,
 
     #[getset(get = "pub")]
     widgets: Vec<Widget>,
 }
 
-#[derive(Getters, Clone, Debug)]
+impl State {
+    pub fn add_node(&mut self, node: Node) {
+        assert!(
+            self.nodes.iter().find(|n| n.id() == node.id()).is_none(),
+            "Each Node within a state must have its unique id"
+        );
+
+        self.nodes.push(node);
+    }
+}
+
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub enum Direction {
+    Input,
+    Output,
+}
+
+#[derive(Getters, CopyGetters, Clone, Debug)]
 pub struct Pin {
     #[getset(get = "pub")]
     label: String,
     #[getset(get = "pub")]
     class: String,
+    #[getset(get_copy = "pub")]
+    direction: Direction,
 }
 
 impl Pin {
-    pub fn new(label: String, class: String) -> Self {
-        Self { class, label }
+    pub fn new(label: String, class: String, direction: Direction) -> Self {
+        Self {
+            class,
+            label,
+            direction,
+        }
     }
 }
 
@@ -500,6 +496,83 @@ impl DropDownItem {
     }
 }
 
+#[derive(Debug)]
+pub struct Patch {
+    source_node_id: String,
+    source_pin_class: String,
+
+    destination_node_id: String,
+    destination_pin_class: String,
+}
+
+impl State {
+    pub fn add_patch(
+        &mut self,
+        node_a_id: &str,
+        pin_a_class: &str,
+        node_b_id: &str,
+        pin_b_class: &str,
+    ) -> Result<(), String> {
+        if node_a_id == node_b_id {
+            return Err("Patch cannot loop between pins of a single node".to_owned());
+        }
+
+        let node_a = must_find_node(self.nodes(), node_a_id);
+        let node_b = must_find_node(self.nodes(), node_b_id);
+        let pin_a = must_find_pin(node_a.pins(), pin_a_class);
+        let pin_b = must_find_pin(node_b.pins(), pin_b_class);
+
+        if pin_a.direction() == pin_b.direction() {
+            return Err("Patch cannot connect pins of the same direction".to_owned());
+        }
+
+        let (source_node_id, source_pin_class, destination_node_id, destination_pin_class) =
+            if pin_a.direction() == Direction::Input {
+                (node_b_id, pin_b_class, node_a_id, pin_a_class)
+            } else {
+                (node_a_id, pin_a_class, node_b_id, pin_b_class)
+            };
+
+        self.patches.push(Patch::new(
+            source_node_id.to_owned(),
+            source_pin_class.to_owned(),
+            destination_node_id.to_owned(),
+            destination_pin_class.to_owned(),
+        ));
+
+        Ok(())
+    }
+}
+
+fn must_find_node<'a>(nodes: &'a Vec<Node>, id: &str) -> &'a Node {
+    nodes
+        .iter()
+        .find(|n| n.id() == id)
+        .expect("Patch must reference an existing node")
+}
+
+fn must_find_pin<'a>(pins: &'a Vec<Pin>, class: &str) -> &'a Pin {
+    pins.iter()
+        .find(|p| p.class() == class)
+        .expect("Patch must reference pin class available in the given node")
+}
+
+impl Patch {
+    fn new(
+        source_node_id: String,
+        source_pin_class: String,
+        destination_node_id: String,
+        destination_pin_class: String,
+    ) -> Self {
+        Self {
+            source_node_id,
+            source_pin_class,
+            destination_node_id,
+            destination_pin_class,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -514,7 +587,6 @@ mod tests {
             state.add_node_template(NodeTemplate::new(
                 "Label".to_owned(),
                 "class".to_owned(),
-                vec![],
                 vec![],
                 vec![],
             ));
@@ -532,12 +604,10 @@ mod tests {
                 "class".to_owned(),
                 vec![],
                 vec![],
-                vec![],
             ));
             state.add_node_template(NodeTemplate::new(
                 "Label 2".to_owned(),
                 "class".to_owned(),
-                vec![],
                 vec![],
                 vec![],
             ));
@@ -549,7 +619,6 @@ mod tests {
             state.add_node_template(NodeTemplate::new(
                 "Label".to_owned(),
                 "class".to_owned(),
-                vec![],
                 vec![],
                 vec![],
             ));
@@ -568,7 +637,6 @@ mod tests {
             state.add_node_template(NodeTemplate::new(
                 "Label".to_owned(),
                 "class".to_owned(),
-                vec![],
                 vec![],
                 vec![],
             ));
@@ -594,8 +662,10 @@ mod tests {
             let mut node_template = NodeTemplate::new(
                 "Label".to_owned(),
                 "class1".to_owned(),
-                vec![Pin::new("Input 1".to_owned(), "in1".to_owned())],
-                vec![Pin::new("Output 1".to_owned(), "out1".to_owned())],
+                vec![
+                    Pin::new("Input 1".to_owned(), "in1".to_owned(), Direction::Input),
+                    Pin::new("Output 1".to_owned(), "out1".to_owned(), Direction::Output),
+                ],
                 vec![Widget::Button(Button::new(
                     "Button".to_owned(),
                     "button1".to_owned(),
@@ -607,42 +677,26 @@ mod tests {
             assert_eq!(node1.id(), "id1");
             assert_eq!(node1.label(), "Label");
             assert_eq!(node1.class(), "class1");
-            assert_eq!(pin_label(node1.input_pins(), "in1"), "Input 1");
-            assert_eq!(pin_label(node1.output_pins(), "out1"), "Output 1");
+            assert_eq!(pin_label(node1.pins(), "in1"), "Input 1");
+            assert_eq!(pin_label(node1.pins(), "out1"), "Output 1");
 
             let node2 = node_template.instantiate("id2".to_owned());
             assert_eq!(node2.id(), "id2");
             assert_eq!(node2.label(), "Label");
             assert_eq!(node2.class(), "class1");
-            assert_eq!(pin_label(node2.input_pins(), "in1"), "Input 1");
-            assert_eq!(pin_label(node2.output_pins(), "out1"), "Output 1");
+            assert_eq!(pin_label(node2.pins(), "in1"), "Input 1");
+            assert_eq!(pin_label(node2.pins(), "out1"), "Output 1");
         }
 
         #[test]
-        #[should_panic(expected = "Each input pin must have its unique class")]
-        fn panic_on_duplicated_input_pins() {
+        #[should_panic(expected = "Each pin must have its unique class")]
+        fn panic_on_duplicated_pins() {
             let mut _node_template = NodeTemplate::new(
                 "Label".to_owned(),
                 "class1".to_owned(),
                 vec![
-                    Pin::new("Input 1".to_owned(), "in".to_owned()),
-                    Pin::new("Input 2".to_owned(), "in".to_owned()),
-                ],
-                vec![],
-                vec![],
-            );
-        }
-
-        #[test]
-        #[should_panic(expected = "Each output pin must have its unique class")]
-        fn panic_on_duplicated_output_pins() {
-            let mut _node_template = NodeTemplate::new(
-                "Label".to_owned(),
-                "class1".to_owned(),
-                vec![],
-                vec![
-                    Pin::new("Output 1".to_owned(), "out".to_owned()),
-                    Pin::new("Output 2".to_owned(), "out".to_owned()),
+                    Pin::new("Input 1".to_owned(), "in".to_owned(), Direction::Input),
+                    Pin::new("Input 2".to_owned(), "in".to_owned(), Direction::Input),
                 ],
                 vec![],
             );
@@ -654,7 +708,6 @@ mod tests {
             let mut _node_template = NodeTemplate::new(
                 "Label".to_owned(),
                 "class1".to_owned(),
-                vec![],
                 vec![],
                 vec![
                     Widget::Button(Button::new("Button".to_owned(), "widget".to_owned(), true)),
@@ -1165,6 +1218,105 @@ mod tests {
             assert_eq!(second.value(), "value2");
 
             assert!(iter.next().is_none());
+        }
+    }
+
+    mod patch {
+        use super::*;
+
+        fn initialize_state() -> State {
+            let mut state = State::default();
+
+            state.add_node_template(NodeTemplate::new(
+                "Label".to_owned(),
+                "class".to_owned(),
+                vec![
+                    Pin::new("Input 1".to_owned(), "in1".to_owned(), Direction::Input),
+                    Pin::new("Output 1".to_owned(), "out1".to_owned(), Direction::Output),
+                ],
+                vec![],
+            ));
+
+            state.add_node(state.node_templates()[0].instantiate("node1".to_owned()));
+            state.add_node(state.node_templates()[0].instantiate("node2".to_owned()));
+
+            state
+        }
+
+        #[test]
+        fn add_patch_input_output() {
+            let mut state = initialize_state();
+
+            assert!(state.add_patch("node1", "out1", "node2", "in1").is_ok());
+
+            assert_eq!(state.patches()[0].source_node_id, "node1");
+            assert_eq!(state.patches()[0].source_pin_class, "out1");
+            assert_eq!(state.patches()[0].destination_node_id, "node2");
+            assert_eq!(state.patches()[0].destination_pin_class, "in1");
+        }
+
+        #[test]
+        fn add_patch_output_input() {
+            let mut state = initialize_state();
+
+            assert!(state.add_patch("node1", "in1", "node2", "out1").is_ok());
+
+            assert_eq!(state.patches()[0].source_node_id, "node2");
+            assert_eq!(state.patches()[0].source_pin_class, "out1");
+            assert_eq!(state.patches()[0].destination_node_id, "node1");
+            assert_eq!(state.patches()[0].destination_pin_class, "in1");
+        }
+
+        #[test]
+        #[should_panic(expected = "Patch must reference an existing node")]
+        fn panic_on_add_patch_referencing_nonexistent_source_node_id() {
+            let mut state = initialize_state();
+
+            state.add_patch("node_does_not_exist", "out1", "node2", "in1");
+        }
+
+        #[test]
+        #[should_panic(expected = "Patch must reference pin class available in the given node")]
+        fn panic_on_add_patch_referencing_nonexistent_source_pin_class() {
+            let mut state = initialize_state();
+
+            state.add_patch("node1", "out1", "node2", "in_does_not_exist");
+        }
+
+        #[test]
+        #[should_panic(expected = "Patch must reference an existing node")]
+        fn panic_on_add_patch_referencing_nonexistent_destination_node_id() {
+            let mut state = initialize_state();
+
+            state.add_patch("node1", "out1", "node_does_not_exist", "in1");
+        }
+
+        #[test]
+        #[should_panic(expected = "Patch must reference pin class available in the given node")]
+        fn panic_on_add_patch_referencing_nonexistent_destination_pin_class() {
+            let mut state = initialize_state();
+
+            state.add_patch("node1", "in_does_not_exist", "node2", "in1");
+        }
+
+        #[test]
+        fn fail_on_add_patch_self_looping_node() {
+            let mut state = initialize_state();
+
+            match state.add_patch("node1", "out1", "node1", "in1") {
+                Ok(()) => panic!("Operation should fail"),
+                Err(err) => assert_eq!(err, "Patch cannot loop between pins of a single node"),
+            }
+        }
+
+        #[test]
+        fn fail_on_add_patch_between_pins_of_the_same_direction() {
+            let mut state = initialize_state();
+
+            match state.add_patch("node1", "out1", "node2", "out1") {
+                Ok(()) => panic!("Operation should fail"),
+                Err(err) => assert_eq!(err, "Patch cannot connect pins of the same direction"),
+            }
         }
     }
 }
