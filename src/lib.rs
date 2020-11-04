@@ -16,6 +16,11 @@ mod vec2;
 mod view;
 mod widget;
 
+const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+const GRAY: [f32; 4] = [0.9, 0.9, 0.9, 1.0];
+const DARK_GRAY: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
+
 pub fn run(_configuration: config::Config) {
     let mut store = store::Store::new(state::State::default(), reducer::reduce);
 
@@ -52,7 +57,19 @@ fn set_styles<F: FnOnce()>(ui: &imgui::Ui<'_>, f: F) {
         imgui::StyleVar::WindowPadding([0.0, 0.0]),
     ]);
 
-    let style_colors = ui.push_style_colors(&[(imgui::StyleColor::WindowBg, [1.0, 1.0, 1.0, 1.0])]);
+    let style_colors = ui.push_style_colors(&[
+        (imgui::StyleColor::WindowBg, WHITE),
+        (imgui::StyleColor::WindowBg, WHITE),
+        (imgui::StyleColor::Text, BLACK),
+        (imgui::StyleColor::TextSelectedBg, DARK_GRAY),
+        (imgui::StyleColor::PopupBg, WHITE),
+        (imgui::StyleColor::HeaderHovered, GRAY),
+        (imgui::StyleColor::Separator, BLACK),
+        (imgui::StyleColor::Border, BLACK),
+        (imgui::StyleColor::FrameBg, GRAY),
+        (imgui::StyleColor::ScrollbarBg, GRAY),
+        (imgui::StyleColor::ScrollbarGrab, DARK_GRAY),
+    ]);
 
     f();
 
