@@ -3,9 +3,11 @@ use crate::state::State;
 use crate::vec2;
 
 pub fn reduce(state: &mut State, action: Action) {
+    dbg!(&action);
     match action {
         Action::Scroll { offset } => state.offset = vec2::sum(&[state.offset, offset]),
     }
+    dbg!(&state);
 }
 
 #[cfg(test)]

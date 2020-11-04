@@ -22,9 +22,21 @@ pub fn run(_configuration: config::Config) {
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
         set_styles(ui, || {
-            view::draw(store.state()).into_iter().for_each(|action| {
-                store.reduce(action);
-            })
+            imgui::Window::new(im_str!("Gazpatcho"))
+                .position([0.0, 0.0], imgui::Condition::Always)
+                .size(ui.io().display_size, imgui::Condition::Always)
+                .always_auto_resize(true)
+                .movable(false)
+                .resizable(false)
+                .scroll_bar(false)
+                .title_bar(false)
+                .build(ui, || {
+                    view::draw(store.state(), ui)
+                        .into_iter()
+                        .for_each(|action| {
+                            store.reduce(action);
+                        })
+                });
         })
     });
 }
@@ -46,18 +58,4 @@ fn set_styles<F: FnOnce()>(ui: &imgui::Ui<'_>, f: F) {
 
     style_vars.pop(ui);
     style_colors.pop(ui);
-}
-
-fn show_main_window(ui: &imgui::Ui<'_>, model: &mut model::Model) {
-    imgui::Window::new(im_str!("Gazpatcho"))
-        .position([0.0, 0.0], imgui::Condition::Always)
-        .size(ui.io().display_size, imgui::Condition::Always)
-        .always_auto_resize(true)
-        .movable(false)
-        .resizable(false)
-        .scroll_bar(false)
-        .title_bar(false)
-        .build(ui, || {
-            model.draw(ui);
-        });
 }
