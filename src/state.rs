@@ -2,11 +2,11 @@ extern crate getset;
 
 use std::collections::HashSet;
 
-#[derive(Getters, Default, Debug)]
+#[derive(Getters, MutGetters, Default, Debug)]
 pub struct State {
     pub offset: [f32; 2],
 
-    #[getset(get = "pub")]
+    #[getset(get = "pub", get_mut = "pub")]
     node_templates: Vec<NodeTemplate>,
     #[getset(get = "pub")]
     nodes: Vec<Node>,

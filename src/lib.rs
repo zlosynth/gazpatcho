@@ -22,7 +22,54 @@ const GRAY: [f32; 4] = [0.9, 0.9, 0.9, 1.0];
 const DARK_GRAY: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
 
 pub fn run(_configuration: config::Config) {
-    let mut store = store::Store::new(state::State::default(), reducer::reduce);
+    let mut initial_state = state::State::default();
+    initial_state.node_templates_mut().extend(vec![
+        state::NodeTemplate::new(
+            "Oscillator".to_owned(),
+            "oscillator".to_owned(),
+            vec![
+                state::Pin::new(
+                    "Frequency".to_owned(),
+                    "frequency".to_owned(),
+                    state::Direction::Input,
+                ),
+                state::Pin::new(
+                    "Waveform".to_owned(),
+                    "waveform".to_owned(),
+                    state::Direction::Input,
+                ),
+                state::Pin::new(
+                    "Output".to_owned(),
+                    "output".to_owned(),
+                    state::Direction::Output,
+                ),
+            ],
+            vec![],
+        ),
+        state::NodeTemplate::new(
+            "Mixer".to_owned(),
+            "mixer".to_owned(),
+            vec![
+                state::Pin::new(
+                    "Input 1".to_owned(),
+                    "input1".to_owned(),
+                    state::Direction::Input,
+                ),
+                state::Pin::new(
+                    "Input 2".to_owned(),
+                    "input2".to_owned(),
+                    state::Direction::Input,
+                ),
+                state::Pin::new(
+                    "Output".to_owned(),
+                    "output".to_owned(),
+                    state::Direction::Output,
+                ),
+            ],
+            vec![],
+        ),
+    ]);
+    let mut store = store::Store::new(initial_state, reducer::reduce);
 
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
