@@ -8,20 +8,23 @@ pub mod config;
 
 mod action;
 mod model;
-mod reactive;
 mod reducer;
 mod state;
+mod store;
 mod system;
 mod vec2;
+mod view;
 mod widget;
 
-pub fn run(configuration: config::Config) {
-    let mut model = model::Model::new(configuration);
+pub fn run(_configuration: config::Config) {
+    let mut store = store::Store::new(state::State::default(), reducer::reduce);
 
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
         set_styles(ui, || {
-            show_main_window(ui, &mut model);
+            view::draw(store.state()).into_iter().for_each(|action| {
+                store.reduce(action);
+            })
         })
     });
 }
