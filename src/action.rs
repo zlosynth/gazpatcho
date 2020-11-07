@@ -5,4 +5,5 @@ pub enum Action {
     ActivatePin { node_id: String, pin_class: String },
     DeactivatePin { node_id: String, pin_class: String },
     MoveNodeForward { node_id: String },
+    MoveNode { node_id: String, offset: [f32; 2] },
 }

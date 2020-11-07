@@ -1,3 +1,5 @@
+extern crate imgui;
+
 use std::boxed::Box;
 use std::cell::RefCell;
 use std::ptr;
@@ -87,20 +89,24 @@ fn create_pin_active_callback(
 ) -> Box<dyn FnOnce(bool)> {
     let node_id = node.id().to_string();
     let pin_class = pin.class().to_string();
-    let active = pin.active;
+    let was_active = pin.active;
     let actions = Rc::clone(&actions);
-    Box::new(move |b| {
-        if b != active {
-            actions.borrow_mut().push(match b {
-                true => Action::ActivatePin {
+    Box::new(move |is_active| {
+        if is_active != was_active {
+            if is_active {
+                actions.borrow_mut().push(Action::MoveNodeForward {
+                    node_id: node_id.clone(),
+                });
+                actions.borrow_mut().push(Action::ActivatePin {
                     node_id: node_id,
                     pin_class: pin_class,
-                },
-                false => Action::DeactivatePin {
+                });
+            } else {
+                actions.borrow_mut().push(Action::DeactivatePin {
                     node_id: node_id,
                     pin_class: pin_class,
-                },
-            });
+                });
+            }
         }
     })
 }
@@ -141,7 +147,20 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> Vec<Action> {
         if ui.is_item_active() {
             actions.borrow_mut().push(Action::MoveNodeForward {
                 node_id: node.id().to_string(),
-            })
+            });
+
+            if ui.is_mouse_down(imgui::MouseButton::Left)
+                || ui.is_mouse_dragging(imgui::MouseButton::Left)
+            {
+                ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
+            }
+
+            if ui.is_mouse_dragging(imgui::MouseButton::Left) {
+                actions.borrow_mut().push(Action::MoveNode {
+                    node_id: node.id().to_string(),
+                    offset: ui.io().mouse_delta,
+                });
+            }
         }
 
         unsafe {

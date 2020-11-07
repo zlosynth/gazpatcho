@@ -1,5 +1,5 @@
 use crate::action::Action;
-use crate::state::{Direction, NodeTemplate, Pin, State};
+use crate::state::{Direction, Node, NodeTemplate, Pin, State};
 use crate::vec2;
 
 pub fn reduce(state: &mut State, action: Action) {
@@ -15,6 +15,7 @@ pub fn reduce(state: &mut State, action: Action) {
             set_pin_activity(state, node_id, pin_class, false)
         }
         Action::MoveNodeForward { node_id } => move_node_forward(state, node_id),
+        Action::MoveNode { node_id, offset } => move_node(state, node_id, offset),
     }
     // dbg!(&state.nodes());
 }
@@ -51,6 +52,15 @@ fn move_node_forward(state: &mut State, node_id: String) {
         .0;
     let node = state.nodes_mut().remove(node_index);
     state.nodes_mut().push(node);
+}
+
+fn move_node(state: &mut State, node_id: String, offset: [f32; 2]) {
+    let mut node = state
+        .nodes_mut()
+        .iter_mut()
+        .find(|n| n.id() == &node_id)
+        .expect("node_id must match an existing node");
+    node.position = vec2::sum(&[node.position, offset]);
 }
 
 #[cfg(test)]
@@ -185,5 +195,46 @@ mod tests {
 
         assert_eq!(state.nodes()[0].id(), "class:1");
         assert_eq!(state.nodes()[1].id(), "class:0");
+    }
+
+    #[test]
+    fn move_node() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![],
+            vec![],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        let original_position = state.nodes()[0].position;
+
+        reduce(
+            &mut state,
+            Action::MoveNode {
+                node_id: "class:0".to_owned(),
+                offset: [100.0, 200.0],
+            },
+        );
+
+        let updated_position1 = state.nodes()[0].position;
+        assert_eq!(
+            updated_position1,
+            vec2::sum(&[original_position, [100.0, 200.0]])
+        );
+
+        reduce(
+            &mut state,
+            Action::MoveNode {
+                node_id: "class:0".to_owned(),
+                offset: [10.0, -10.0],
+            },
+        );
+
+        let updated_position2 = state.nodes()[0].position;
+        assert_eq!(
+            updated_position2,
+            vec2::sum(&[updated_position1, [10.0, -10.0]])
+        );
     }
 }
