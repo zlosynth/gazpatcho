@@ -4,10 +4,7 @@ extern crate imgui;
 #[macro_use]
 extern crate getset;
 
-pub mod config;
-
 mod action;
-mod model;
 mod reducer;
 mod state;
 mod store;
@@ -21,7 +18,7 @@ const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const GRAY: [f32; 4] = [0.9, 0.9, 0.9, 1.0];
 const DARK_GRAY: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
 
-pub fn run(_configuration: config::Config) {
+pub fn run() {
     let mut initial_state = state::State::default();
     initial_state.node_templates_mut().extend(vec![
         state::NodeTemplate::new(

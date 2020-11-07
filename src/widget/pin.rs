@@ -1,6 +1,7 @@
 extern crate imgui;
 
 use crate::vec2;
+use std::boxed::Box;
 
 const HEIGHT: f32 = 17.0;
 
@@ -11,12 +12,13 @@ const PADDING_OUTER: f32 = 10.0;
 const MARK_WIDTH: f32 = 3.0;
 
 pub struct Pin<'a> {
-    id: &'a imgui::ImStr,
+    id: imgui::ImString,
     label: &'a imgui::ImStr,
     position: [f32; 2],
     orientation: Orientation,
     patch_position_subscription: Option<&'a mut [f32; 2]>,
     active_subscription: Option<&'a mut bool>,
+    active_callback: Option<Box<dyn FnOnce(bool)>>,
 }
 
 #[derive(PartialEq)]
@@ -32,7 +34,7 @@ impl Default for Orientation {
 }
 
 impl<'a> Pin<'a> {
-    pub fn new(id: &'a imgui::ImStr, label: &'a imgui::ImStr) -> Self {
+    pub fn new(id: imgui::ImString, label: &'a imgui::ImStr) -> Self {
         Self {
             id,
             label,
@@ -40,6 +42,7 @@ impl<'a> Pin<'a> {
             orientation: Orientation::default(),
             patch_position_subscription: None,
             active_subscription: None,
+            active_callback: None,
         }
     }
 
@@ -53,6 +56,11 @@ impl<'a> Pin<'a> {
 
     pub fn active_subscription(mut self, active_subscription: &'a mut bool) -> Self {
         self.active_subscription = Some(active_subscription);
+        self
+    }
+
+    pub fn active_callback(mut self, active_callback: Box<dyn FnOnce(bool)>) -> Self {
+        self.active_callback = Some(active_callback);
         self
     }
 
@@ -88,7 +96,7 @@ impl<'a> Pin<'a> {
             {
                 let highlight_position = self.position;
                 ui.set_cursor_screen_pos(highlight_position);
-                ui.invisible_button(self.id, [width, height]);
+                ui.invisible_button(&self.id, [width, height]);
                 if ui.is_item_hovered() {
                     ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
                     draw_list
@@ -139,6 +147,10 @@ impl<'a> Pin<'a> {
 
         if let Some(active_subscription) = self.active_subscription {
             *active_subscription = ui.is_item_active();
+        }
+
+        if let Some(active_callback) = self.active_callback {
+            active_callback(ui.is_item_active());
         }
     }
 }

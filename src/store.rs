@@ -1,3 +1,4 @@
+// TODO: Make this specific, no need for a framework
 pub struct Store<S, A> {
     state: S,
     reducer: fn(&mut S, A),

@@ -1,6 +1,10 @@
 extern crate getset;
+extern crate imgui;
 
+use std::cell::RefCell;
 use std::collections::HashSet;
+
+use imgui::ImString;
 
 #[derive(Getters, MutGetters, Default, Debug)]
 pub struct State {
@@ -8,7 +12,7 @@ pub struct State {
 
     #[getset(get = "pub", get_mut = "pub")]
     node_templates: Vec<NodeTemplate>,
-    #[getset(get = "pub")]
+    #[getset(get = "pub", get_mut = "pub")]
     nodes: Vec<Node>,
 
     #[getset(get = "pub")]
@@ -17,14 +21,11 @@ pub struct State {
 
 #[derive(Getters, Debug)]
 pub struct NodeTemplate {
+    label: ImString,
     #[getset(get = "pub")]
-    label: String,
-
-    #[getset(get)]
     class: String,
-
+    id_counter: RefCell<usize>,
     pins: Vec<Pin>,
-
     widgets: Vec<Widget>,
 }
 
@@ -74,34 +75,46 @@ impl NodeTemplate {
         }
 
         NodeTemplate {
-            label,
+            label: ImString::from(label),
             class,
+            id_counter: RefCell::new(0),
             pins,
             widgets,
         }
     }
 
-    pub fn instantiate(&self, node_id: String) -> Node {
+    pub fn instantiate(&self, position: [f32; 2]) -> Node {
+        let id = ImString::from(format!("{}:{}", self.class(), self.id_counter.borrow()));
+        *self.id_counter.borrow_mut() += 1;
         Node {
-            id: node_id,
+            id,
             label: self.label.clone(),
             class: self.class.clone(),
+            position,
             pins: self.pins.clone(),
             widgets: self.widgets.clone(),
         }
     }
+
+    pub fn label(&self) -> &str {
+        self.label.to_str()
+    }
+
+    pub fn label_im(&self) -> &ImString {
+        &self.label
+    }
 }
 
-#[derive(Getters, Clone, Debug)]
+#[derive(Getters, MutGetters, Clone, PartialEq, Debug)]
 pub struct Node {
-    #[getset(get = "pub")]
-    id: String,
-    #[getset(get = "pub")]
-    label: String,
+    id: ImString,
+    label: ImString,
     #[getset(get = "pub")]
     class: String,
 
-    #[getset(get = "pub")]
+    pub position: [f32; 2],
+
+    #[getset(get = "pub", get_mut = "pub")]
     pins: Vec<Pin>,
 
     #[getset(get = "pub")]
@@ -119,33 +132,60 @@ impl State {
     }
 }
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+impl Node {
+    pub fn id(&self) -> &str {
+        self.id.to_str()
+    }
+
+    pub fn id_im(&self) -> &ImString {
+        &self.id
+    }
+
+    pub fn label(&self) -> &str {
+        self.label.to_str()
+    }
+
+    pub fn label_im(&self) -> &ImString {
+        &self.label
+    }
+}
+
+#[derive(Clone, PartialEq, Copy, Debug)]
 pub enum Direction {
     Input,
     Output,
 }
 
-#[derive(Getters, CopyGetters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct Pin {
-    #[getset(get = "pub")]
-    label: String,
+    label: ImString,
     #[getset(get = "pub")]
     class: String,
     #[getset(get_copy = "pub")]
     direction: Direction,
+    pub active: bool,
 }
 
 impl Pin {
     pub fn new(label: String, class: String, direction: Direction) -> Self {
         Self {
             class,
-            label,
+            label: ImString::from(label),
             direction,
+            active: false,
         }
+    }
+
+    pub fn label(&self) -> &str {
+        self.label.to_str()
+    }
+
+    pub fn label_im(&self) -> &ImString {
+        &self.label
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Widget {
     Trigger(Trigger),
     Button(Button),
@@ -159,7 +199,7 @@ pub enum Widget {
     DropDown(DropDown),
 }
 
-#[derive(Getters, CopyGetters, Setters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
 pub struct Trigger {
     #[getset(get = "pub")]
     label: String,
@@ -179,7 +219,7 @@ impl Trigger {
     }
 }
 
-#[derive(Getters, CopyGetters, Setters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
 pub struct Button {
     #[getset(get = "pub")]
     label: String,
@@ -199,7 +239,7 @@ impl Button {
     }
 }
 
-#[derive(Getters, Setters, Clone, Debug)]
+#[derive(Getters, Setters, Clone, PartialEq, Debug)]
 pub struct RadioButtons {
     #[getset(get = "pub")]
     key: String,
@@ -233,7 +273,7 @@ impl RadioButtons {
     }
 }
 
-#[derive(Getters, CopyGetters, Setters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
 pub struct RadioButton {
     #[getset(get = "pub")]
     label: String,
@@ -253,7 +293,7 @@ impl RadioButton {
     }
 }
 
-#[derive(Getters, Setters, Clone, Debug)]
+#[derive(Getters, Setters, Clone, PartialEq, Debug)]
 pub struct CheckBoxes {
     #[getset(get = "pub")]
     key: String,
@@ -281,7 +321,7 @@ impl CheckBoxes {
     }
 }
 
-#[derive(Getters, CopyGetters, Setters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
 pub struct CheckBox {
     #[getset(get = "pub")]
     label: String,
@@ -301,7 +341,7 @@ impl CheckBox {
     }
 }
 
-#[derive(Getters, MutGetters, CopyGetters, Setters, Clone, Debug)]
+#[derive(Getters, MutGetters, CopyGetters, Setters, Clone, PartialEq, Debug)]
 pub struct InputBox {
     #[getset(get = "pub")]
     key: String,
@@ -324,7 +364,7 @@ impl InputBox {
     }
 }
 
-#[derive(Getters, CopyGetters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct SliderFloat {
     #[getset(get = "pub")]
     key: String,
@@ -360,7 +400,7 @@ impl SliderFloat {
     }
 }
 
-#[derive(Getters, CopyGetters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct SliderInt {
     #[getset(get = "pub")]
     key: String,
@@ -396,7 +436,7 @@ impl SliderInt {
     }
 }
 
-#[derive(Getters, CopyGetters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct GrabFloat {
     #[getset(get = "pub")]
     key: String,
@@ -432,7 +472,7 @@ impl GrabFloat {
     }
 }
 
-#[derive(Getters, CopyGetters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct GrabInt {
     #[getset(get = "pub")]
     key: String,
@@ -468,7 +508,7 @@ impl GrabInt {
     }
 }
 
-#[derive(Getters, CopyGetters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct DropDown {
     #[getset(get = "pub")]
     key: String,
@@ -482,7 +522,7 @@ impl DropDown {
     }
 }
 
-#[derive(Getters, CopyGetters, Clone, Debug)]
+#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct DropDownItem {
     #[getset(get = "pub")]
     label: String,
@@ -623,26 +663,11 @@ mod tests {
                 vec![],
             ));
 
-            state.add_node(state.node_templates()[0].instantiate("id1".to_owned()));
-            state.add_node(state.node_templates()[0].instantiate("id2".to_owned()));
+            state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+            state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
 
             assert_eq!(state.nodes()[0].class(), "class");
             assert_eq!(state.nodes()[1].class(), "class");
-        }
-
-        #[test]
-        #[should_panic(expected = "Each Node within a state must have its unique id")]
-        fn panic_on_add_node_with_duplicated_id() {
-            let mut state = State::default();
-            state.add_node_template(NodeTemplate::new(
-                "Label".to_owned(),
-                "class".to_owned(),
-                vec![],
-                vec![],
-            ));
-
-            state.add_node(state.node_templates()[0].instantiate("id".to_owned()));
-            state.add_node(state.node_templates()[0].instantiate("id".to_owned()));
         }
     }
 
@@ -673,17 +698,23 @@ mod tests {
                 ))],
             );
 
-            let node1 = node_template.instantiate("id1".to_owned());
-            assert_eq!(node1.id(), "id1");
+            let node1 = node_template.instantiate([100.0, 200.0]);
+            assert_eq!(node1.id(), "class1:0");
+            assert_eq!(node1.id_im(), &ImString::new("class1:0"));
             assert_eq!(node1.label(), "Label");
+            assert_eq!(node1.label_im(), &ImString::new("Label"));
             assert_eq!(node1.class(), "class1");
+            assert_eq!(node1.position, [100.0, 200.0]);
             assert_eq!(pin_label(node1.pins(), "in1"), "Input 1");
             assert_eq!(pin_label(node1.pins(), "out1"), "Output 1");
 
-            let node2 = node_template.instantiate("id2".to_owned());
-            assert_eq!(node2.id(), "id2");
+            let node2 = node_template.instantiate([200.0, 300.0]);
+            assert_eq!(node2.id(), "class1:1");
+            assert_eq!(node2.id_im(), &ImString::new("class1:1"));
             assert_eq!(node2.label(), "Label");
+            assert_eq!(node2.label_im(), &ImString::new("Label"));
             assert_eq!(node2.class(), "class1");
+            assert_eq!(node2.position, [200.0, 300.0]);
             assert_eq!(pin_label(node2.pins(), "in1"), "Input 1");
             assert_eq!(pin_label(node2.pins(), "out1"), "Output 1");
         }
@@ -1229,7 +1260,7 @@ mod tests {
 
             state.add_node_template(NodeTemplate::new(
                 "Label".to_owned(),
-                "class".to_owned(),
+                "node".to_owned(),
                 vec![
                     Pin::new("Input 1".to_owned(), "in1".to_owned(), Direction::Input),
                     Pin::new("Output 1".to_owned(), "out1".to_owned(), Direction::Output),
@@ -1237,8 +1268,8 @@ mod tests {
                 vec![],
             ));
 
-            state.add_node(state.node_templates()[0].instantiate("node1".to_owned()));
-            state.add_node(state.node_templates()[0].instantiate("node2".to_owned()));
+            state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+            state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
 
             state
         }
@@ -1247,11 +1278,11 @@ mod tests {
         fn add_patch_input_output() {
             let mut state = initialize_state();
 
-            assert!(state.add_patch("node1", "out1", "node2", "in1").is_ok());
+            assert!(state.add_patch("node:0", "out1", "node:1", "in1").is_ok());
 
-            assert_eq!(state.patches()[0].source_node_id, "node1");
+            assert_eq!(state.patches()[0].source_node_id, "node:0");
             assert_eq!(state.patches()[0].source_pin_class, "out1");
-            assert_eq!(state.patches()[0].destination_node_id, "node2");
+            assert_eq!(state.patches()[0].destination_node_id, "node:1");
             assert_eq!(state.patches()[0].destination_pin_class, "in1");
         }
 
@@ -1259,11 +1290,11 @@ mod tests {
         fn add_patch_output_input() {
             let mut state = initialize_state();
 
-            assert!(state.add_patch("node1", "in1", "node2", "out1").is_ok());
+            assert!(state.add_patch("node:0", "in1", "node:1", "out1").is_ok());
 
-            assert_eq!(state.patches()[0].source_node_id, "node2");
+            assert_eq!(state.patches()[0].source_node_id, "node:1");
             assert_eq!(state.patches()[0].source_pin_class, "out1");
-            assert_eq!(state.patches()[0].destination_node_id, "node1");
+            assert_eq!(state.patches()[0].destination_node_id, "node:0");
             assert_eq!(state.patches()[0].destination_pin_class, "in1");
         }
 
@@ -1272,7 +1303,7 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_source_node_id() {
             let mut state = initialize_state();
 
-            state.add_patch("node_does_not_exist", "out1", "node2", "in1");
+            state.add_patch("node_does_not_exist", "out1", "node:1", "in1");
         }
 
         #[test]
@@ -1280,7 +1311,7 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_source_pin_class() {
             let mut state = initialize_state();
 
-            state.add_patch("node1", "out1", "node2", "in_does_not_exist");
+            state.add_patch("node:0", "out1", "node:1", "in_does_not_exist");
         }
 
         #[test]
@@ -1288,7 +1319,7 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_destination_node_id() {
             let mut state = initialize_state();
 
-            state.add_patch("node1", "out1", "node_does_not_exist", "in1");
+            state.add_patch("node:0", "out1", "node_does_not_exist", "in1");
         }
 
         #[test]
@@ -1296,14 +1327,14 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_destination_pin_class() {
             let mut state = initialize_state();
 
-            state.add_patch("node1", "in_does_not_exist", "node2", "in1");
+            state.add_patch("node:0", "in_does_not_exist", "node:1", "in1");
         }
 
         #[test]
         fn fail_on_add_patch_self_looping_node() {
             let mut state = initialize_state();
 
-            match state.add_patch("node1", "out1", "node1", "in1") {
+            match state.add_patch("node:0", "out1", "node:0", "in1") {
                 Ok(()) => panic!("Operation should fail"),
                 Err(err) => assert_eq!(err, "Patch cannot loop between pins of a single node"),
             }
@@ -1313,7 +1344,7 @@ mod tests {
         fn fail_on_add_patch_between_pins_of_the_same_direction() {
             let mut state = initialize_state();
 
-            match state.add_patch("node1", "out1", "node2", "out1") {
+            match state.add_patch("node:0", "out1", "node:1", "out1") {
                 Ok(()) => panic!("Operation should fail"),
                 Err(err) => assert_eq!(err, "Patch cannot connect pins of the same direction"),
             }
