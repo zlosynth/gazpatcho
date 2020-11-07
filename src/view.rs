@@ -2,11 +2,12 @@ extern crate imgui;
 
 use std::boxed::Box;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ptr;
 use std::rc::Rc;
 
 use crate::action::Action;
-use crate::state::{Direction, Node, Pin, State};
+use crate::state::{Direction, Node, Pin, PinAddress, State};
 use crate::vec2;
 use crate::widget;
 
@@ -21,7 +22,10 @@ pub fn draw(state: &State, ui: &imgui::Ui) -> Vec<Action> {
         actions.push(action);
     }
 
-    actions.extend(draw_nodes(state, ui));
+    let (node_actions, patch_positions) = draw_nodes(state, ui);
+    actions.extend(node_actions);
+
+    draw_patches(state, patch_positions, ui);
 
     actions
 }
@@ -82,8 +86,10 @@ fn draw_menu(state: &State, ui: &imgui::Ui) -> Option<Action> {
     action
 }
 
-fn draw_nodes(state: &State, ui: &imgui::Ui) -> Vec<Action> {
-    let actions = Rc::new(RefCell::new(Vec::new()));
+fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress, [f32; 2]>) {
+    let mut actions = Vec::new();
+    let patch_positions = Rc::new(RefCell::new(HashMap::new()));
+    let triggered_pin = Rc::new(RefCell::new(None));
 
     state.nodes().iter().for_each(|node| {
         let mut node_widget = widget::node::Node::new(node.id_im())
@@ -95,28 +101,22 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> Vec<Action> {
         if !node.pins().is_empty() {
             let mut pin_group = widget::pin_group::PinGroup::new();
             pin_group = node.pins().iter().fold(pin_group, |pin_group, pin| {
-                let active_callback = {
-                    let node_id = node.id().to_string();
-                    let pin_class = pin.class().to_string();
-                    let was_active = pin.active;
-                    let actions = Rc::clone(&actions);
-                    Box::new(move |is_active| {
-                        if is_active == was_active {
-                            return;
-                        }
-
-                        if is_active {
-                            actions.borrow_mut().extend(vec![
-                                Action::MoveNodeForward {
-                                    node_id: node_id.clone(),
-                                },
-                                Action::ActivatePin { node_id, pin_class },
-                            ]);
-                        } else {
-                            actions
-                                .borrow_mut()
-                                .push(Action::DeactivatePin { node_id, pin_class });
-                        }
+                let ui_callback = {
+                    let pin_address =
+                        PinAddress::new(node.id().to_string(), pin.class().to_string());
+                    let triggered_pin = Rc::clone(&triggered_pin);
+                    Box::new(move |ui: &imgui::Ui| {
+                        if ui.is_item_active() && ui.is_mouse_clicked(imgui::MouseButton::Left) {
+                            *triggered_pin.borrow_mut() = Some(pin_address);
+                        };
+                    })
+                };
+                let patch_position_callback = {
+                    let pin_address =
+                        PinAddress::new(node.id().to_string(), pin.class().to_string());
+                    let patch_positions = Rc::clone(&patch_positions);
+                    Box::new(move |position| {
+                        patch_positions.borrow_mut().insert(pin_address, position);
                     })
                 };
                 pin_group.add_pin(
@@ -128,7 +128,8 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> Vec<Action> {
                         Direction::Input => widget::pin::Orientation::Left,
                         Direction::Output => widget::pin::Orientation::Right,
                     })
-                    .active_callback(active_callback),
+                    .ui_callback(ui_callback)
+                    .patch_position_callback(patch_position_callback),
                 )
             });
 
@@ -140,7 +141,7 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> Vec<Action> {
 
         node_widget.build(ui);
         if ui.is_item_active() {
-            actions.borrow_mut().push(Action::MoveNodeForward {
+            actions.push(Action::MoveNodeForward {
                 node_id: node.id().to_string(),
             });
 
@@ -151,7 +152,7 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> Vec<Action> {
             }
 
             if ui.is_mouse_dragging(imgui::MouseButton::Left) {
-                actions.borrow_mut().push(Action::MoveNode {
+                actions.push(Action::MoveNode {
                     node_id: node.id().to_string(),
                     offset: ui.io().mouse_delta,
                 });
@@ -163,5 +164,42 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> Vec<Action> {
         }
     });
 
-    Rc::try_unwrap(actions).unwrap().into_inner()
+    if let Some(triggered_pin_address) = Rc::try_unwrap(triggered_pin).unwrap().into_inner() {
+        actions.extend(vec![
+            Action::SetTriggeredPin {
+                node_id: triggered_pin_address.node_id().to_string(),
+                pin_class: triggered_pin_address.pin_class().to_string(),
+            },
+            Action::MoveNodeForward {
+                node_id: triggered_pin_address.node_id().to_string(),
+            },
+        ]);
+    } else if ui.is_mouse_clicked(imgui::MouseButton::Left) {
+        actions.push(Action::ResetTriggeredPin)
+    }
+
+    (
+        actions,
+        Rc::try_unwrap(patch_positions).unwrap().into_inner(),
+    )
+}
+
+fn draw_patches(state: &State, patch_positions: HashMap<PinAddress, [f32; 2]>, ui: &imgui::Ui) {
+    if let Some(triggered_pin_address) = state.triggered_pin() {
+        let source = patch_positions[triggered_pin_address];
+        let destination = ui.io().mouse_pos;
+        let draw_list = ui.get_window_draw_list();
+        draw_list
+            .add_line(source, destination, [0.0, 0.0, 0.0])
+            .build();
+    }
+
+    state.patches().iter().for_each(|p| {
+        let source = patch_positions[p.source()];
+        let destination = patch_positions[p.destination()];
+        let draw_list = ui.get_window_draw_list();
+        draw_list
+            .add_line(source, destination, [0.0, 0.0, 0.0])
+            .build();
+    });
 }

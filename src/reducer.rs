@@ -1,21 +1,19 @@
 use crate::action::Action;
-use crate::state::{Direction, Node, NodeTemplate, Pin, State};
+use crate::state::{Direction, Node, NodeTemplate, Patch, Pin, PinAddress, State};
 use crate::vec2;
 
 pub fn reduce(state: &mut State, action: Action) {
-    // dbg!(&action);
+    dbg!(&action);
     // dbg!(&state.nodes());
     match action {
         Action::Scroll { offset } => state.offset = vec2::sum(&[state.offset, offset]),
         Action::AddNode { class, position } => add_node(state, class, position),
-        Action::ActivatePin { node_id, pin_class } => {
-            set_pin_activity(state, node_id, pin_class, true)
-        }
-        Action::DeactivatePin { node_id, pin_class } => {
-            set_pin_activity(state, node_id, pin_class, false)
-        }
         Action::MoveNodeForward { node_id } => move_node_forward(state, node_id),
         Action::MoveNode { node_id, offset } => move_node(state, node_id, offset),
+        Action::SetTriggeredPin { node_id, pin_class } => {
+            set_triggered_pin(state, node_id, pin_class)
+        }
+        Action::ResetTriggeredPin => reset_triggered_pin(state),
     }
     // dbg!(&state.nodes());
 }
@@ -27,19 +25,6 @@ fn add_node(state: &mut State, class: String, position: [f32; 2]) {
         .find(|nt| nt.class() == &class)
         .unwrap();
     state.add_node(node_template.instantiate(position));
-}
-
-fn set_pin_activity(state: &mut State, node_id: String, pin_class: String, active: bool) {
-    state
-        .nodes_mut()
-        .iter_mut()
-        .find(|n| n.id() == &node_id)
-        .expect("node_id must match an existing node")
-        .pins_mut()
-        .iter_mut()
-        .find(|p| p.class() == &pin_class)
-        .expect("pin_class must be available in the given node")
-        .active = active;
 }
 
 fn move_node_forward(state: &mut State, node_id: String) {
@@ -61,6 +46,20 @@ fn move_node(state: &mut State, node_id: String, offset: [f32; 2]) {
         .find(|n| n.id() == &node_id)
         .expect("node_id must match an existing node");
     node.position = vec2::sum(&[node.position, offset]);
+}
+
+fn set_triggered_pin(state: &mut State, node_id: String, pin_class: String) {
+    let newly_triggered_pin = PinAddress::new(node_id, pin_class);
+
+    if let Some(previously_triggered_pin) = state.triggered_pin_take() {
+        state.add_patch(previously_triggered_pin, newly_triggered_pin);
+    } else {
+        state.set_triggered_pin(Some(newly_triggered_pin));
+    }
+}
+
+fn reset_triggered_pin(state: &mut State) {
+    state.set_triggered_pin(None);
 }
 
 #[cfg(test)]
@@ -98,78 +97,6 @@ mod tests {
 
         assert_eq!(state.nodes()[0].class(), "class");
         assert_eq!(state.nodes()[0].position, [100.0, 200.0]);
-    }
-
-    fn pin_active(state: &State, node_id: &str, pin_class: &str) -> bool {
-        state
-            .nodes()
-            .iter()
-            .find(|n| n.id() == node_id)
-            .expect("node_id must match an existing node")
-            .pins()
-            .iter()
-            .find(|p| p.class() == pin_class)
-            .expect("pin_class must be available in the given node")
-            .active
-    }
-
-    #[test]
-    fn activate_pin() {
-        let mut state = State::default();
-        state.add_node_template(NodeTemplate::new(
-            "Label".to_owned(),
-            "class".to_owned(),
-            vec![
-                Pin::new("Input".to_owned(), "in1".to_owned(), Direction::Input),
-                Pin::new("Input".to_owned(), "in2".to_owned(), Direction::Input),
-            ],
-            vec![],
-        ));
-        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
-
-        reduce(
-            &mut state,
-            Action::ActivatePin {
-                node_id: "class:0".to_owned(),
-                pin_class: "in1".to_owned(),
-            },
-        );
-
-        assert!(pin_active(&state, "class:0", "in1"));
-        assert!(!pin_active(&state, "class:0", "in2"));
-
-        reduce(
-            &mut state,
-            Action::DeactivatePin {
-                node_id: "class:0".to_owned(),
-                pin_class: "in1".to_owned(),
-            },
-        );
-
-        assert!(!pin_active(&state, "class:0", "in1"));
-        assert!(!pin_active(&state, "class:0", "in2"));
-
-        reduce(
-            &mut state,
-            Action::ActivatePin {
-                node_id: "class:0".to_owned(),
-                pin_class: "in2".to_owned(),
-            },
-        );
-
-        assert!(!pin_active(&state, "class:0", "in1"));
-        assert!(pin_active(&state, "class:0", "in2"));
-
-        reduce(
-            &mut state,
-            Action::DeactivatePin {
-                node_id: "class:0".to_owned(),
-                pin_class: "in2".to_owned(),
-            },
-        );
-
-        assert!(!pin_active(&state, "class:0", "in1"));
-        assert!(!pin_active(&state, "class:0", "in2"));
     }
 
     #[test]
@@ -236,5 +163,79 @@ mod tests {
             updated_position2,
             vec2::sum(&[updated_position1, [10.0, -10.0]])
         );
+    }
+
+    #[test]
+    fn trigger_pin() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![Pin::new(
+                "Input".to_owned(),
+                "in".to_owned(),
+                Direction::Input,
+            )],
+            vec![],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        reduce(
+            &mut state,
+            Action::SetTriggeredPin {
+                node_id: "class:0".to_owned(),
+                pin_class: "in".to_owned(),
+            },
+        );
+
+        assert!(state.triggered_pin().is_some());
+        assert_eq!(state.triggered_pin().as_ref().unwrap().node_id(), "class:0");
+        assert_eq!(state.triggered_pin().as_ref().unwrap().pin_class(), "in");
+
+        reduce(&mut state, Action::ResetTriggeredPin);
+
+        assert!(state.triggered_pin().is_none());
+    }
+
+    #[test]
+    fn create_patch_when_second_pin_is_triggered() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![
+                Pin::new("Input".to_owned(), "in".to_owned(), Direction::Input),
+                Pin::new("Output".to_owned(), "out".to_owned(), Direction::Output),
+            ],
+            vec![],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        reduce(
+            &mut state,
+            Action::SetTriggeredPin {
+                node_id: "class:0".to_owned(),
+                pin_class: "out".to_owned(),
+            },
+        );
+
+        reduce(
+            &mut state,
+            Action::SetTriggeredPin {
+                node_id: "class:1".to_owned(),
+                pin_class: "in".to_owned(),
+            },
+        );
+
+        assert_eq!(
+            state.patches()[0],
+            Patch::new(
+                PinAddress::new("class:0".to_owned(), "out".to_owned()),
+                PinAddress::new("class:1".to_owned(), "in".to_owned())
+            )
+        );
+
+        assert!(state.triggered_pin().is_none());
     }
 }

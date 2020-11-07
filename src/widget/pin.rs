@@ -16,9 +16,8 @@ pub struct Pin<'a> {
     label: &'a imgui::ImStr,
     position: [f32; 2],
     orientation: Orientation,
-    patch_position_subscription: Option<&'a mut [f32; 2]>,
-    active_subscription: Option<&'a mut bool>,
-    active_callback: Option<Box<dyn FnOnce(bool)>>,
+    patch_position_callback: Option<Box<dyn FnOnce([f32; 2])>>,
+    ui_callback: Option<Box<dyn FnOnce(&imgui::Ui)>>,
 }
 
 #[derive(PartialEq)]
@@ -40,27 +39,21 @@ impl<'a> Pin<'a> {
             label,
             position: [0.0, 0.0],
             orientation: Orientation::default(),
-            patch_position_subscription: None,
-            active_subscription: None,
-            active_callback: None,
+            patch_position_callback: None,
+            ui_callback: None,
         }
     }
 
-    pub fn patch_position_subscription(
+    pub fn patch_position_callback(
         mut self,
-        patch_position_subscription: &'a mut [f32; 2],
+        patch_position_callback: Box<dyn FnOnce([f32; 2])>,
     ) -> Self {
-        self.patch_position_subscription = Some(patch_position_subscription);
+        self.patch_position_callback = Some(patch_position_callback);
         self
     }
 
-    pub fn active_subscription(mut self, active_subscription: &'a mut bool) -> Self {
-        self.active_subscription = Some(active_subscription);
-        self
-    }
-
-    pub fn active_callback(mut self, active_callback: Box<dyn FnOnce(bool)>) -> Self {
-        self.active_callback = Some(active_callback);
+    pub fn ui_callback(mut self, ui_callback: Box<dyn FnOnce(&imgui::Ui)>) -> Self {
+        self.ui_callback = Some(ui_callback);
         self
     }
 
@@ -138,19 +131,15 @@ impl<'a> Pin<'a> {
             }
         });
 
-        if let Some(patch_position_subscription) = self.patch_position_subscription {
-            *patch_position_subscription = match &self.orientation {
+        if let Some(patch_position_callback) = self.patch_position_callback {
+            patch_position_callback(match &self.orientation {
                 Orientation::Left => vec2::sum(&[self.position, [0.0, (HEIGHT - 1.0) / 2.0]]),
                 Orientation::Right => vec2::sum(&[self.position, [width, (HEIGHT - 1.0) / 2.0]]),
-            };
+            });
         }
 
-        if let Some(active_subscription) = self.active_subscription {
-            *active_subscription = ui.is_item_active();
-        }
-
-        if let Some(active_callback) = self.active_callback {
-            active_callback(ui.is_item_active());
+        if let Some(ui_callback) = self.ui_callback {
+            ui_callback(ui);
         }
     }
 }

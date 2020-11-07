@@ -6,7 +6,7 @@ use std::collections::HashSet;
 
 use imgui::ImString;
 
-#[derive(Getters, MutGetters, Default, Debug)]
+#[derive(Getters, MutGetters, Setters, Default, Debug)]
 pub struct State {
     pub offset: [f32; 2],
 
@@ -14,6 +14,8 @@ pub struct State {
     node_templates: Vec<NodeTemplate>,
     #[getset(get = "pub", get_mut = "pub")]
     nodes: Vec<Node>,
+    #[getset(get = "pub", set = "pub")]
+    triggered_pin: Option<PinAddress>,
 
     #[getset(get = "pub")]
     patches: Vec<Patch>,
@@ -163,7 +165,12 @@ pub struct Pin {
     class: String,
     #[getset(get_copy = "pub")]
     direction: Direction,
-    pub active: bool,
+}
+
+impl State {
+    pub fn triggered_pin_take(&mut self) -> Option<PinAddress> {
+        self.triggered_pin.take()
+    }
 }
 
 impl Pin {
@@ -172,7 +179,6 @@ impl Pin {
             class,
             label: ImString::from(label),
             direction,
-            active: false,
         }
     }
 
@@ -182,6 +188,20 @@ impl Pin {
 
     pub fn label_im(&self) -> &ImString {
         &self.label
+    }
+}
+
+#[derive(Getters, Clone, Hash, PartialEq, Eq, Debug)]
+pub struct PinAddress {
+    #[getset(get = "pub")]
+    node_id: String,
+    #[getset(get = "pub")]
+    pin_class: String,
+}
+
+impl PinAddress {
+    pub fn new(node_id: String, pin_class: String) -> Self {
+        Self { node_id, pin_class }
     }
 }
 
@@ -536,49 +556,37 @@ impl DropDownItem {
     }
 }
 
-#[derive(Debug)]
+#[derive(Getters, PartialEq, Debug)]
 pub struct Patch {
-    source_node_id: String,
-    source_pin_class: String,
-
-    destination_node_id: String,
-    destination_pin_class: String,
+    #[getset(get = "pub")]
+    source: PinAddress,
+    #[getset(get = "pub")]
+    destination: PinAddress,
 }
 
 impl State {
-    pub fn add_patch(
-        &mut self,
-        node_a_id: &str,
-        pin_a_class: &str,
-        node_b_id: &str,
-        pin_b_class: &str,
-    ) -> Result<(), String> {
-        if node_a_id == node_b_id {
+    pub fn add_patch(&mut self, side_a: PinAddress, side_b: PinAddress) -> Result<(), String> {
+        if side_a.node_id() == side_b.node_id() {
             return Err("Patch cannot loop between pins of a single node".to_owned());
         }
 
-        let node_a = must_find_node(self.nodes(), node_a_id);
-        let node_b = must_find_node(self.nodes(), node_b_id);
-        let pin_a = must_find_pin(node_a.pins(), pin_a_class);
-        let pin_b = must_find_pin(node_b.pins(), pin_b_class);
+        let node_a = must_find_node(self.nodes(), side_a.node_id());
+        let node_b = must_find_node(self.nodes(), side_b.node_id());
+        let pin_a = must_find_pin(node_a.pins(), side_a.pin_class());
+        let pin_b = must_find_pin(node_b.pins(), side_b.pin_class());
 
         if pin_a.direction() == pin_b.direction() {
             return Err("Patch cannot connect pins of the same direction".to_owned());
         }
 
-        let (source_node_id, source_pin_class, destination_node_id, destination_pin_class) =
-            if pin_a.direction() == Direction::Input {
-                (node_b_id, pin_b_class, node_a_id, pin_a_class)
-            } else {
-                (node_a_id, pin_a_class, node_b_id, pin_b_class)
-            };
+        let (source_address, destination_address) = if pin_a.direction() == Direction::Input {
+            (side_b, side_a)
+        } else {
+            (side_a, side_b)
+        };
 
-        self.patches.push(Patch::new(
-            source_node_id.to_owned(),
-            source_pin_class.to_owned(),
-            destination_node_id.to_owned(),
-            destination_pin_class.to_owned(),
-        ));
+        self.patches
+            .push(Patch::new(source_address, destination_address));
 
         Ok(())
     }
@@ -598,17 +606,10 @@ fn must_find_pin<'a>(pins: &'a Vec<Pin>, class: &str) -> &'a Pin {
 }
 
 impl Patch {
-    fn new(
-        source_node_id: String,
-        source_pin_class: String,
-        destination_node_id: String,
-        destination_pin_class: String,
-    ) -> Self {
+    pub fn new(source: PinAddress, destination: PinAddress) -> Self {
         Self {
-            source_node_id,
-            source_pin_class,
-            destination_node_id,
-            destination_pin_class,
+            source,
+            destination,
         }
     }
 }
@@ -1275,27 +1276,37 @@ mod tests {
         }
 
         #[test]
-        fn add_patch_input_output() {
-            let mut state = initialize_state();
-
-            assert!(state.add_patch("node:0", "out1", "node:1", "in1").is_ok());
-
-            assert_eq!(state.patches()[0].source_node_id, "node:0");
-            assert_eq!(state.patches()[0].source_pin_class, "out1");
-            assert_eq!(state.patches()[0].destination_node_id, "node:1");
-            assert_eq!(state.patches()[0].destination_pin_class, "in1");
-        }
-
-        #[test]
         fn add_patch_output_input() {
             let mut state = initialize_state();
 
-            assert!(state.add_patch("node:0", "in1", "node:1", "out1").is_ok());
+            assert!(state
+                .add_patch(
+                    PinAddress::new("node:0".to_owned(), "out1".to_owned()),
+                    PinAddress::new("node:1".to_owned(), "in1".to_owned())
+                )
+                .is_ok());
 
-            assert_eq!(state.patches()[0].source_node_id, "node:1");
-            assert_eq!(state.patches()[0].source_pin_class, "out1");
-            assert_eq!(state.patches()[0].destination_node_id, "node:0");
-            assert_eq!(state.patches()[0].destination_pin_class, "in1");
+            assert_eq!(state.patches()[0].source().node_id(), "node:0");
+            assert_eq!(state.patches()[0].source().pin_class(), "out1");
+            assert_eq!(state.patches()[0].destination().node_id(), "node:1");
+            assert_eq!(state.patches()[0].destination().pin_class(), "in1");
+        }
+
+        #[test]
+        fn add_patch_input_output() {
+            let mut state = initialize_state();
+
+            assert!(state
+                .add_patch(
+                    PinAddress::new("node:0".to_owned(), "in1".to_owned()),
+                    PinAddress::new("node:1".to_owned(), "out1".to_owned())
+                )
+                .is_ok());
+
+            assert_eq!(state.patches()[0].source().node_id(), "node:1");
+            assert_eq!(state.patches()[0].source().pin_class(), "out1");
+            assert_eq!(state.patches()[0].destination().node_id(), "node:0");
+            assert_eq!(state.patches()[0].destination().pin_class(), "in1");
         }
 
         #[test]
@@ -1303,7 +1314,10 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_source_node_id() {
             let mut state = initialize_state();
 
-            state.add_patch("node_does_not_exist", "out1", "node:1", "in1");
+            state.add_patch(
+                PinAddress::new("node_does_not_exist".to_owned(), "in1".to_owned()),
+                PinAddress::new("node:1".to_owned(), "out1".to_owned()),
+            );
         }
 
         #[test]
@@ -1311,7 +1325,10 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_source_pin_class() {
             let mut state = initialize_state();
 
-            state.add_patch("node:0", "out1", "node:1", "in_does_not_exist");
+            state.add_patch(
+                PinAddress::new("node:0".to_owned(), "pin_does_not_exist".to_owned()),
+                PinAddress::new("node:1".to_owned(), "in1".to_owned()),
+            );
         }
 
         #[test]
@@ -1319,7 +1336,10 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_destination_node_id() {
             let mut state = initialize_state();
 
-            state.add_patch("node:0", "out1", "node_does_not_exist", "in1");
+            state.add_patch(
+                PinAddress::new("node:0".to_owned(), "out1".to_owned()),
+                PinAddress::new("node_does_not_exist".to_owned(), "in1".to_owned()),
+            );
         }
 
         #[test]
@@ -1327,14 +1347,20 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_destination_pin_class() {
             let mut state = initialize_state();
 
-            state.add_patch("node:0", "in_does_not_exist", "node:1", "in1");
+            state.add_patch(
+                PinAddress::new("node:0".to_owned(), "out1".to_owned()),
+                PinAddress::new("node:1".to_owned(), "pin_does_not_exist".to_owned()),
+            );
         }
 
         #[test]
         fn fail_on_add_patch_self_looping_node() {
             let mut state = initialize_state();
 
-            match state.add_patch("node:0", "out1", "node:0", "in1") {
+            match state.add_patch(
+                PinAddress::new("node:0".to_owned(), "out1".to_owned()),
+                PinAddress::new("node:0".to_owned(), "in1".to_owned()),
+            ) {
                 Ok(()) => panic!("Operation should fail"),
                 Err(err) => assert_eq!(err, "Patch cannot loop between pins of a single node"),
             }
@@ -1344,7 +1370,10 @@ mod tests {
         fn fail_on_add_patch_between_pins_of_the_same_direction() {
             let mut state = initialize_state();
 
-            match state.add_patch("node:0", "out1", "node:1", "out1") {
+            match state.add_patch(
+                PinAddress::new("node:0".to_owned(), "out1".to_owned()),
+                PinAddress::new("node:1".to_owned(), "out1".to_owned()),
+            ) {
                 Ok(()) => panic!("Operation should fail"),
                 Err(err) => assert_eq!(err, "Patch cannot connect pins of the same direction"),
             }
