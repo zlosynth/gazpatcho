@@ -18,7 +18,7 @@ pub struct State {
     triggered_pin: Option<PinAddress>,
 
     #[getset(get = "pub")]
-    patches: HashSet<Patch>,
+    patches: Vec<Patch>,
 }
 
 #[derive(Getters, Debug)]
@@ -556,7 +556,7 @@ impl DropDownItem {
     }
 }
 
-#[derive(Getters, Hash, PartialEq, Eq, Debug)]
+#[derive(Getters, PartialEq, Debug)]
 pub struct Patch {
     #[getset(get = "pub")]
     source: PinAddress,
@@ -565,7 +565,7 @@ pub struct Patch {
 }
 
 impl State {
-    pub fn toggle_patch(&mut self, side_a: PinAddress, side_b: PinAddress) -> Result<(), String> {
+    pub fn add_patch(&mut self, side_a: PinAddress, side_b: PinAddress) -> Result<(), String> {
         if side_a.node_id() == side_b.node_id() {
             return Err("Patch cannot loop between pins of a single node".to_owned());
         }
@@ -585,12 +585,8 @@ impl State {
             (side_a, side_b)
         };
 
-        let patch = Patch::new(source_address, destination_address);
-        if self.patches.contains(&patch) {
-            self.patches.remove(&patch);
-        } else {
-            self.patches.insert(patch);
-        }
+        self.patches
+            .push(Patch::new(source_address, destination_address));
 
         Ok(())
     }
@@ -1284,17 +1280,16 @@ mod tests {
             let mut state = initialize_state();
 
             assert!(state
-                .toggle_patch(
+                .add_patch(
                     PinAddress::new("node:0".to_owned(), "out1".to_owned()),
                     PinAddress::new("node:1".to_owned(), "in1".to_owned())
                 )
                 .is_ok());
 
-            let patch = state.patches().iter().next().unwrap();
-            assert_eq!(patch.source().node_id(), "node:0");
-            assert_eq!(patch.source().pin_class(), "out1");
-            assert_eq!(patch.destination().node_id(), "node:1");
-            assert_eq!(patch.destination().pin_class(), "in1");
+            assert_eq!(state.patches()[0].source().node_id(), "node:0");
+            assert_eq!(state.patches()[0].source().pin_class(), "out1");
+            assert_eq!(state.patches()[0].destination().node_id(), "node:1");
+            assert_eq!(state.patches()[0].destination().pin_class(), "in1");
         }
 
         #[test]
@@ -1302,37 +1297,16 @@ mod tests {
             let mut state = initialize_state();
 
             assert!(state
-                .toggle_patch(
+                .add_patch(
                     PinAddress::new("node:0".to_owned(), "in1".to_owned()),
                     PinAddress::new("node:1".to_owned(), "out1".to_owned())
                 )
                 .is_ok());
 
-            let patch = state.patches().iter().next().unwrap();
-            assert_eq!(patch.source().node_id(), "node:1");
-            assert_eq!(patch.source().pin_class(), "out1");
-            assert_eq!(patch.destination().node_id(), "node:0");
-            assert_eq!(patch.destination().pin_class(), "in1");
-        }
-
-        #[test]
-        fn remove_patch_output_input() {
-            let mut state = initialize_state();
-            state
-                .toggle_patch(
-                    PinAddress::new("node:0".to_owned(), "out1".to_owned()),
-                    PinAddress::new("node:1".to_owned(), "in1".to_owned()),
-                )
-                .is_ok();
-
-            assert!(state
-                .toggle_patch(
-                    PinAddress::new("node:0".to_owned(), "out1".to_owned()),
-                    PinAddress::new("node:1".to_owned(), "in1".to_owned())
-                )
-                .is_ok());
-
-            assert_eq!(state.patches().len(), 0);
+            assert_eq!(state.patches()[0].source().node_id(), "node:1");
+            assert_eq!(state.patches()[0].source().pin_class(), "out1");
+            assert_eq!(state.patches()[0].destination().node_id(), "node:0");
+            assert_eq!(state.patches()[0].destination().pin_class(), "in1");
         }
 
         #[test]
@@ -1340,7 +1314,7 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_source_node_id() {
             let mut state = initialize_state();
 
-            state.toggle_patch(
+            state.add_patch(
                 PinAddress::new("node_does_not_exist".to_owned(), "in1".to_owned()),
                 PinAddress::new("node:1".to_owned(), "out1".to_owned()),
             );
@@ -1351,7 +1325,7 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_source_pin_class() {
             let mut state = initialize_state();
 
-            state.toggle_patch(
+            state.add_patch(
                 PinAddress::new("node:0".to_owned(), "pin_does_not_exist".to_owned()),
                 PinAddress::new("node:1".to_owned(), "in1".to_owned()),
             );
@@ -1362,7 +1336,7 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_destination_node_id() {
             let mut state = initialize_state();
 
-            state.toggle_patch(
+            state.add_patch(
                 PinAddress::new("node:0".to_owned(), "out1".to_owned()),
                 PinAddress::new("node_does_not_exist".to_owned(), "in1".to_owned()),
             );
@@ -1373,7 +1347,7 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_destination_pin_class() {
             let mut state = initialize_state();
 
-            state.toggle_patch(
+            state.add_patch(
                 PinAddress::new("node:0".to_owned(), "out1".to_owned()),
                 PinAddress::new("node:1".to_owned(), "pin_does_not_exist".to_owned()),
             );
@@ -1383,7 +1357,7 @@ mod tests {
         fn fail_on_add_patch_self_looping_node() {
             let mut state = initialize_state();
 
-            match state.toggle_patch(
+            match state.add_patch(
                 PinAddress::new("node:0".to_owned(), "out1".to_owned()),
                 PinAddress::new("node:0".to_owned(), "in1".to_owned()),
             ) {
@@ -1396,7 +1370,7 @@ mod tests {
         fn fail_on_add_patch_between_pins_of_the_same_direction() {
             let mut state = initialize_state();
 
-            match state.toggle_patch(
+            match state.add_patch(
                 PinAddress::new("node:0".to_owned(), "out1".to_owned()),
                 PinAddress::new("node:1".to_owned(), "out1".to_owned()),
             ) {
