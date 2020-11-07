@@ -138,6 +138,11 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> Vec<Action> {
         }
 
         node_widget.build(ui);
+        if ui.is_item_active() {
+            actions.borrow_mut().push(Action::MoveNodeForward {
+                node_id: node.id().to_string(),
+            })
+        }
 
         unsafe {
             imgui::sys::igSetItemAllowOverlap();

@@ -14,6 +14,7 @@ pub fn reduce(state: &mut State, action: Action) {
         Action::DeactivatePin { node_id, pin_class } => {
             set_pin_activity(state, node_id, pin_class, false)
         }
+        Action::MoveNodeForward { node_id } => move_node_forward(state, node_id),
     }
     // dbg!(&state.nodes());
 }
@@ -38,6 +39,18 @@ fn set_pin_activity(state: &mut State, node_id: String, pin_class: String, activ
         .find(|p| p.class() == &pin_class)
         .expect("pin_class must be available in the given node")
         .active = active;
+}
+
+fn move_node_forward(state: &mut State, node_id: String) {
+    let node_index = state
+        .nodes()
+        .iter()
+        .enumerate()
+        .find(|(_, n)| n.id() == &node_id)
+        .expect("node_id must match an existing node")
+        .0;
+    let node = state.nodes_mut().remove(node_index);
+    state.nodes_mut().push(node);
 }
 
 #[cfg(test)]
@@ -147,5 +160,30 @@ mod tests {
 
         assert!(!pin_active(&state, "class:0", "in1"));
         assert!(!pin_active(&state, "class:0", "in2"));
+    }
+
+    #[test]
+    fn move_node_forward() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![],
+            vec![],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        assert_eq!(state.nodes()[0].id(), "class:0");
+        assert_eq!(state.nodes()[1].id(), "class:1");
+
+        reduce(
+            &mut state,
+            Action::MoveNodeForward {
+                node_id: "class:0".to_owned(),
+            },
+        );
+
+        assert_eq!(state.nodes()[0].id(), "class:1");
+        assert_eq!(state.nodes()[1].id(), "class:0");
     }
 }
