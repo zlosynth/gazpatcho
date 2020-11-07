@@ -82,35 +82,6 @@ fn draw_menu(state: &State, ui: &imgui::Ui) -> Option<Action> {
     action
 }
 
-fn create_pin_active_callback(
-    actions: &Rc<RefCell<Vec<Action>>>,
-    node: &Node,
-    pin: &Pin,
-) -> Box<dyn FnOnce(bool)> {
-    let node_id = node.id().to_string();
-    let pin_class = pin.class().to_string();
-    let was_active = pin.active;
-    let actions = Rc::clone(&actions);
-    Box::new(move |is_active| {
-        if is_active != was_active {
-            if is_active {
-                actions.borrow_mut().push(Action::MoveNodeForward {
-                    node_id: node_id.clone(),
-                });
-                actions.borrow_mut().push(Action::ActivatePin {
-                    node_id: node_id,
-                    pin_class: pin_class,
-                });
-            } else {
-                actions.borrow_mut().push(Action::DeactivatePin {
-                    node_id: node_id,
-                    pin_class: pin_class,
-                });
-            }
-        }
-    })
-}
-
 fn draw_nodes(state: &State, ui: &imgui::Ui) -> Vec<Action> {
     let actions = Rc::new(RefCell::new(Vec::new()));
 
@@ -123,17 +94,41 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> Vec<Action> {
 
         if !node.pins().is_empty() {
             let mut pin_group = widget::pin_group::PinGroup::new();
-            pin_group = node.pins().iter().fold(pin_group, |g, p| {
-                g.add_pin(
+            pin_group = node.pins().iter().fold(pin_group, |pin_group, pin| {
+                let active_callback = {
+                    let node_id = node.id().to_string();
+                    let pin_class = pin.class().to_string();
+                    let was_active = pin.active;
+                    let actions = Rc::clone(&actions);
+                    Box::new(move |is_active| {
+                        if is_active == was_active {
+                            return;
+                        }
+
+                        if is_active {
+                            actions.borrow_mut().extend(vec![
+                                Action::MoveNodeForward {
+                                    node_id: node_id.clone(),
+                                },
+                                Action::ActivatePin { node_id, pin_class },
+                            ]);
+                        } else {
+                            actions
+                                .borrow_mut()
+                                .push(Action::DeactivatePin { node_id, pin_class });
+                        }
+                    })
+                };
+                pin_group.add_pin(
                     widget::pin::Pin::new(
-                        imgui::ImString::from(format!("{}:{}", node.id(), p.class())),
-                        p.label_im(),
+                        imgui::ImString::from(format!("{}:{}", node.id(), pin.class())),
+                        pin.label_im(),
                     )
-                    .orientation(match p.direction() {
+                    .orientation(match pin.direction() {
                         Direction::Input => widget::pin::Orientation::Left,
                         Direction::Output => widget::pin::Orientation::Right,
                     })
-                    .active_callback(create_pin_active_callback(&actions, &node, &p)),
+                    .active_callback(active_callback),
                 )
             });
 
