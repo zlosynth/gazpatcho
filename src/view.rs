@@ -1,3 +1,4 @@
+// TODO: Clean this up once all v1 features are done and patterns emerge.
 extern crate imgui;
 
 use std::boxed::Box;
@@ -186,6 +187,14 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
         actions.push(Action::ResetTriggeredNode)
     }
 
+    if let Some(triggered_node_id) = state.triggered_node() {
+        if ui.is_key_pressed(ui.key_index(imgui::Key::Delete)) {
+            actions.push(Action::RemoveNode {
+                node_id: triggered_node_id.to_string(),
+            });
+        }
+    }
+
     if let Some(triggered_pin_address) = Rc::try_unwrap(triggered_pin).unwrap().into_inner() {
         actions.extend(vec![
             Action::SetTriggeredPin {
@@ -261,6 +270,14 @@ fn draw_patches(
             || ui.is_key_pressed(ui.key_index(imgui::Key::Escape)))
     {
         actions.push(Action::ResetTriggeredPatch)
+    }
+
+    if let Some(triggered_patch) = state.triggered_patch() {
+        if ui.is_key_pressed(ui.key_index(imgui::Key::Delete)) {
+            actions.push(Action::RemovePatch {
+                patch: triggered_patch.clone(),
+            });
+        }
     }
 
     actions

@@ -21,7 +21,8 @@ pub struct State {
     #[getset(get = "pub", set = "pub")]
     triggered_pin: Option<PinAddress>,
 
-    #[getset(get = "pub")]
+    // TODO: Turn into hashset
+    #[getset(get = "pub", get_mut = "pub")]
     patches: Vec<Patch>,
     // TODO: Verify existence on set
     #[getset(get = "pub", set = "pub")]

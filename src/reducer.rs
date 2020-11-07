@@ -4,12 +4,14 @@ use crate::vec2;
 
 pub fn reduce(state: &mut State, action: Action) {
     dbg!(&action);
-    // dbg!(&state.nodes());
     match action {
         Action::Scroll { offset } => state.offset = vec2::sum(&[state.offset, offset]),
         Action::AddNode { class, position } => add_node(state, class, position),
+        // TODO: reuse triggered node for this
         Action::MoveNodeForward { node_id } => move_node_forward(state, node_id),
         Action::MoveNode { node_id, offset } => move_node(state, node_id, offset),
+        Action::RemoveNode { node_id } => remove_node(state, node_id),
+        Action::RemovePatch { patch } => state.patches_mut().retain(|p| *p != patch),
         Action::SetTriggeredNode { node_id } => {
             state.set_triggered_node(Some(node_id));
         }
@@ -27,7 +29,6 @@ pub fn reduce(state: &mut State, action: Action) {
             state.set_triggered_patch(None);
         }
     }
-    // dbg!(&state.nodes());
 }
 
 fn add_node(state: &mut State, class: String, position: [f32; 2]) {
@@ -39,6 +40,13 @@ fn add_node(state: &mut State, class: String, position: [f32; 2]) {
     let node = node_template.instantiate(position);
     state.set_triggered_node(Some(node.id().to_string()));
     state.add_node(node);
+}
+
+fn remove_node(state: &mut State, node_id: String) {
+    state.nodes_mut().retain(|n| *n.id() != node_id);
+    state
+        .patches_mut()
+        .retain(|p| *p.source().node_id() != node_id && *p.destination().node_id() != node_id);
 }
 
 fn move_node_forward(state: &mut State, node_id: String) {
@@ -120,6 +128,38 @@ mod tests {
         assert_eq!(state.nodes()[0].position, [100.0, 200.0]);
         assert!(state.triggered_node().is_some());
         assert_eq!(state.triggered_node().as_ref().unwrap(), "class:0");
+    }
+
+    #[test]
+    fn remove_node() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![
+                Pin::new("Input".to_owned(), "in".to_owned(), Direction::Input),
+                Pin::new("Output".to_owned(), "out".to_owned(), Direction::Output),
+            ],
+            vec![],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        state
+            .add_patch(
+                PinAddress::new("class:0".to_owned(), "out".to_owned()),
+                PinAddress::new("class:1".to_owned(), "in".to_owned()),
+            )
+            .unwrap();
+
+        reduce(
+            &mut state,
+            Action::RemoveNode {
+                node_id: "class:1".to_owned(),
+            },
+        );
+
+        assert_eq!(state.nodes().len(), 1);
+        assert!(state.patches().is_empty());
     }
 
     #[test]
@@ -330,5 +370,39 @@ mod tests {
         );
 
         assert!(state.triggered_pin().is_none());
+    }
+
+    #[test]
+    fn remove_patch() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![
+                Pin::new("Input".to_owned(), "in".to_owned(), Direction::Input),
+                Pin::new("Output".to_owned(), "out".to_owned(), Direction::Output),
+            ],
+            vec![],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        state
+            .add_patch(
+                PinAddress::new("class:0".to_owned(), "out".to_owned()),
+                PinAddress::new("class:1".to_owned(), "in".to_owned()),
+            )
+            .unwrap();
+
+        reduce(
+            &mut state,
+            Action::RemovePatch {
+                patch: Patch::new(
+                    PinAddress::new("class:0".to_owned(), "out".to_owned()),
+                    PinAddress::new("class:1".to_owned(), "in".to_owned()),
+                ),
+            },
+        );
+
+        assert!(state.patches().is_empty());
     }
 }
