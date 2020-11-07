@@ -70,7 +70,7 @@ impl NodeTemplate {
             widgets.iter().for_each(|w| {
                 let key = match w {
                     Widget::Trigger(widget) => widget.key(),
-                    Widget::Button(widget) => widget.key(),
+                    Widget::Toggle(widget) => widget.key(),
                     Widget::RadioButtons(widget) => widget.key(),
                     Widget::CheckBoxes(widget) => widget.key(),
                     Widget::InputBox(widget) => widget.key(),
@@ -216,7 +216,7 @@ impl PinAddress {
 #[derive(Clone, PartialEq, Debug)]
 pub enum Widget {
     Trigger(Trigger),
-    Button(Button),
+    Toggle(Toggle),
     RadioButtons(RadioButtons),
     CheckBoxes(CheckBoxes),
     InputBox(InputBox),
@@ -248,7 +248,7 @@ impl Trigger {
 }
 
 #[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
-pub struct Button {
+pub struct Toggle {
     #[getset(get = "pub")]
     label: String,
     #[getset(get = "pub")]
@@ -257,7 +257,7 @@ pub struct Button {
     selected: bool,
 }
 
-impl Button {
+impl Toggle {
     pub fn new(label: String, key: String, selected: bool) -> Self {
         Self {
             label,
@@ -700,8 +700,8 @@ mod tests {
                     Pin::new("Input 1".to_owned(), "in1".to_owned(), Direction::Input),
                     Pin::new("Output 1".to_owned(), "out1".to_owned(), Direction::Output),
                 ],
-                vec![Widget::Button(Button::new(
-                    "Button".to_owned(),
+                vec![Widget::Toggle(Toggle::new(
+                    "Toggle".to_owned(),
                     "button1".to_owned(),
                     true,
                 ))],
@@ -750,7 +750,7 @@ mod tests {
                 "class1".to_owned(),
                 vec![],
                 vec![
-                    Widget::Button(Button::new("Button".to_owned(), "widget".to_owned(), true)),
+                    Widget::Toggle(Toggle::new("Toggle".to_owned(), "widget".to_owned(), true)),
                     Widget::Trigger(Trigger::new("Trigger".to_owned(), "widget".to_owned())),
                 ],
             );
@@ -788,34 +788,34 @@ mod tests {
         }
     }
 
-    mod button {
+    mod toggle {
         use super::*;
 
         #[test]
         fn initialize() {
-            let button = Button::new("Button".to_owned(), "key".to_owned(), false);
+            let toggle = Toggle::new("Toggle".to_owned(), "key".to_owned(), false);
 
-            assert_eq!(button.label(), "Button");
-            assert_eq!(button.key(), "key");
-            assert!(!button.selected());
+            assert_eq!(toggle.label(), "Toggle");
+            assert_eq!(toggle.key(), "key");
+            assert!(!toggle.selected());
         }
 
         #[test]
         fn turn_on() {
-            let mut button = Button::new("Button".to_owned(), "key".to_owned(), false);
+            let mut toggle = Toggle::new("Toggle".to_owned(), "key".to_owned(), false);
 
-            button.set_selected(true);
+            toggle.set_selected(true);
 
-            assert!(button.selected());
+            assert!(toggle.selected());
         }
 
         #[test]
         fn turn_off() {
-            let mut button = Button::new("Button".to_owned(), "key".to_owned(), false);
+            let mut toggle = Toggle::new("Toggle".to_owned(), "key".to_owned(), false);
 
-            button.set_selected(false);
+            toggle.set_selected(false);
 
-            assert!(!button.selected());
+            assert!(!toggle.selected());
         }
     }
 
