@@ -52,7 +52,7 @@ fn set_triggered_pin(state: &mut State, node_id: String, pin_class: String) {
     let newly_triggered_pin = PinAddress::new(node_id, pin_class);
 
     if let Some(previously_triggered_pin) = state.triggered_pin_take() {
-        state.add_patch(previously_triggered_pin, newly_triggered_pin);
+        state.toggle_patch(previously_triggered_pin, newly_triggered_pin);
     } else {
         state.set_triggered_pin(Some(newly_triggered_pin));
     }
@@ -229,8 +229,8 @@ mod tests {
         );
 
         assert_eq!(
-            state.patches()[0],
-            Patch::new(
+            state.patches().iter().next().unwrap(),
+            &Patch::new(
                 PinAddress::new("class:0".to_owned(), "out".to_owned()),
                 PinAddress::new("class:1".to_owned(), "in".to_owned())
             )
