@@ -15,6 +15,7 @@ pub enum Component<'a> {
 pub struct Node<'a> {
     id: &'a imgui::ImStr,
     position: [f32; 2],
+    thick: bool,
     components: Vec<Component<'a>>,
 }
 
@@ -23,12 +24,18 @@ impl<'a> Node<'a> {
         Self {
             id,
             position: [0.0, 0.0],
+            thick: false,
             components: Vec::new(),
         }
     }
 
     pub fn position(mut self, position: [f32; 2]) -> Self {
         self.position = position;
+        self
+    }
+
+    pub fn thick(mut self, thick: bool) -> Self {
+        self.thick = thick;
         self
     }
 
@@ -61,6 +68,16 @@ impl<'a> Node<'a> {
                 )
                 .filled(false)
                 .build();
+            if self.thick {
+                draw_list
+                    .add_rect(
+                        vec2::sum(&[position, [-1.0, -1.0]]),
+                        vec2::sum(&[position, [width, height], [1.0, 1.0]]),
+                        ui.style_color(imgui::StyleColor::Border),
+                    )
+                    .filled(false)
+                    .build();
+            }
         }
 
         let mut cursor = position;

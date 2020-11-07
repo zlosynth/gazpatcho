@@ -14,11 +14,18 @@ pub struct State {
     node_templates: Vec<NodeTemplate>,
     #[getset(get = "pub", get_mut = "pub")]
     nodes: Vec<Node>,
+    // TODO: Verify existence on set
+    #[getset(get = "pub", set = "pub")]
+    triggered_node: Option<String>,
+    // TODO: Verify existence on set
     #[getset(get = "pub", set = "pub")]
     triggered_pin: Option<PinAddress>,
 
     #[getset(get = "pub")]
     patches: Vec<Patch>,
+    // TODO: Verify existence on set
+    #[getset(get = "pub", set = "pub")]
+    triggered_patch: Option<Patch>,
 }
 
 #[derive(Getters, Debug)]
@@ -556,7 +563,7 @@ impl DropDownItem {
     }
 }
 
-#[derive(Getters, PartialEq, Debug)]
+#[derive(Getters, PartialEq, Clone, Debug)]
 pub struct Patch {
     #[getset(get = "pub")]
     source: PinAddress,

@@ -3,6 +3,7 @@ extern crate imgui;
 use std::boxed::Box;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::f32;
 use std::ptr;
 use std::rc::Rc;
 
@@ -25,7 +26,7 @@ pub fn draw(state: &State, ui: &imgui::Ui) -> Vec<Action> {
     let (node_actions, patch_positions) = draw_nodes(state, ui);
     actions.extend(node_actions);
 
-    draw_patches(state, patch_positions, ui);
+    actions.extend(draw_patches(state, patch_positions, ui));
 
     actions
 }
@@ -89,6 +90,7 @@ fn draw_menu(state: &State, ui: &imgui::Ui) -> Option<Action> {
 fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress, [f32; 2]>) {
     let mut actions = Vec::new();
     let patch_positions = Rc::new(RefCell::new(HashMap::new()));
+    let mut triggered_node = None;
     let triggered_pin = Rc::new(RefCell::new(None));
 
     state.nodes().iter().for_each(|node| {
@@ -97,6 +99,12 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
             .add_component(widget::node::Component::Label(widget::label::Label::new(
                 node.label_im(),
             )));
+
+        if let Some(triggered_node_id) = state.triggered_node() {
+            if triggered_node_id == node.id() {
+                node_widget = node_widget.thick(true);
+            }
+        }
 
         if !node.pins().is_empty() {
             let mut pin_group = widget::pin_group::PinGroup::new();
@@ -141,9 +149,12 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
 
         node_widget.build(ui);
         if ui.is_item_active() {
-            actions.push(Action::MoveNodeForward {
-                node_id: node.id().to_string(),
-            });
+            if ui.is_mouse_clicked(imgui::MouseButton::Left) {
+                actions.push(Action::MoveNodeForward {
+                    node_id: node.id().to_string(),
+                });
+                triggered_node = Some(node.id().to_string());
+            }
 
             if ui.is_mouse_down(imgui::MouseButton::Left)
                 || ui.is_mouse_dragging(imgui::MouseButton::Left)
@@ -164,6 +175,17 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
         }
     });
 
+    if let Some(triggered_node_id) = triggered_node {
+        actions.push(Action::SetTriggeredNode {
+            node_id: triggered_node_id,
+        });
+    } else if state.triggered_node().is_some()
+        && (ui.is_mouse_clicked(imgui::MouseButton::Left)
+            || ui.is_key_pressed(ui.key_index(imgui::Key::Escape)))
+    {
+        actions.push(Action::ResetTriggeredNode)
+    }
+
     if let Some(triggered_pin_address) = Rc::try_unwrap(triggered_pin).unwrap().into_inner() {
         actions.extend(vec![
             Action::SetTriggeredPin {
@@ -174,7 +196,10 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
                 node_id: triggered_pin_address.node_id().to_string(),
             },
         ]);
-    } else if ui.is_mouse_clicked(imgui::MouseButton::Left) {
+    } else if state.triggered_pin().is_some()
+        && (ui.is_mouse_clicked(imgui::MouseButton::Left)
+            || ui.is_key_pressed(ui.key_index(imgui::Key::Escape)))
+    {
         actions.push(Action::ResetTriggeredPin)
     }
 
@@ -184,7 +209,15 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
     )
 }
 
-fn draw_patches(state: &State, patch_positions: HashMap<PinAddress, [f32; 2]>, ui: &imgui::Ui) {
+fn draw_patches(
+    state: &State,
+    patch_positions: HashMap<PinAddress, [f32; 2]>,
+    ui: &imgui::Ui,
+) -> Vec<Action> {
+    let mut actions = Vec::new();
+
+    let mut triggered_patch = None;
+
     if let Some(triggered_pin_address) = state.triggered_pin() {
         let source = patch_positions[triggered_pin_address];
         let destination = ui.io().mouse_pos;
@@ -198,8 +231,67 @@ fn draw_patches(state: &State, patch_positions: HashMap<PinAddress, [f32; 2]>, u
         let source = patch_positions[p.source()];
         let destination = patch_positions[p.destination()];
         let draw_list = ui.get_window_draw_list();
-        draw_list
-            .add_line(source, destination, [0.0, 0.0, 0.0])
-            .build();
+        let mut line = draw_list.add_line(source, destination, [0.0, 0.0, 0.0]);
+        if let Some(triggered_patch) = state.triggered_patch() {
+            if triggered_patch == p {
+                line = line.thickness(2.0);
+            }
+        }
+        line.build();
+
+        if ui.is_mouse_clicked(imgui::MouseButton::Left) {
+            let distance_from_line = distance_from_line(ui.io().mouse_pos, (source, destination));
+            let distance_from_source = distance_between_points(ui.io().mouse_pos, source);
+            let distance_from_destination = distance_between_points(ui.io().mouse_pos, destination);
+            if distance_from_line < 5.0
+                && distance_from_source > 5.0
+                && distance_from_destination > 5.0
+            {
+                triggered_patch = Some(p.clone());
+            }
+        }
     });
+
+    if let Some(triggered_patch) = triggered_patch {
+        actions.push(Action::SetTriggeredPatch {
+            patch: triggered_patch,
+        });
+    } else if state.triggered_patch().is_some()
+        && (ui.is_mouse_clicked(imgui::MouseButton::Left)
+            || ui.is_key_pressed(ui.key_index(imgui::Key::Escape)))
+    {
+        actions.push(Action::ResetTriggeredPatch)
+    }
+
+    actions
+}
+
+// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+fn distance_from_line(point: [f32; 2], line: ([f32; 2], [f32; 2])) -> f32 {
+    let x0 = point[0];
+    let y0 = point[1];
+    let x1 = line.0[0];
+    let y1 = line.0[1];
+    let x2 = line.1[0];
+    let y2 = line.1[1];
+    (2.0 * area_of_triangle([x0, y0], [x1, y1], [x2, y2]))
+        / distance_between_points([x1, y1], [x2, y2])
+}
+
+fn distance_between_points(a: [f32; 2], b: [f32; 2]) -> f32 {
+    let xa = a[0];
+    let ya = a[1];
+    let xb = b[0];
+    let yb = b[1];
+    f32::sqrt((yb - ya).powi(2) + (xb - xa).powi(2))
+}
+
+fn area_of_triangle(a: [f32; 2], b: [f32; 2], c: [f32; 2]) -> f32 {
+    let xa = a[0];
+    let ya = a[1];
+    let xb = b[0];
+    let yb = b[1];
+    let xc = c[0];
+    let yc = c[1];
+    f32::abs((yc - yb) * xa - (xc - xb) * ya + xc * yb - yc * xb)
 }

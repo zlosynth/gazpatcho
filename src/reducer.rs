@@ -10,10 +10,22 @@ pub fn reduce(state: &mut State, action: Action) {
         Action::AddNode { class, position } => add_node(state, class, position),
         Action::MoveNodeForward { node_id } => move_node_forward(state, node_id),
         Action::MoveNode { node_id, offset } => move_node(state, node_id, offset),
+        Action::SetTriggeredNode { node_id } => {
+            state.set_triggered_node(Some(node_id));
+        }
+        Action::ResetTriggeredNode => {
+            state.set_triggered_node(None);
+        }
         Action::SetTriggeredPin { node_id, pin_class } => {
             set_triggered_pin(state, node_id, pin_class)
         }
         Action::ResetTriggeredPin => reset_triggered_pin(state),
+        Action::SetTriggeredPatch { patch } => {
+            state.set_triggered_patch(Some(patch));
+        }
+        Action::ResetTriggeredPatch => {
+            state.set_triggered_patch(None);
+        }
     }
     // dbg!(&state.nodes());
 }
@@ -24,7 +36,9 @@ fn add_node(state: &mut State, class: String, position: [f32; 2]) {
         .iter()
         .find(|nt| nt.class() == &class)
         .unwrap();
-    state.add_node(node_template.instantiate(position));
+    let node = node_template.instantiate(position);
+    state.set_triggered_node(Some(node.id().to_string()));
+    state.add_node(node);
 }
 
 fn move_node_forward(state: &mut State, node_id: String) {
@@ -52,7 +66,14 @@ fn set_triggered_pin(state: &mut State, node_id: String, pin_class: String) {
     let newly_triggered_pin = PinAddress::new(node_id, pin_class);
 
     if let Some(previously_triggered_pin) = state.triggered_pin_take() {
-        state.add_patch(previously_triggered_pin, newly_triggered_pin);
+        state.add_patch(
+            previously_triggered_pin.clone(),
+            newly_triggered_pin.clone(),
+        );
+        state.set_triggered_patch(Some(Patch::new(
+            previously_triggered_pin,
+            newly_triggered_pin,
+        )));
     } else {
         state.set_triggered_pin(Some(newly_triggered_pin));
     }
@@ -97,6 +118,8 @@ mod tests {
 
         assert_eq!(state.nodes()[0].class(), "class");
         assert_eq!(state.nodes()[0].position, [100.0, 200.0]);
+        assert!(state.triggered_node().is_some());
+        assert_eq!(state.triggered_node().as_ref().unwrap(), "class:0");
     }
 
     #[test]
@@ -163,6 +186,76 @@ mod tests {
             updated_position2,
             vec2::sum(&[updated_position1, [10.0, -10.0]])
         );
+    }
+
+    #[test]
+    fn trigger_node() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![Pin::new(
+                "Input".to_owned(),
+                "in".to_owned(),
+                Direction::Input,
+            )],
+            vec![],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        reduce(
+            &mut state,
+            Action::SetTriggeredNode {
+                node_id: "class:0".to_owned(),
+            },
+        );
+
+        assert!(state.triggered_node().is_some());
+        assert_eq!(state.triggered_node().as_ref().unwrap(), "class:0");
+
+        reduce(&mut state, Action::ResetTriggeredNode);
+
+        assert!(state.triggered_node().is_none());
+    }
+
+    #[test]
+    fn trigger_patch() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![
+                Pin::new("Input".to_owned(), "in".to_owned(), Direction::Input),
+                Pin::new("Output".to_owned(), "out".to_owned(), Direction::Output),
+            ],
+            vec![],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        state
+            .add_patch(
+                PinAddress::new("class:0".to_owned(), "out".to_owned()),
+                PinAddress::new("class:1".to_owned(), "in".to_owned()),
+            )
+            .unwrap();
+
+        let patch = Patch::new(
+            PinAddress::new("class:0".to_owned(), "out".to_owned()),
+            PinAddress::new("class:1".to_owned(), "in".to_owned()),
+        );
+        reduce(
+            &mut state,
+            Action::SetTriggeredPatch {
+                patch: patch.clone(),
+            },
+        );
+
+        assert!(state.triggered_patch().is_some());
+        assert_eq!(state.triggered_patch().as_ref().unwrap(), &patch);
+
+        reduce(&mut state, Action::ResetTriggeredPatch);
+
+        assert!(state.triggered_patch().is_none());
     }
 
     #[test]

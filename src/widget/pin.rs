@@ -133,8 +133,10 @@ impl<'a> Pin<'a> {
 
         if let Some(patch_position_callback) = self.patch_position_callback {
             patch_position_callback(match &self.orientation {
-                Orientation::Left => vec2::sum(&[self.position, [0.0, (HEIGHT - 1.0) / 2.0]]),
-                Orientation::Right => vec2::sum(&[self.position, [width, (HEIGHT - 1.0) / 2.0]]),
+                Orientation::Left => vec2::sum(&[self.position, [1.0, (HEIGHT - 1.0) / 2.0]]),
+                Orientation::Right => {
+                    vec2::sum(&[self.position, [width - 1.0, (HEIGHT - 1.0) / 2.0]])
+                }
             });
         }
 
