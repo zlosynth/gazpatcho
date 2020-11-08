@@ -1,4 +1,4 @@
-use crate::state::Patch;
+use crate::state::{Patch, PinAddress};
 
 #[derive(Debug)]
 pub enum Action {
@@ -19,10 +19,8 @@ pub enum Action {
     RemovePatch {
         patch: Patch,
     },
-    // TODO: Use PinAddress
     SetTriggeredPin {
-        node_id: String,
-        pin_class: String,
+        pin_address: PinAddress,
     },
     ResetTriggeredPin,
     SetTriggeredNode {

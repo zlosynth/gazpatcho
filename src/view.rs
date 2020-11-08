@@ -226,8 +226,7 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
 
     if let Some(triggered_pin_address) = Rc::try_unwrap(triggered_pin).unwrap().into_inner() {
         actions.borrow_mut().extend(vec![Action::SetTriggeredPin {
-            node_id: triggered_pin_address.node_id().to_string(),
-            pin_class: triggered_pin_address.pin_class().to_string(),
+            pin_address: triggered_pin_address,
         }]);
     } else if state.triggered_pin().is_some()
         && (ui.is_mouse_clicked(imgui::MouseButton::Left)

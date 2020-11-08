@@ -7,7 +7,6 @@ pub fn reduce(state: &mut State, action: Action) {
     match action {
         Action::Scroll { offset } => state.offset = vec2::sum(&[state.offset, offset]),
         Action::AddNode { class, position } => add_node(state, class, position),
-        // TODO: reuse triggered node for this
         Action::MoveNode { node_id, offset } => move_node(state, node_id, offset),
         Action::RemoveNode { node_id } => remove_node(state, node_id),
         Action::RemovePatch { patch } => state.patches_mut().retain(|p| *p != patch),
@@ -15,9 +14,7 @@ pub fn reduce(state: &mut State, action: Action) {
         Action::ResetTriggeredNode => {
             state.set_triggered_node(None);
         }
-        Action::SetTriggeredPin { node_id, pin_class } => {
-            set_triggered_pin(state, node_id, pin_class)
-        }
+        Action::SetTriggeredPin { pin_address } => set_triggered_pin(state, pin_address),
         Action::ResetTriggeredPin => reset_triggered_pin(state),
         Action::SetTriggeredPatch { patch } => {
             state.set_triggered_patch(Some(patch));
@@ -73,8 +70,8 @@ fn move_node(state: &mut State, node_id: String, offset: [f32; 2]) {
     node.position = vec2::sum(&[node.position, offset]);
 }
 
-fn set_triggered_pin(state: &mut State, node_id: String, pin_class: String) {
-    let newly_triggered_pin = PinAddress::new(node_id, pin_class);
+fn set_triggered_pin(state: &mut State, pin_address: PinAddress) {
+    let newly_triggered_pin = pin_address;
 
     if let Some(previously_triggered_pin) = state.triggered_pin_take() {
         state.add_patch(
@@ -347,8 +344,7 @@ mod tests {
         reduce(
             &mut state,
             Action::SetTriggeredPin {
-                node_id: "class:0".to_owned(),
-                pin_class: "in".to_owned(),
+                pin_address: PinAddress::new("class:0".to_owned(), "in".to_owned()),
             },
         );
 
@@ -379,16 +375,14 @@ mod tests {
         reduce(
             &mut state,
             Action::SetTriggeredPin {
-                node_id: "class:0".to_owned(),
-                pin_class: "out".to_owned(),
+                pin_address: PinAddress::new("class:0".to_owned(), "out".to_owned()),
             },
         );
 
         reduce(
             &mut state,
             Action::SetTriggeredPin {
-                node_id: "class:1".to_owned(),
-                pin_class: "in".to_owned(),
+                pin_address: PinAddress::new("class:1".to_owned(), "in".to_owned()),
             },
         );
 
