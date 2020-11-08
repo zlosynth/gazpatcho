@@ -22,6 +22,16 @@ pub fn run() {
     let mut initial_state = state::State::default();
     initial_state.node_templates_mut().extend(vec![
         state::NodeTemplate::new(
+            "Comment".to_owned(),
+            "comment".to_owned(),
+            vec![],
+            vec![state::Widget::MultilineInput(state::MultilineInput::new(
+                "comment".to_owned(),
+                1000,
+                [300.0, 100.0],
+            ))],
+        ),
+        state::NodeTemplate::new(
             "Oscillator".to_owned(),
             "oscillator".to_owned(),
             vec![

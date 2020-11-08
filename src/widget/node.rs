@@ -9,7 +9,7 @@ pub enum Component<'a> {
     Label(Label<'a>),
     PinGroup(PinGroup<'a>),
     Space(f32),
-    MultilineInput(MultilineInput<'a>),
+    MultilineInput(MultilineInput),
 }
 
 pub struct Node<'a> {

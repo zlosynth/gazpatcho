@@ -9,7 +9,7 @@ use std::ptr;
 use std::rc::Rc;
 
 use crate::action::Action;
-use crate::state::{Direction, Node, Pin, PinAddress, State};
+use crate::state::{Direction, Node, Pin, PinAddress, State, Widget};
 use crate::vec2;
 use crate::widget;
 
@@ -89,7 +89,7 @@ fn draw_menu(state: &State, ui: &imgui::Ui) -> Option<Action> {
 }
 
 fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress, [f32; 2]>) {
-    let mut actions = Vec::new();
+    let actions = Rc::new(RefCell::new(Vec::new()));
     let patch_positions = Rc::new(RefCell::new(HashMap::new()));
     let mut triggered_node = None;
     let triggered_pin = Rc::new(RefCell::new(None));
@@ -148,10 +148,42 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
                 .add_component(widget::node::Component::Space(10.0));
         }
 
+        node_widget = node.widgets().iter().fold(node_widget, |n, w| match w {
+            Widget::MultilineInput(multiline_input) => {
+                let id =
+                    imgui::ImString::from(format!("##{}:{}", node.id(), multiline_input.key()));
+                let node_id = node.id().to_string();
+                let widget_key = multiline_input.key().to_string();
+                let original_content = multiline_input.content_im().clone();
+                let mut buffer = multiline_input.content_im().clone();
+                buffer.reserve(multiline_input.capacity() - buffer.capacity());
+                let actions = Rc::clone(&actions);
+                n.add_component(widget::node::Component::MultilineInput(
+                    widget::multiline_input::MultilineInput::new(
+                        id,
+                        buffer,
+                        multiline_input.size()[0],
+                        multiline_input.size()[1],
+                    )
+                    .content_callback(Box::new(move |c| {
+                        if *c != original_content {
+                            actions.borrow_mut().push(Action::SetMultilineInputContent {
+                                node_id,
+                                widget_key,
+                                content: c.to_str().to_owned(),
+                            })
+                        }
+                    })),
+                ))
+            }
+            _ => n,
+        });
+
         node_widget.build(ui);
+
         if ui.is_item_active() {
             if ui.is_mouse_clicked(imgui::MouseButton::Left) {
-                actions.push(Action::MoveNodeForward {
+                actions.borrow_mut().push(Action::MoveNodeForward {
                     node_id: node.id().to_string(),
                 });
                 triggered_node = Some(node.id().to_string());
@@ -164,7 +196,7 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
             }
 
             if ui.is_mouse_dragging(imgui::MouseButton::Left) {
-                actions.push(Action::MoveNode {
+                actions.borrow_mut().push(Action::MoveNode {
                     node_id: node.id().to_string(),
                     offset: ui.io().mouse_delta,
                 });
@@ -177,26 +209,26 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
     });
 
     if let Some(triggered_node_id) = triggered_node {
-        actions.push(Action::SetTriggeredNode {
+        actions.borrow_mut().push(Action::SetTriggeredNode {
             node_id: triggered_node_id,
         });
     } else if state.triggered_node().is_some()
         && (ui.is_mouse_clicked(imgui::MouseButton::Left)
             || ui.is_key_pressed(ui.key_index(imgui::Key::Escape)))
     {
-        actions.push(Action::ResetTriggeredNode)
+        actions.borrow_mut().push(Action::ResetTriggeredNode)
     }
 
     if let Some(triggered_node_id) = state.triggered_node() {
         if ui.is_key_pressed(ui.key_index(imgui::Key::Delete)) {
-            actions.push(Action::RemoveNode {
+            actions.borrow_mut().push(Action::RemoveNode {
                 node_id: triggered_node_id.to_string(),
             });
         }
     }
 
     if let Some(triggered_pin_address) = Rc::try_unwrap(triggered_pin).unwrap().into_inner() {
-        actions.extend(vec![
+        actions.borrow_mut().extend(vec![
             Action::SetTriggeredPin {
                 node_id: triggered_pin_address.node_id().to_string(),
                 pin_class: triggered_pin_address.pin_class().to_string(),
@@ -209,11 +241,11 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
         && (ui.is_mouse_clicked(imgui::MouseButton::Left)
             || ui.is_key_pressed(ui.key_index(imgui::Key::Escape)))
     {
-        actions.push(Action::ResetTriggeredPin)
+        actions.borrow_mut().push(Action::ResetTriggeredPin)
     }
 
     (
-        actions,
+        Rc::try_unwrap(actions).unwrap().into_inner(),
         Rc::try_unwrap(patch_positions).unwrap().into_inner(),
     )
 }

@@ -2,6 +2,7 @@ extern crate getset;
 extern crate imgui;
 
 use std::cell::RefCell;
+use std::clone::Clone;
 use std::collections::HashSet;
 
 use imgui::ImString;
@@ -36,6 +37,7 @@ pub struct NodeTemplate {
     class: String,
     id_counter: RefCell<usize>,
     pins: Vec<Pin>,
+    #[getset(get = "pub")]
     widgets: Vec<Widget>,
 }
 
@@ -73,7 +75,7 @@ impl NodeTemplate {
                     Widget::Toggle(widget) => widget.key(),
                     Widget::RadioButtons(widget) => widget.key(),
                     Widget::CheckBoxes(widget) => widget.key(),
-                    Widget::InputBox(widget) => widget.key(),
+                    Widget::MultilineInput(widget) => widget.key(),
                     Widget::SliderInt(widget) => widget.key(),
                     Widget::SliderFloat(widget) => widget.key(),
                     Widget::GrabInt(widget) => widget.key(),
@@ -127,7 +129,7 @@ pub struct Node {
     #[getset(get = "pub", get_mut = "pub")]
     pins: Vec<Pin>,
 
-    #[getset(get = "pub")]
+    #[getset(get = "pub", get_mut = "pub")]
     widgets: Vec<Widget>,
 }
 
@@ -219,7 +221,7 @@ pub enum Widget {
     Toggle(Toggle),
     RadioButtons(RadioButtons),
     CheckBoxes(CheckBoxes),
-    InputBox(InputBox),
+    MultilineInput(MultilineInput),
     SliderInt(SliderInt),
     SliderFloat(SliderFloat),
     GrabInt(GrabInt),
@@ -369,26 +371,38 @@ impl CheckBox {
     }
 }
 
-#[derive(Getters, MutGetters, CopyGetters, Setters, Clone, PartialEq, Debug)]
-pub struct InputBox {
+#[derive(Getters, MutGetters, CopyGetters, Setters, PartialEq, Clone, Debug)]
+pub struct MultilineInput {
     #[getset(get = "pub")]
     key: String,
     #[getset(get_copy = "pub")]
     capacity: usize,
     #[getset(get_copy = "pub")]
     size: [f32; 2],
-    #[getset(get = "pub", get_mut = "pub", set = "pub")]
-    content: String,
+    content: ImString,
 }
 
-impl InputBox {
+impl MultilineInput {
     pub fn new(key: String, capacity: usize, size: [f32; 2]) -> Self {
+        let content = ImString::with_capacity(capacity);
         Self {
             key,
             capacity,
             size,
-            content: "".to_owned(),
+            content: ImString::with_capacity(1000),
         }
+    }
+
+    pub fn content(&self) -> &str {
+        self.content.to_str()
+    }
+
+    pub fn content_im(&self) -> &ImString {
+        &self.content
+    }
+
+    pub fn set_content(&mut self, content: String) {
+        self.content = ImString::from(content);
     }
 }
 
@@ -981,26 +995,25 @@ mod tests {
         }
     }
 
-    mod input_box {
+    mod multiline_input {
         use super::*;
 
         #[test]
         fn intialize() {
-            let input_box = InputBox::new("key".to_owned(), 200, [100.0, 100.0]);
+            let multiline_input = MultilineInput::new("key".to_owned(), 1000, [100.0, 100.0]);
 
-            assert_eq!(input_box.key(), "key");
-            assert_eq!(input_box.capacity(), 200);
-            assert_eq!(input_box.size(), [100.0, 100.0]);
-            assert_eq!(input_box.content(), "");
+            assert_eq!(multiline_input.key(), "key");
+            assert_eq!(multiline_input.size(), [100.0, 100.0]);
+            assert_eq!(multiline_input.content(), "");
         }
 
         #[test]
         fn change_content() {
-            let mut input_box = InputBox::new("key".to_owned(), 200, [100.0, 100.0]);
+            let mut multiline_input = MultilineInput::new("key".to_owned(), 1000, [100.0, 100.0]);
 
-            input_box.content_mut().push_str("text");
+            multiline_input.set_content("text".to_owned());
 
-            assert_eq!(input_box.content(), "text");
+            assert_eq!(multiline_input.content(), "text");
         }
     }
 
