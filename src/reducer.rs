@@ -8,13 +8,10 @@ pub fn reduce(state: &mut State, action: Action) {
         Action::Scroll { offset } => state.offset = vec2::sum(&[state.offset, offset]),
         Action::AddNode { class, position } => add_node(state, class, position),
         // TODO: reuse triggered node for this
-        Action::MoveNodeForward { node_id } => move_node_forward(state, node_id),
         Action::MoveNode { node_id, offset } => move_node(state, node_id, offset),
         Action::RemoveNode { node_id } => remove_node(state, node_id),
         Action::RemovePatch { patch } => state.patches_mut().retain(|p| *p != patch),
-        Action::SetTriggeredNode { node_id } => {
-            state.set_triggered_node(Some(node_id));
-        }
+        Action::SetTriggeredNode { node_id } => set_triggered_node(state, node_id),
         Action::ResetTriggeredNode => {
             state.set_triggered_node(None);
         }
@@ -54,7 +51,7 @@ fn remove_node(state: &mut State, node_id: String) {
         .retain(|p| *p.source().node_id() != node_id && *p.destination().node_id() != node_id);
 }
 
-fn move_node_forward(state: &mut State, node_id: String) {
+fn set_triggered_node(state: &mut State, node_id: String) {
     let node_index = state
         .nodes()
         .iter()
@@ -64,6 +61,7 @@ fn move_node_forward(state: &mut State, node_id: String) {
         .0;
     let node = state.nodes_mut().remove(node_index);
     state.nodes_mut().push(node);
+    state.set_triggered_node(Some(node_id));
 }
 
 fn move_node(state: &mut State, node_id: String, offset: [f32; 2]) {
@@ -196,31 +194,6 @@ mod tests {
     }
 
     #[test]
-    fn move_node_forward() {
-        let mut state = State::default();
-        state.add_node_template(NodeTemplate::new(
-            "Label".to_owned(),
-            "class".to_owned(),
-            vec![],
-            vec![],
-        ));
-        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
-        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
-        assert_eq!(state.nodes()[0].id(), "class:0");
-        assert_eq!(state.nodes()[1].id(), "class:1");
-
-        reduce(
-            &mut state,
-            Action::MoveNodeForward {
-                node_id: "class:0".to_owned(),
-            },
-        );
-
-        assert_eq!(state.nodes()[0].id(), "class:1");
-        assert_eq!(state.nodes()[1].id(), "class:0");
-    }
-
-    #[test]
     fn move_node() {
         let mut state = State::default();
         state.add_node_template(NodeTemplate::new(
@@ -289,6 +262,31 @@ mod tests {
         reduce(&mut state, Action::ResetTriggeredNode);
 
         assert!(state.triggered_node().is_none());
+    }
+
+    #[test]
+    fn move_triggered_node_forward() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![],
+            vec![],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+        assert_eq!(state.nodes()[0].id(), "class:0");
+        assert_eq!(state.nodes()[1].id(), "class:1");
+
+        reduce(
+            &mut state,
+            Action::SetTriggeredNode {
+                node_id: "class:0".to_owned(),
+            },
+        );
+
+        assert_eq!(state.nodes()[0].id(), "class:1");
+        assert_eq!(state.nodes()[1].id(), "class:0");
     }
 
     #[test]

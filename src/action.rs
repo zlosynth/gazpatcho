@@ -9,10 +9,6 @@ pub enum Action {
         class: String,
         position: [f32; 2],
     },
-    // TODO: Can be merged with SetTriggeredNode
-    MoveNodeForward {
-        node_id: String,
-    },
     MoveNode {
         node_id: String,
         offset: [f32; 2],

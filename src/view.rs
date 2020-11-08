@@ -183,9 +183,6 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
 
         if ui.is_item_active() {
             if ui.is_mouse_clicked(imgui::MouseButton::Left) {
-                actions.borrow_mut().push(Action::MoveNodeForward {
-                    node_id: node.id().to_string(),
-                });
                 triggered_node = Some(node.id().to_string());
             }
 
@@ -228,15 +225,10 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
     }
 
     if let Some(triggered_pin_address) = Rc::try_unwrap(triggered_pin).unwrap().into_inner() {
-        actions.borrow_mut().extend(vec![
-            Action::SetTriggeredPin {
-                node_id: triggered_pin_address.node_id().to_string(),
-                pin_class: triggered_pin_address.pin_class().to_string(),
-            },
-            Action::MoveNodeForward {
-                node_id: triggered_pin_address.node_id().to_string(),
-            },
-        ]);
+        actions.borrow_mut().extend(vec![Action::SetTriggeredPin {
+            node_id: triggered_pin_address.node_id().to_string(),
+            pin_class: triggered_pin_address.pin_class().to_string(),
+        }]);
     } else if state.triggered_pin().is_some()
         && (ui.is_mouse_clicked(imgui::MouseButton::Left)
             || ui.is_key_pressed(ui.key_index(imgui::Key::Escape)))
