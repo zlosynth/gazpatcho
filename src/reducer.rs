@@ -1,5 +1,7 @@
 use crate::action::Action;
-use crate::state::{Direction, Node, NodeTemplate, Patch, Pin, PinAddress, State, Widget};
+use crate::state::{
+    Direction, MultilineInput, Node, NodeTemplate, Patch, Pin, PinAddress, State, Widget,
+};
 use crate::vec2;
 
 pub fn reduce(state: &mut State, action: Action) {
@@ -433,6 +435,32 @@ mod tests {
 
     #[test]
     fn set_mutliline_input_content() {
-        panic!("not imlemented");
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![],
+            vec![Widget::MultilineInput(MultilineInput::new(
+                "key".to_owned(),
+                100,
+                [100.0, 100.0],
+            ))],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        reduce(
+            &mut state,
+            Action::SetMultilineInputContent {
+                node_id: "class:0".to_owned(),
+                widget_key: "key".to_owned(),
+                content: "hello world".to_owned(),
+            },
+        );
+
+        if let Widget::MultilineInput(multiline_input) = &state.nodes()[0].widgets()[0] {
+            assert_eq!(multiline_input.content(), "hello world");
+        } else {
+            panic!("invalid widget type");
+        }
     }
 }
