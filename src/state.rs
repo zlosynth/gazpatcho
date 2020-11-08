@@ -72,14 +72,8 @@ impl NodeTemplate {
             widgets.iter().for_each(|w| {
                 let key = match w {
                     Widget::Trigger(widget) => widget.key(),
-                    Widget::Toggle(widget) => widget.key(),
-                    Widget::RadioButtons(widget) => widget.key(),
-                    Widget::CheckBoxes(widget) => widget.key(),
                     Widget::MultilineInput(widget) => widget.key(),
-                    Widget::SliderInt(widget) => widget.key(),
-                    Widget::SliderFloat(widget) => widget.key(),
-                    Widget::GrabInt(widget) => widget.key(),
-                    Widget::GrabFloat(widget) => widget.key(),
+                    Widget::Slider(widget) => widget.key(),
                     Widget::DropDown(widget) => widget.key(),
                 };
                 assert!(keys.insert(key), "Each widget must have its unique key");
@@ -218,14 +212,8 @@ impl PinAddress {
 #[derive(Clone, PartialEq, Debug)]
 pub enum Widget {
     Trigger(Trigger),
-    Toggle(Toggle),
-    RadioButtons(RadioButtons),
-    CheckBoxes(CheckBoxes),
     MultilineInput(MultilineInput),
-    SliderInt(SliderInt),
-    SliderFloat(SliderFloat),
-    GrabInt(GrabInt),
-    GrabFloat(GrabFloat),
+    Slider(Slider),
     DropDown(DropDown),
 }
 
@@ -245,128 +233,6 @@ impl Trigger {
             label,
             key,
             selected: false,
-        }
-    }
-}
-
-#[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
-pub struct Toggle {
-    #[getset(get = "pub")]
-    label: String,
-    #[getset(get = "pub")]
-    key: String,
-    #[getset(get_copy = "pub", set = "pub")]
-    selected: bool,
-}
-
-impl Toggle {
-    pub fn new(label: String, key: String, selected: bool) -> Self {
-        Self {
-            label,
-            key,
-            selected,
-        }
-    }
-}
-
-#[derive(Getters, Setters, Clone, PartialEq, Debug)]
-pub struct RadioButtons {
-    #[getset(get = "pub")]
-    key: String,
-    #[getset(get = "pub")]
-    options: Vec<RadioButton>,
-}
-
-impl RadioButtons {
-    pub fn new(key: String, options: Vec<RadioButton>) -> RadioButtons {
-        let mut values = HashSet::new();
-        options.iter().for_each(|i| {
-            assert!(
-                values.insert(i.value()),
-                "Each option in RadioButtons must have its unique value"
-            );
-        });
-
-        assert_eq!(
-            options.iter().filter(|i| i.selected()).count(),
-            1,
-            "Exactly one button within RadioButtons must be selected"
-        );
-
-        Self { key, options }
-    }
-
-    pub fn select(&mut self, value: &str) {
-        self.options.iter_mut().for_each(|o| {
-            o.set_selected(o.value() == value);
-        });
-    }
-}
-
-#[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
-pub struct RadioButton {
-    #[getset(get = "pub")]
-    label: String,
-    #[getset(get = "pub")]
-    value: String,
-    #[getset(get_copy = "pub", set = "pub")]
-    selected: bool,
-}
-
-impl RadioButton {
-    pub fn new(label: String, value: String, selected: bool) -> Self {
-        Self {
-            label,
-            value,
-            selected,
-        }
-    }
-}
-
-#[derive(Getters, Setters, Clone, PartialEq, Debug)]
-pub struct CheckBoxes {
-    #[getset(get = "pub")]
-    key: String,
-    #[getset(get = "pub")]
-    options: Vec<CheckBox>,
-}
-
-impl CheckBoxes {
-    pub fn new(key: String, options: Vec<CheckBox>) -> CheckBoxes {
-        let mut values = HashSet::new();
-        options.iter().for_each(|i| {
-            assert!(
-                values.insert(i.value()),
-                "Each option in CheckBoxes must have its unique value"
-            );
-        });
-
-        Self { key, options }
-    }
-
-    pub fn set_selected(&mut self, value: &str, selected: bool) {
-        if let Some(option) = self.options.iter_mut().find(|o| o.value() == value) {
-            option.set_selected(selected);
-        }
-    }
-}
-
-#[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
-pub struct CheckBox {
-    #[getset(get = "pub")]
-    label: String,
-    #[getset(get = "pub")]
-    value: String,
-    #[getset(get_copy = "pub", set = "pub")]
-    selected: bool,
-}
-
-impl CheckBox {
-    pub fn new(label: String, value: String, selected: bool) -> Self {
-        Self {
-            label,
-            value,
-            selected,
         }
     }
 }
@@ -407,7 +273,7 @@ impl MultilineInput {
 }
 
 #[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
-pub struct SliderFloat {
+pub struct Slider {
     #[getset(get = "pub")]
     key: String,
     #[getset(get_copy = "pub")]
@@ -418,7 +284,7 @@ pub struct SliderFloat {
     value: f32,
 }
 
-impl SliderFloat {
+impl Slider {
     pub fn new(key: String, min: f32, max: f32, value: f32) -> Self {
         assert!(min < max, "Lower limit must be below the upper limit");
         assert!(
@@ -434,114 +300,6 @@ impl SliderFloat {
     }
 
     pub fn set_value(&mut self, value: f32) {
-        assert!(
-            self.min <= value && value <= self.max,
-            "Value must be within min and max"
-        );
-        self.value = value;
-    }
-}
-
-#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
-pub struct SliderInt {
-    #[getset(get = "pub")]
-    key: String,
-    #[getset(get_copy = "pub")]
-    min: i32,
-    #[getset(get_copy = "pub")]
-    max: i32,
-    #[getset(get_copy = "pub")]
-    value: i32,
-}
-
-impl SliderInt {
-    pub fn new(key: String, min: i32, max: i32, value: i32) -> Self {
-        assert!(min < max, "Lower limit must be below the upper limit");
-        assert!(
-            min <= value && value <= max,
-            "Value must be within min and max"
-        );
-        Self {
-            key,
-            min,
-            max,
-            value,
-        }
-    }
-
-    pub fn set_value(&mut self, value: i32) {
-        assert!(
-            self.min <= value && value <= self.max,
-            "Value must be within min and max"
-        );
-        self.value = value;
-    }
-}
-
-#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
-pub struct GrabFloat {
-    #[getset(get = "pub")]
-    key: String,
-    #[getset(get_copy = "pub")]
-    min: f32,
-    #[getset(get_copy = "pub")]
-    max: f32,
-    #[getset(get_copy = "pub")]
-    value: f32,
-}
-
-impl GrabFloat {
-    pub fn new(key: String, min: f32, max: f32, value: f32) -> Self {
-        assert!(min < max, "Lower limit must be below the upper limit");
-        assert!(
-            min <= value && value <= max,
-            "Value must be within min and max"
-        );
-        Self {
-            key,
-            min,
-            max,
-            value,
-        }
-    }
-
-    pub fn set_value(&mut self, value: f32) {
-        assert!(
-            self.min <= value && value <= self.max,
-            "Value must be within min and max"
-        );
-        self.value = value;
-    }
-}
-
-#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
-pub struct GrabInt {
-    #[getset(get = "pub")]
-    key: String,
-    #[getset(get_copy = "pub")]
-    min: i32,
-    #[getset(get_copy = "pub")]
-    max: i32,
-    #[getset(get_copy = "pub")]
-    value: i32,
-}
-
-impl GrabInt {
-    pub fn new(key: String, min: i32, max: i32, value: i32) -> Self {
-        assert!(min < max, "Lower limit must be below the upper limit");
-        assert!(
-            min <= value && value <= max,
-            "Value must be within min and max"
-        );
-        Self {
-            key,
-            min,
-            max,
-            value,
-        }
-    }
-
-    pub fn set_value(&mut self, value: i32) {
         assert!(
             self.min <= value && value <= self.max,
             "Value must be within min and max"
@@ -714,10 +472,9 @@ mod tests {
                     Pin::new("Input 1".to_owned(), "in1".to_owned(), Direction::Input),
                     Pin::new("Output 1".to_owned(), "out1".to_owned(), Direction::Output),
                 ],
-                vec![Widget::Toggle(Toggle::new(
-                    "Toggle".to_owned(),
-                    "button1".to_owned(),
-                    true,
+                vec![Widget::Trigger(Trigger::new(
+                    "Trigger".to_owned(),
+                    "trigger1".to_owned(),
                 ))],
             );
 
@@ -764,8 +521,8 @@ mod tests {
                 "class1".to_owned(),
                 vec![],
                 vec![
-                    Widget::Toggle(Toggle::new("Toggle".to_owned(), "widget".to_owned(), true)),
-                    Widget::Trigger(Trigger::new("Trigger".to_owned(), "widget".to_owned())),
+                    Widget::DropDown(DropDown::new("key".to_owned(), vec![])),
+                    Widget::Trigger(Trigger::new("Trigger".to_owned(), "key".to_owned())),
                 ],
             );
         }
@@ -802,199 +559,6 @@ mod tests {
         }
     }
 
-    mod toggle {
-        use super::*;
-
-        #[test]
-        fn initialize() {
-            let toggle = Toggle::new("Toggle".to_owned(), "key".to_owned(), false);
-
-            assert_eq!(toggle.label(), "Toggle");
-            assert_eq!(toggle.key(), "key");
-            assert!(!toggle.selected());
-        }
-
-        #[test]
-        fn turn_on() {
-            let mut toggle = Toggle::new("Toggle".to_owned(), "key".to_owned(), false);
-
-            toggle.set_selected(true);
-
-            assert!(toggle.selected());
-        }
-
-        #[test]
-        fn turn_off() {
-            let mut toggle = Toggle::new("Toggle".to_owned(), "key".to_owned(), false);
-
-            toggle.set_selected(false);
-
-            assert!(!toggle.selected());
-        }
-    }
-
-    mod radio_buttons {
-        use super::*;
-
-        #[test]
-        fn initialize() {
-            let radio_buttons = RadioButtons::new(
-                "key".to_owned(),
-                vec![
-                    RadioButton::new("Option 1".to_owned(), "value1".to_owned(), false),
-                    RadioButton::new("Option 2".to_owned(), "value2".to_owned(), true),
-                ],
-            );
-
-            assert_eq!(radio_buttons.key(), "key");
-
-            let mut iter = radio_buttons.options().iter();
-
-            let first = iter.next().unwrap();
-            assert_eq!(first.value(), "value1");
-            assert_eq!(first.label(), "Option 1");
-            assert_eq!(first.selected(), false);
-
-            let second = iter.next().unwrap();
-            assert_eq!(second.value(), "value2");
-            assert_eq!(second.label(), "Option 2");
-            assert_eq!(second.selected(), true);
-
-            assert!(iter.next().is_none());
-        }
-
-        #[test]
-        #[should_panic(expected = "Each option in RadioButtons must have its unique value")]
-        fn panic_on_initialize_with_duplicated_items() {
-            let _radio_buttons = RadioButtons::new(
-                "key".to_owned(),
-                vec![
-                    RadioButton::new("Option 1".to_owned(), "value1".to_owned(), false),
-                    RadioButton::new("Option 2".to_owned(), "value1".to_owned(), true),
-                ],
-            );
-        }
-
-        #[test]
-        #[should_panic(expected = "Exactly one button within RadioButtons must be selected")]
-        fn panic_on_initialize_without_any_item_selected() {
-            let _radio_buttons = RadioButtons::new(
-                "key".to_owned(),
-                vec![
-                    RadioButton::new("Option 1".to_owned(), "value1".to_owned(), false),
-                    RadioButton::new("Option 2".to_owned(), "value2".to_owned(), false),
-                ],
-            );
-        }
-
-        #[test]
-        #[should_panic(expected = "Exactly one button within RadioButtons must be selected")]
-        fn panic_on_initialize_without_multiple_items_selected() {
-            let _radio_buttons = RadioButtons::new(
-                "key".to_owned(),
-                vec![
-                    RadioButton::new("Option 1".to_owned(), "value1".to_owned(), true),
-                    RadioButton::new("Option 2".to_owned(), "value2".to_owned(), true),
-                ],
-            );
-        }
-
-        #[test]
-        fn select_option() {
-            let mut radio_buttons = RadioButtons::new(
-                "key".to_owned(),
-                vec![
-                    RadioButton::new("Option 1".to_owned(), "value1".to_owned(), false),
-                    RadioButton::new("Option 2".to_owned(), "value2".to_owned(), true),
-                ],
-            );
-
-            radio_buttons.select("value1");
-
-            assert!(radio_buttons
-                .options()
-                .iter()
-                .find(|o| o.value() == "value1")
-                .unwrap()
-                .selected());
-            assert!(!radio_buttons
-                .options()
-                .iter()
-                .find(|o| o.value() == "value2")
-                .unwrap()
-                .selected());
-        }
-    }
-
-    mod check_boxes {
-        use super::*;
-
-        #[test]
-        fn initialize() {
-            let check_boxes = CheckBoxes::new(
-                "key".to_owned(),
-                vec![
-                    CheckBox::new("Box 1".to_owned(), "value1".to_owned(), false),
-                    CheckBox::new("Box 2".to_owned(), "value2".to_owned(), true),
-                ],
-            );
-
-            assert_eq!(check_boxes.key(), "key");
-
-            let mut iter = check_boxes.options().iter();
-
-            let first = iter.next().unwrap();
-            assert_eq!(first.label(), "Box 1");
-            assert_eq!(first.value(), "value1");
-            assert_eq!(first.selected(), false);
-
-            let second = iter.next().unwrap();
-            assert_eq!(second.label(), "Box 2");
-            assert_eq!(second.value(), "value2");
-            assert_eq!(second.selected(), true);
-
-            assert!(iter.next().is_none());
-        }
-
-        #[test]
-        #[should_panic(expected = "Each option in CheckBoxes must have its unique value")]
-        fn panic_on_initialize_with_duplicated_items() {
-            let _check_boxes = CheckBoxes::new(
-                "key".to_owned(),
-                vec![
-                    CheckBox::new("Box 1".to_owned(), "value1".to_owned(), false),
-                    CheckBox::new("Box 2".to_owned(), "value1".to_owned(), true),
-                ],
-            );
-        }
-
-        #[test]
-        fn select_box() {
-            let mut check_boxes = CheckBoxes::new(
-                "key".to_owned(),
-                vec![
-                    CheckBox::new("Box 1".to_owned(), "value1".to_owned(), false),
-                    CheckBox::new("Box 2".to_owned(), "value2".to_owned(), true),
-                ],
-            );
-
-            check_boxes.set_selected("value1", true);
-
-            assert!(check_boxes
-                .options()
-                .iter()
-                .find(|o| o.value() == "value1")
-                .unwrap()
-                .selected());
-            assert!(check_boxes
-                .options()
-                .iter()
-                .find(|o| o.value() == "value2")
-                .unwrap()
-                .selected());
-        }
-    }
-
     mod multiline_input {
         use super::*;
 
@@ -1017,231 +581,60 @@ mod tests {
         }
     }
 
-    mod slider_float {
+    mod slider {
         use super::*;
 
         #[test]
         fn initialize() {
-            let slider_float = SliderFloat::new("key".to_owned(), 0.0, 10.0, 5.0);
+            let slider = Slider::new("key".to_owned(), 0.0, 10.0, 5.0);
 
-            assert_eq!(slider_float.key(), "key");
-            assert_eq!(slider_float.min(), 0.0);
-            assert_eq!(slider_float.max(), 10.0);
-            assert_eq!(slider_float.value(), 5.0);
+            assert_eq!(slider.key(), "key");
+            assert_eq!(slider.min(), 0.0);
+            assert_eq!(slider.max(), 10.0);
+            assert_eq!(slider.value(), 5.0);
         }
 
         #[test]
         #[should_panic(expected = "Lower limit must be below the upper limit")]
         fn panic_on_initialize_with_reversed_limits() {
-            let _slider_float = SliderFloat::new("key".to_owned(), 10.0, 0.0, 5.0);
+            let _slider = Slider::new("key".to_owned(), 10.0, 0.0, 5.0);
         }
 
         #[test]
         #[should_panic(expected = "Value must be within min and max")]
         fn panic_on_initialize_with_value_below_limit() {
-            let _slider_float = SliderFloat::new("key".to_owned(), 0.0, 10.0, -20.0);
+            let _slider = Slider::new("key".to_owned(), 0.0, 10.0, -20.0);
         }
 
         #[test]
         #[should_panic(expected = "Value must be within min and max")]
         fn panic_on_initialize_with_value_above_limit() {
-            let _slider_float = SliderFloat::new("key".to_owned(), 0.0, 10.0, 20.0);
+            let _slider = Slider::new("key".to_owned(), 0.0, 10.0, 20.0);
         }
 
         #[test]
         fn set_value() {
-            let mut slider_float = SliderFloat::new("key".to_owned(), 0.0, 10.0, 5.0);
+            let mut slider = Slider::new("key".to_owned(), 0.0, 10.0, 5.0);
 
-            slider_float.set_value(3.0);
+            slider.set_value(3.0);
 
-            assert_eq!(slider_float.value(), 3.0);
+            assert_eq!(slider.value(), 3.0);
         }
 
         #[test]
         #[should_panic(expected = "Value must be within min and max")]
         fn panic_on_set_invalid_value_below_limit() {
-            let mut slider_float = SliderFloat::new("key".to_owned(), 0.0, 10.0, 5.0);
+            let mut slider = Slider::new("key".to_owned(), 0.0, 10.0, 5.0);
 
-            slider_float.set_value(-20.0);
+            slider.set_value(-20.0);
         }
 
         #[test]
         #[should_panic(expected = "Value must be within min and max")]
         fn panic_on_set_invalid_value_above_limit() {
-            let mut slider_float = SliderFloat::new("key".to_owned(), 0.0, 10.0, 5.0);
+            let mut slider = Slider::new("key".to_owned(), 0.0, 10.0, 5.0);
 
-            slider_float.set_value(20.0);
-        }
-    }
-
-    mod slider_int {
-        use super::*;
-
-        #[test]
-        fn initialize() {
-            let slider_int = SliderInt::new("key".to_owned(), 0, 10, 5);
-
-            assert_eq!(slider_int.key(), "key");
-            assert_eq!(slider_int.min(), 0);
-            assert_eq!(slider_int.max(), 10);
-            assert_eq!(slider_int.value(), 5);
-        }
-
-        #[test]
-        #[should_panic(expected = "Lower limit must be below the upper limit")]
-        fn panic_on_initialize_with_reversed_limits() {
-            let _slider_int = SliderInt::new("key".to_owned(), 10, 0, 5);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_initialize_with_value_below_limit() {
-            let _slider_int = SliderInt::new("key".to_owned(), 0, 10, -20);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_initialize_with_value_above_limit() {
-            let _slider_int = SliderInt::new("key".to_owned(), 0, 10, 20);
-        }
-
-        #[test]
-        fn set_value() {
-            let mut slider_int = SliderInt::new("key".to_owned(), 0, 10, 5);
-
-            slider_int.set_value(3);
-
-            assert_eq!(slider_int.value(), 3);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_set_invalid_value_below_limit() {
-            let mut slider_int = SliderInt::new("key".to_owned(), 0, 10, 5);
-
-            slider_int.set_value(-20);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_set_invalid_value_above_limit() {
-            let mut slider_int = SliderInt::new("key".to_owned(), 0, 10, 5);
-
-            slider_int.set_value(20);
-        }
-    }
-
-    mod grab_float {
-        use super::*;
-
-        #[test]
-        fn initialize() {
-            let grab_float = GrabFloat::new("key".to_owned(), 0.0, 10.0, 5.0);
-
-            assert_eq!(grab_float.key(), "key");
-            assert_eq!(grab_float.min(), 0.0);
-            assert_eq!(grab_float.max(), 10.0);
-            assert_eq!(grab_float.value(), 5.0);
-        }
-
-        #[test]
-        #[should_panic(expected = "Lower limit must be below the upper limit")]
-        fn panic_on_initialize_with_reversed_limits() {
-            let _grab_float = GrabFloat::new("key".to_owned(), 10.0, 0.0, 5.0);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_initialize_with_value_below_limit() {
-            let _grab_float = GrabFloat::new("key".to_owned(), 0.0, 10.0, -20.0);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_initialize_with_value_above_limit() {
-            let _grab_float = GrabFloat::new("key".to_owned(), 0.0, 10.0, 20.0);
-        }
-
-        #[test]
-        fn set_value() {
-            let mut grab_float = GrabFloat::new("key".to_owned(), 0.0, 10.0, 5.0);
-
-            grab_float.set_value(3.0);
-
-            assert_eq!(grab_float.value(), 3.0);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_set_invalid_value_below_limit() {
-            let mut grab_float = GrabFloat::new("key".to_owned(), 0.0, 10.0, 5.0);
-
-            grab_float.set_value(-20.0);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_set_invalid_value_above_limit() {
-            let mut grab_float = GrabFloat::new("key".to_owned(), 0.0, 10.0, 5.0);
-
-            grab_float.set_value(20.0);
-        }
-    }
-
-    mod grab_int {
-        use super::*;
-
-        #[test]
-        fn initialize() {
-            let grab_int = GrabInt::new("key".to_owned(), 0, 10, 5);
-
-            assert_eq!(grab_int.key(), "key");
-            assert_eq!(grab_int.min(), 0);
-            assert_eq!(grab_int.max(), 10);
-            assert_eq!(grab_int.value(), 5);
-        }
-
-        #[test]
-        #[should_panic(expected = "Lower limit must be below the upper limit")]
-        fn panic_on_initialize_with_reversed_limits() {
-            let _grab_int = GrabInt::new("key".to_owned(), 10, 0, 5);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_initialize_with_value_below_limit() {
-            let _grab_int = GrabInt::new("key".to_owned(), 0, 10, -20);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_initialize_with_value_above_limit() {
-            let _grab_int = GrabInt::new("key".to_owned(), 0, 10, 20);
-        }
-
-        #[test]
-        fn set_value() {
-            let mut grab_int = GrabInt::new("key".to_owned(), 0, 10, 5);
-
-            grab_int.set_value(3);
-
-            assert_eq!(grab_int.value(), 3);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_set_invalid_value_below_limit() {
-            let mut grab_int = GrabInt::new("key".to_owned(), 0, 10, 5);
-
-            grab_int.set_value(-20);
-        }
-
-        #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_set_invalid_value_above_limit() {
-            let mut grab_int = GrabInt::new("key".to_owned(), 0, 10, 5);
-
-            grab_int.set_value(20);
+            slider.set_value(20.0);
         }
     }
 
