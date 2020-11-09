@@ -1,9 +1,8 @@
 use crate::action::Action;
-use crate::state::{
-    Direction, MultilineInput, Node, NodeTemplate, Patch, Pin, PinAddress, State, Widget,
-};
+use crate::state::{Patch, PinAddress, State, Widget};
 use crate::vec2;
 
+// TODO: Keep all in functions
 pub fn reduce(state: &mut State, action: Action) {
     dbg!(&action);
     match action {
@@ -11,7 +10,9 @@ pub fn reduce(state: &mut State, action: Action) {
         Action::AddNode { class, position } => add_node(state, class, position),
         Action::MoveNode { node_id, offset } => move_node(state, node_id, offset),
         Action::RemoveNode { node_id } => remove_node(state, node_id),
-        Action::RemovePatch { patch } => state.patches_mut().retain(|p| *p != patch),
+        Action::RemovePatch { patch } => {
+            state.patches_mut().remove(&patch);
+        }
         Action::SetTriggeredNode { node_id } => set_triggered_node(state, node_id),
         Action::ResetTriggeredNode => {
             state.set_triggered_node(None);
@@ -117,6 +118,8 @@ fn set_multiline_input_content(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use crate::state::{Direction, MultilineInput, NodeTemplate, Pin};
 
     #[test]
     fn scroll() {
@@ -381,8 +384,9 @@ mod tests {
             },
         );
 
+        let patch = state.patches().iter().next().unwrap();
         assert_eq!(
-            state.patches()[0],
+            *patch,
             Patch::new(
                 PinAddress::new("class:0".to_owned(), "out".to_owned()),
                 PinAddress::new("class:1".to_owned(), "in".to_owned())

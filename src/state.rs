@@ -22,9 +22,8 @@ pub struct State {
     #[getset(get = "pub", set = "pub")]
     triggered_pin: Option<PinAddress>,
 
-    // TODO: Turn into hashset
     #[getset(get = "pub", get_mut = "pub")]
-    patches: Vec<Patch>,
+    patches: HashSet<Patch>,
     // TODO: Verify existence on set
     #[getset(get = "pub", set = "pub")]
     triggered_patch: Option<Patch>,
@@ -379,7 +378,7 @@ impl DropDownItem {
     }
 }
 
-#[derive(Getters, PartialEq, Clone, Debug)]
+#[derive(Getters, Hash, PartialEq, Eq, Clone, Debug)]
 pub struct Patch {
     #[getset(get = "pub")]
     source: PinAddress,
@@ -409,7 +408,7 @@ impl State {
         };
 
         self.patches
-            .push(Patch::new(source_address, destination_address));
+            .insert(Patch::new(source_address, destination_address));
 
         Ok(())
     }
@@ -743,10 +742,11 @@ mod tests {
                 )
                 .is_ok());
 
-            assert_eq!(state.patches()[0].source().node_id(), "node:0");
-            assert_eq!(state.patches()[0].source().pin_class(), "out1");
-            assert_eq!(state.patches()[0].destination().node_id(), "node:1");
-            assert_eq!(state.patches()[0].destination().pin_class(), "in1");
+            let patch = state.patches().iter().next().unwrap();
+            assert_eq!(patch.source().node_id(), "node:0");
+            assert_eq!(patch.source().pin_class(), "out1");
+            assert_eq!(patch.destination().node_id(), "node:1");
+            assert_eq!(patch.destination().pin_class(), "in1");
         }
 
         #[test]
@@ -760,10 +760,11 @@ mod tests {
                 )
                 .is_ok());
 
-            assert_eq!(state.patches()[0].source().node_id(), "node:1");
-            assert_eq!(state.patches()[0].source().pin_class(), "out1");
-            assert_eq!(state.patches()[0].destination().node_id(), "node:0");
-            assert_eq!(state.patches()[0].destination().pin_class(), "in1");
+            let patch = state.patches().iter().next().unwrap();
+            assert_eq!(patch.source().node_id(), "node:1");
+            assert_eq!(patch.source().pin_class(), "out1");
+            assert_eq!(patch.destination().node_id(), "node:0");
+            assert_eq!(patch.destination().pin_class(), "in1");
         }
 
         #[test]
