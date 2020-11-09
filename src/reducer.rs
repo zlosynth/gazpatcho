@@ -93,7 +93,6 @@ fn reset_triggered_pin(state: &mut State) {
     state.set_triggered_pin(None);
 }
 
-// TODO: This clearly asks for an abstraction for key
 fn set_multiline_input_content(
     state: &mut State,
     node_id: String,
@@ -107,14 +106,8 @@ fn set_multiline_input_content(
         .expect("node_id must match an existing node")
         .widgets_mut()
         .iter_mut()
-        .find(|w| {
-            if let Widget::MultilineInput(multiline_input) = w {
-                *multiline_input.key() == widget_key
-            } else {
-                false
-            }
-        })
-        .expect("widget_key must match an existing widget");
+        .find(|w| w.key() == widget_key && w.is_multiline_input())
+        .expect("widget_key must match an existing MultilineInput");
 
     if let Widget::MultilineInput(multiline_input) = widget {
         multiline_input.set_content(content);

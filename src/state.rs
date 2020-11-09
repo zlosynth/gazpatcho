@@ -217,6 +217,49 @@ pub enum Widget {
     DropDown(DropDown),
 }
 
+impl Widget {
+    pub fn key(&self) -> &str {
+        match self {
+            Widget::Trigger(trigger) => trigger.key(),
+            Widget::MultilineInput(multiline_input) => multiline_input.key(),
+            Widget::Slider(slider) => slider.key(),
+            Widget::DropDown(drop_down) => drop_down.key(),
+        }
+    }
+
+    pub fn is_trigger(&self) -> bool {
+        if let Widget::Trigger(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_multiline_input(&self) -> bool {
+        if let Widget::MultilineInput(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_slider(&self) -> bool {
+        if let Widget::Slider(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_drow_down(&self) -> bool {
+        if let Widget::DropDown(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+}
+
 #[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
 pub struct Trigger {
     #[getset(get = "pub")]
