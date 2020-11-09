@@ -1,3 +1,4 @@
+// TODO: Limit all public that is only to be internal
 extern crate getset;
 extern crate imgui;
 

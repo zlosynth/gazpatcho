@@ -20,65 +20,63 @@ const DARK_GRAY: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
 
 pub fn run() {
     let mut initial_state = state::State::default();
-    initial_state.node_templates_mut().extend(vec![
-        state::NodeTemplate::new(
-            "Comment".to_owned(),
+    initial_state.add_node_template(state::NodeTemplate::new(
+        "Comment".to_owned(),
+        "comment".to_owned(),
+        vec![],
+        vec![state::Widget::MultilineInput(state::MultilineInput::new(
             "comment".to_owned(),
-            vec![],
-            vec![state::Widget::MultilineInput(state::MultilineInput::new(
-                "comment".to_owned(),
-                1000,
-                [300.0, 100.0],
-            ))],
-        ),
-        state::NodeTemplate::new(
-            "Oscillator".to_owned(),
-            "oscillator".to_owned(),
-            vec![
-                state::Pin::new(
-                    "Frequency".to_owned(),
-                    "frequency".to_owned(),
-                    state::Direction::Input,
-                ),
-                state::Pin::new(
-                    "Waveform".to_owned(),
-                    "waveform".to_owned(),
-                    state::Direction::Input,
-                ),
-                state::Pin::new(
-                    "Output".to_owned(),
-                    "output".to_owned(),
-                    state::Direction::Output,
-                ),
-            ],
-            vec![state::Widget::Trigger(state::Trigger::new(
-                "Trigger".to_owned(),
-                "triggered".to_owned(),
-            ))],
-        ),
-        state::NodeTemplate::new(
-            "Mixer".to_owned(),
-            "mixer".to_owned(),
-            vec![
-                state::Pin::new(
-                    "Input 1".to_owned(),
-                    "input1".to_owned(),
-                    state::Direction::Input,
-                ),
-                state::Pin::new(
-                    "Input 2".to_owned(),
-                    "input2".to_owned(),
-                    state::Direction::Input,
-                ),
-                state::Pin::new(
-                    "Output".to_owned(),
-                    "output".to_owned(),
-                    state::Direction::Output,
-                ),
-            ],
-            vec![],
-        ),
-    ]);
+            1000,
+            [300.0, 100.0],
+        ))],
+    ));
+    initial_state.add_node_template(state::NodeTemplate::new(
+        "Oscillator".to_owned(),
+        "oscillator".to_owned(),
+        vec![
+            state::Pin::new(
+                "Frequency".to_owned(),
+                "frequency".to_owned(),
+                state::Direction::Input,
+            ),
+            state::Pin::new(
+                "Waveform".to_owned(),
+                "waveform".to_owned(),
+                state::Direction::Input,
+            ),
+            state::Pin::new(
+                "Output".to_owned(),
+                "output".to_owned(),
+                state::Direction::Output,
+            ),
+        ],
+        vec![state::Widget::Trigger(state::Trigger::new(
+            "Trigger".to_owned(),
+            "triggered".to_owned(),
+        ))],
+    ));
+    initial_state.add_node_template(state::NodeTemplate::new(
+        "Mixer".to_owned(),
+        "mixer".to_owned(),
+        vec![
+            state::Pin::new(
+                "Input 1".to_owned(),
+                "input1".to_owned(),
+                state::Direction::Input,
+            ),
+            state::Pin::new(
+                "Input 2".to_owned(),
+                "input2".to_owned(),
+                state::Direction::Input,
+            ),
+            state::Pin::new(
+                "Output".to_owned(),
+                "output".to_owned(),
+                state::Direction::Output,
+            ),
+        ],
+        vec![],
+    ));
     let mut store = store::Store::new(initial_state, reducer::reduce);
 
     let s = system::System::init("Gazpatcho");
