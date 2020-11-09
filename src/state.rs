@@ -292,12 +292,11 @@ pub struct MultilineInput {
 
 impl MultilineInput {
     pub fn new(key: String, capacity: usize, size: [f32; 2]) -> Self {
-        let content = ImString::with_capacity(capacity);
         Self {
             key,
             capacity,
             size,
-            content: ImString::with_capacity(1000),
+            content: ImString::new(""),
         }
     }
 
@@ -772,10 +771,12 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_source_node_id() {
             let mut state = initialize_state();
 
-            state.add_patch(
-                PinAddress::new("node_does_not_exist".to_owned(), "in1".to_owned()),
-                PinAddress::new("node:1".to_owned(), "out1".to_owned()),
-            );
+            state
+                .add_patch(
+                    PinAddress::new("node_does_not_exist".to_owned(), "in1".to_owned()),
+                    PinAddress::new("node:1".to_owned(), "out1".to_owned()),
+                )
+                .unwrap();
         }
 
         #[test]
@@ -783,10 +784,12 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_source_pin_class() {
             let mut state = initialize_state();
 
-            state.add_patch(
-                PinAddress::new("node:0".to_owned(), "pin_does_not_exist".to_owned()),
-                PinAddress::new("node:1".to_owned(), "in1".to_owned()),
-            );
+            state
+                .add_patch(
+                    PinAddress::new("node:0".to_owned(), "pin_does_not_exist".to_owned()),
+                    PinAddress::new("node:1".to_owned(), "in1".to_owned()),
+                )
+                .unwrap();
         }
 
         #[test]
@@ -794,10 +797,12 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_destination_node_id() {
             let mut state = initialize_state();
 
-            state.add_patch(
-                PinAddress::new("node:0".to_owned(), "out1".to_owned()),
-                PinAddress::new("node_does_not_exist".to_owned(), "in1".to_owned()),
-            );
+            state
+                .add_patch(
+                    PinAddress::new("node:0".to_owned(), "out1".to_owned()),
+                    PinAddress::new("node_does_not_exist".to_owned(), "in1".to_owned()),
+                )
+                .unwrap();
         }
 
         #[test]
@@ -805,10 +810,12 @@ mod tests {
         fn panic_on_add_patch_referencing_nonexistent_destination_pin_class() {
             let mut state = initialize_state();
 
-            state.add_patch(
-                PinAddress::new("node:0".to_owned(), "out1".to_owned()),
-                PinAddress::new("node:1".to_owned(), "pin_does_not_exist".to_owned()),
-            );
+            state
+                .add_patch(
+                    PinAddress::new("node:0".to_owned(), "out1".to_owned()),
+                    PinAddress::new("node:1".to_owned(), "pin_does_not_exist".to_owned()),
+                )
+                .unwrap();
         }
 
         #[test]
