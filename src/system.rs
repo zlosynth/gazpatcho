@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use glium::glutin;
 use glium::glutin::event::{Event, WindowEvent};
 use glium::glutin::event_loop::{ControlFlow, EventLoop};
@@ -6,7 +8,6 @@ use glium::{Display, Surface};
 use imgui::{Context, FontConfig, FontSource, Ui};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
-use std::time::Instant;
 
 pub struct System {
     pub event_loop: EventLoop<()>,
