@@ -261,21 +261,28 @@ impl Widget {
 
 #[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
 pub struct Trigger {
-    #[getset(get = "pub")]
-    label: String,
+    label: ImString,
     #[getset(get = "pub")]
     key: String,
     #[getset(get_copy = "pub", set = "pub")]
-    selected: bool,
+    active: bool,
 }
 
 impl Trigger {
     pub fn new(label: String, key: String) -> Self {
         Self {
-            label,
+            label: ImString::from(label),
             key,
-            selected: false,
+            active: false,
         }
+    }
+
+    pub fn label(&self) -> &str {
+        self.label.to_str()
+    }
+
+    pub fn label_im(&self) -> &ImString {
+        &self.label
     }
 }
 
@@ -578,25 +585,25 @@ mod tests {
 
             assert_eq!(trigger.label(), "Trigger");
             assert_eq!(trigger.key(), "key");
-            assert!(!trigger.selected());
+            assert!(!trigger.active());
         }
 
         #[test]
         fn turn_on() {
             let mut trigger = Trigger::new("Trigger".to_owned(), "key".to_owned());
 
-            trigger.set_selected(true);
+            trigger.set_active(true);
 
-            assert!(trigger.selected());
+            assert!(trigger.active());
         }
 
         #[test]
         fn turn_off() {
             let mut trigger = Trigger::new("Trigger".to_owned(), "key".to_owned());
 
-            trigger.set_selected(false);
+            trigger.set_active(false);
 
-            assert!(!trigger.selected());
+            assert!(!trigger.active());
         }
     }
 

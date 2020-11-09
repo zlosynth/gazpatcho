@@ -36,4 +36,12 @@ pub enum Action {
         widget_key: String,
         content: String,
     },
+    SetTriggerActive {
+        node_id: String,
+        widget_key: String,
+    },
+    SetTriggerInactive {
+        node_id: String,
+        widget_key: String,
+    },
 }

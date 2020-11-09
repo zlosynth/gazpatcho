@@ -51,7 +51,10 @@ pub fn run() {
                     state::Direction::Output,
                 ),
             ],
-            vec![],
+            vec![state::Widget::Trigger(state::Trigger::new(
+                "Trigger".to_owned(),
+                "triggered".to_owned(),
+            ))],
         ),
         state::NodeTemplate::new(
             "Mixer".to_owned(),
@@ -123,6 +126,9 @@ fn set_styles<F: FnOnce()>(ui: &imgui::Ui<'_>, f: F) {
         (imgui::StyleColor::FrameBg, GRAY),
         (imgui::StyleColor::ScrollbarBg, GRAY),
         (imgui::StyleColor::ScrollbarGrab, DARK_GRAY),
+        (imgui::StyleColor::Button, GRAY),
+        (imgui::StyleColor::ButtonHovered, GRAY),
+        (imgui::StyleColor::ButtonActive, DARK_GRAY),
     ]);
 
     f();

@@ -30,6 +30,14 @@ pub fn reduce(state: &mut State, action: Action) {
             widget_key,
             content,
         } => set_multiline_input_content(state, node_id, widget_key, content),
+        Action::SetTriggerActive {
+            node_id,
+            widget_key,
+        } => set_trigger_active(state, node_id, widget_key, true),
+        Action::SetTriggerInactive {
+            node_id,
+            widget_key,
+        } => set_trigger_active(state, node_id, widget_key, false),
     }
 }
 
@@ -115,11 +123,27 @@ fn set_multiline_input_content(
     }
 }
 
+fn set_trigger_active(state: &mut State, node_id: String, widget_key: String, active: bool) {
+    let widget = state
+        .nodes_mut()
+        .iter_mut()
+        .find(|n| n.id() == &node_id)
+        .expect("node_id must match an existing node")
+        .widgets_mut()
+        .iter_mut()
+        .find(|w| w.key() == widget_key && w.is_trigger())
+        .expect("widget_key must match an existing MultilineInput");
+
+    if let Widget::Trigger(trigger) = widget {
+        trigger.set_active(active);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::state::{Direction, MultilineInput, NodeTemplate, Pin};
+    use crate::state::{Direction, MultilineInput, NodeTemplate, Pin, Trigger};
 
     #[test]
     fn scroll() {
@@ -456,6 +480,49 @@ mod tests {
 
         if let Widget::MultilineInput(multiline_input) = &state.nodes()[0].widgets()[0] {
             assert_eq!(multiline_input.content(), "hello world");
+        } else {
+            panic!("invalid widget type");
+        }
+    }
+
+    #[test]
+    fn set_trigger() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![],
+            vec![Widget::Trigger(Trigger::new(
+                "Trigger".to_owned(),
+                "key".to_owned(),
+            ))],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        reduce(
+            &mut state,
+            Action::SetTriggerActive {
+                node_id: "class:0".to_owned(),
+                widget_key: "key".to_owned(),
+            },
+        );
+
+        if let Widget::Trigger(trigger) = &state.nodes()[0].widgets()[0] {
+            assert!(trigger.active());
+        } else {
+            panic!("invalid widget type");
+        }
+
+        reduce(
+            &mut state,
+            Action::SetTriggerInactive {
+                node_id: "class:0".to_owned(),
+                widget_key: "key".to_owned(),
+            },
+        );
+
+        if let Widget::Trigger(trigger) = &state.nodes()[0].widgets()[0] {
+            assert!(!trigger.active());
         } else {
             panic!("invalid widget type");
         }

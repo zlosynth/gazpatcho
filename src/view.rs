@@ -176,6 +176,32 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
                     })),
                 ))
             }
+            Widget::Trigger(trigger) => {
+                let node_id = node.id().to_string();
+                let label = trigger.label_im().clone();
+                let widget_key = trigger.key().to_string();
+                let was_triggered = trigger.active();
+                let actions = Rc::clone(&actions);
+                n.add_component(widget::node::Component::Trigger(
+                    widget::trigger::Trigger::new(label).active_callback(Box::new(
+                        move |is_triggered| {
+                            if is_triggered != was_triggered {
+                                actions.borrow_mut().push(if is_triggered {
+                                    Action::SetTriggerActive {
+                                        node_id,
+                                        widget_key,
+                                    }
+                                } else {
+                                    Action::SetTriggerInactive {
+                                        node_id,
+                                        widget_key,
+                                    }
+                                });
+                            }
+                        },
+                    )),
+                ))
+            }
             _ => n,
         });
 
