@@ -9,7 +9,7 @@ use std::ptr;
 use std::rc::Rc;
 
 use crate::action::Action;
-use crate::state::{Direction, Node, Pin, PinAddress, State, Widget};
+use crate::state::{Direction, PinAddress, State, Widget};
 use crate::vec2;
 use crate::widget;
 

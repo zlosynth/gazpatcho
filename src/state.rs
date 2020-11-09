@@ -513,7 +513,7 @@ mod tests {
 
         #[test]
         fn build_node() {
-            let mut node_template = NodeTemplate::new(
+            let node_template = NodeTemplate::new(
                 "Label".to_owned(),
                 "class1".to_owned(),
                 vec![
