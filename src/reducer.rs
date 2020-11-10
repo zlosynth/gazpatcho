@@ -38,6 +38,11 @@ pub fn reduce(state: &mut State, action: Action) {
             node_id,
             widget_key,
         } => set_trigger_active(state, node_id, widget_key, false),
+        Action::SetSliderValue {
+            node_id,
+            widget_key,
+            value,
+        } => set_slider_value(state, node_id, widget_key, value),
     }
 }
 
@@ -132,10 +137,26 @@ fn set_trigger_active(state: &mut State, node_id: String, widget_key: String, ac
         .widgets_mut()
         .iter_mut()
         .find(|w| w.key() == widget_key && w.is_trigger())
-        .expect("widget_key must match an existing MultilineInput");
+        .expect("widget_key must match an existing Trigger");
 
     if let Widget::Trigger(trigger) = widget {
         trigger.set_active(active);
+    }
+}
+
+fn set_slider_value(state: &mut State, node_id: String, widget_key: String, value: f32) {
+    let widget = state
+        .nodes_mut()
+        .iter_mut()
+        .find(|n| n.id() == &node_id)
+        .expect("node_id must match an existing node")
+        .widgets_mut()
+        .iter_mut()
+        .find(|w| w.key() == widget_key && w.is_slider())
+        .expect("widget_key must match an existing Slider");
+
+    if let Widget::Slider(slider) = widget {
+        slider.set_value(value);
     }
 }
 
@@ -143,7 +164,7 @@ fn set_trigger_active(state: &mut State, node_id: String, widget_key: String, ac
 mod tests {
     use super::*;
 
-    use crate::state::{Direction, MultilineInput, NodeTemplate, Pin, Trigger};
+    use crate::state::{Direction, MultilineInput, NodeTemplate, Pin, Slider, Trigger};
 
     #[test]
     fn scroll() {
@@ -523,6 +544,40 @@ mod tests {
 
         if let Widget::Trigger(trigger) = &state.nodes()[0].widgets()[0] {
             assert!(!trigger.active());
+        } else {
+            panic!("invalid widget type");
+        }
+    }
+
+    #[test]
+    fn set_slider() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![],
+            vec![Widget::Slider(Slider::new(
+                "key".to_owned(),
+                0.0,
+                10.0,
+                5.0,
+                "%.2f".to_owned(),
+                120.0,
+            ))],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        reduce(
+            &mut state,
+            Action::SetSliderValue {
+                node_id: "class:0".to_owned(),
+                widget_key: "key".to_owned(),
+                value: 6.0,
+            },
+        );
+
+        if let Widget::Slider(slider) = &state.nodes()[0].widgets()[0] {
+            assert_eq!(slider.value(), 6.0);
         } else {
             panic!("invalid widget type");
         }

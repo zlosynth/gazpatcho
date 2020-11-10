@@ -1,3 +1,4 @@
+// TODO: Introduce WidgetAddress
 use crate::state::{Patch, PinAddress};
 
 #[derive(Debug)]
@@ -43,5 +44,10 @@ pub enum Action {
     SetTriggerInactive {
         node_id: String,
         widget_key: String,
+    },
+    SetSliderValue {
+        node_id: String,
+        widget_key: String,
+        value: f32,
     },
 }

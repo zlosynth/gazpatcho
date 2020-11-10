@@ -4,6 +4,7 @@ use crate::vec2;
 use crate::widget::label::Label;
 use crate::widget::multiline_input::MultilineInput;
 use crate::widget::pin_group::PinGroup;
+use crate::widget::slider::Slider;
 use crate::widget::trigger::Trigger;
 
 pub enum Component<'a> {
@@ -12,6 +13,7 @@ pub enum Component<'a> {
     Space(f32),
     MultilineInput(MultilineInput),
     Trigger(Trigger),
+    Slider(Slider),
 }
 
 pub struct Node<'a> {
@@ -109,6 +111,11 @@ impl<'a> Node<'a> {
                     trigger.position(cursor).build(ui, width);
                     cursor[1] += component_height;
                 }
+                Component::Slider(slider) => {
+                    let component_height = slider.get_height();
+                    slider.position(cursor).build(ui, width);
+                    cursor[1] += component_height;
+                }
             };
         }
 
@@ -125,6 +132,7 @@ impl<'a> Node<'a> {
                 Component::Space(_) => 0.0,
                 Component::MultilineInput(multiline_input) => multiline_input.get_min_width(),
                 Component::Trigger(trigger) => trigger.get_min_width(ui),
+                Component::Slider(slider) => slider.get_min_width(),
             })
             .fold(0.0, f32::max)
     }
@@ -138,6 +146,7 @@ impl<'a> Node<'a> {
                 Component::Space(space) => *space,
                 Component::MultilineInput(multiline_input) => multiline_input.get_height(),
                 Component::Trigger(trigger) => trigger.get_height(ui),
+                Component::Slider(slider) => slider.get_height(),
             })
             .sum()
     }

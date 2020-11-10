@@ -2,7 +2,7 @@ extern crate imgui;
 
 use crate::vec2;
 
-const PADDING: f32 = 10.0;
+const HORIZONTAL_MARGIN: f32 = 10.0;
 
 pub struct MultilineInput {
     id: imgui::ImString,
@@ -44,11 +44,11 @@ impl MultilineInput {
     }
 
     pub fn build(mut self, ui: &imgui::Ui, width: f32) {
-        ui.set_cursor_screen_pos(vec2::sum(&[self.position, [PADDING, PADDING]]));
+        ui.set_cursor_screen_pos(vec2::sum(&[self.position, [HORIZONTAL_MARGIN, 0.0]]));
         ui.input_text_multiline(
             &self.id,
             &mut self.content,
-            [width - PADDING * 2.0, self.height - PADDING * 2.0],
+            [width - HORIZONTAL_MARGIN * 2.0, self.height],
         )
         .build();
 

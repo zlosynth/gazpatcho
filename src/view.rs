@@ -97,9 +97,11 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
     state.nodes().iter().for_each(|node| {
         let mut node_widget = widget::node::Node::new(node.id_im())
             .position(vec2::sum(&[node.position, state.offset]))
+            .add_component(widget::node::Component::Space(10.0))
             .add_component(widget::node::Component::Label(widget::label::Label::new(
                 node.label_im(),
-            )));
+            )))
+            .add_component(widget::node::Component::Space(10.0));
 
         if let Some(triggered_node_id) = state.triggered_node() {
             if triggered_node_id == node.id() {
@@ -143,7 +145,6 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
             });
 
             node_widget = node_widget
-                .add_component(widget::node::Component::Space(5.0))
                 .add_component(widget::node::Component::PinGroup(pin_group))
                 .add_component(widget::node::Component::Space(10.0));
         }
@@ -175,6 +176,7 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
                         }
                     })),
                 ))
+                .add_component(widget::node::Component::Space(10.0))
             }
             Widget::Trigger(trigger) => {
                 let node_id = node.id().to_string();
@@ -201,6 +203,31 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
                         },
                     )),
                 ))
+                .add_component(widget::node::Component::Space(10.0))
+            }
+            Widget::Slider(slider) => {
+                let id = imgui::ImString::from(format!("##{}:{}", node.id(), slider.key()));
+                let node_id = node.id().to_string();
+                let widget_key = slider.key().to_string();
+                let original_value = slider.value();
+                let actions = Rc::clone(&actions);
+                n.add_component(widget::node::Component::Slider(
+                    widget::slider::Slider::new(id, slider.min(), slider.max(), slider.value())
+                        .min_width(slider.width())
+                        .display_format(slider.display_format_im().clone())
+                        .value_callback(Box::new(move |new_value| {
+                            if (new_value - original_value).abs() > 0.000000001 {
+                                actions.borrow_mut().push({
+                                    Action::SetSliderValue {
+                                        node_id,
+                                        widget_key,
+                                        value: new_value,
+                                    }
+                                });
+                            }
+                        })),
+                ))
+                .add_component(widget::node::Component::Space(10.0))
             }
             _ => n,
         });

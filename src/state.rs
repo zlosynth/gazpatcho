@@ -331,10 +331,20 @@ pub struct Slider {
     max: f32,
     #[getset(get_copy = "pub")]
     value: f32,
+    display_format: ImString,
+    #[getset(get_copy = "pub")]
+    width: f32,
 }
 
 impl Slider {
-    pub fn new(key: String, min: f32, max: f32, value: f32) -> Self {
+    pub fn new(
+        key: String,
+        min: f32,
+        max: f32,
+        value: f32,
+        display_format: String,
+        width: f32,
+    ) -> Self {
         assert!(min < max, "Lower limit must be below the upper limit");
         assert!(
             min <= value && value <= max,
@@ -345,6 +355,8 @@ impl Slider {
             min,
             max,
             value,
+            display_format: ImString::from(display_format),
+            width,
         }
     }
 
@@ -354,6 +366,14 @@ impl Slider {
             "Value must be within min and max"
         );
         self.value = value;
+    }
+
+    pub fn display_format(&self) -> &str {
+        self.display_format.to_str()
+    }
+
+    pub fn display_format_im(&self) -> &ImString {
+        &self.display_format
     }
 }
 
@@ -635,7 +655,7 @@ mod tests {
 
         #[test]
         fn initialize() {
-            let slider = Slider::new("key".to_owned(), 0.0, 10.0, 5.0);
+            let slider = Slider::new("key".to_owned(), 0.0, 10.0, 5.0, "%.2f".to_owned(), 120.0);
 
             assert_eq!(slider.key(), "key");
             assert_eq!(slider.min(), 0.0);
@@ -646,24 +666,25 @@ mod tests {
         #[test]
         #[should_panic(expected = "Lower limit must be below the upper limit")]
         fn panic_on_initialize_with_reversed_limits() {
-            let _slider = Slider::new("key".to_owned(), 10.0, 0.0, 5.0);
+            let _slider = Slider::new("key".to_owned(), 10.0, 0.0, 5.0, "%.2f".to_owned(), 120.0);
         }
 
         #[test]
         #[should_panic(expected = "Value must be within min and max")]
         fn panic_on_initialize_with_value_below_limit() {
-            let _slider = Slider::new("key".to_owned(), 0.0, 10.0, -20.0);
+            let _slider = Slider::new("key".to_owned(), 0.0, 10.0, -20.0, "%.2f".to_owned(), 120.0);
         }
 
         #[test]
         #[should_panic(expected = "Value must be within min and max")]
         fn panic_on_initialize_with_value_above_limit() {
-            let _slider = Slider::new("key".to_owned(), 0.0, 10.0, 20.0);
+            let _slider = Slider::new("key".to_owned(), 0.0, 10.0, 20.0, "%.2f".to_owned(), 120.0);
         }
 
         #[test]
         fn set_value() {
-            let mut slider = Slider::new("key".to_owned(), 0.0, 10.0, 5.0);
+            let mut slider =
+                Slider::new("key".to_owned(), 0.0, 10.0, 5.0, "%.2f".to_owned(), 120.0);
 
             slider.set_value(3.0);
 
@@ -673,7 +694,8 @@ mod tests {
         #[test]
         #[should_panic(expected = "Value must be within min and max")]
         fn panic_on_set_invalid_value_below_limit() {
-            let mut slider = Slider::new("key".to_owned(), 0.0, 10.0, 5.0);
+            let mut slider =
+                Slider::new("key".to_owned(), 0.0, 10.0, 5.0, "%.2f".to_owned(), 120.0);
 
             slider.set_value(-20.0);
         }
@@ -681,7 +703,8 @@ mod tests {
         #[test]
         #[should_panic(expected = "Value must be within min and max")]
         fn panic_on_set_invalid_value_above_limit() {
-            let mut slider = Slider::new("key".to_owned(), 0.0, 10.0, 5.0);
+            let mut slider =
+                Slider::new("key".to_owned(), 0.0, 10.0, 5.0, "%.2f".to_owned(), 120.0);
 
             slider.set_value(20.0);
         }

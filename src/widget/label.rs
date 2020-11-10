@@ -2,7 +2,7 @@ extern crate imgui;
 
 use crate::vec2;
 
-const PADDING: f32 = 10.0;
+const HORIZONTAL_PADDING: f32 = 10.0;
 
 pub struct Label<'a> {
     text: &'a imgui::ImStr,
@@ -23,17 +23,17 @@ impl<'a> Label<'a> {
     }
 
     pub fn get_width(&self, ui: &imgui::Ui) -> f32 {
-        ui.calc_text_size(self.text, false, 0.0)[0] + PADDING * 2.0
+        ui.calc_text_size(self.text, false, 0.0)[0] + HORIZONTAL_PADDING * 2.0
     }
 
     pub fn get_height(&self, ui: &imgui::Ui) -> f32 {
-        ui.calc_text_size(self.text, false, 0.0)[1] + PADDING * 2.0
+        ui.calc_text_size(self.text, false, 0.0)[1]
     }
 
     pub fn build(self, ui: &imgui::Ui<'_>) {
         let draw_list = ui.get_window_draw_list();
         draw_list.add_text(
-            vec2::sum(&[self.position, [PADDING, PADDING]]),
+            vec2::sum(&[self.position, [HORIZONTAL_PADDING, 0.0]]),
             ui.style_color(imgui::StyleColor::Text),
             self.text,
         );

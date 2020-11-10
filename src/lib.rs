@@ -50,10 +50,20 @@ pub fn run() {
                 state::Direction::Output,
             ),
         ],
-        vec![state::Widget::Trigger(state::Trigger::new(
-            "Trigger".to_owned(),
-            "triggered".to_owned(),
-        ))],
+        vec![
+            state::Widget::Slider(state::Slider::new(
+                "slider".to_owned(),
+                0.0,
+                10.0,
+                5.0,
+                "%.1f".to_owned(),
+                150.0,
+            )),
+            state::Widget::Trigger(state::Trigger::new(
+                "Trigger".to_owned(),
+                "triggered".to_owned(),
+            )),
+        ],
     ));
     initial_state.add_node_template(state::NodeTemplate::new(
         "Mixer".to_owned(),
@@ -122,11 +132,15 @@ fn set_styles<F: FnOnce()>(ui: &imgui::Ui<'_>, f: F) {
         (imgui::StyleColor::Separator, BLACK),
         (imgui::StyleColor::Border, BLACK),
         (imgui::StyleColor::FrameBg, GRAY),
+        (imgui::StyleColor::FrameBgHovered, GRAY),
+        (imgui::StyleColor::FrameBgActive, GRAY),
         (imgui::StyleColor::ScrollbarBg, GRAY),
         (imgui::StyleColor::ScrollbarGrab, DARK_GRAY),
         (imgui::StyleColor::Button, GRAY),
         (imgui::StyleColor::ButtonHovered, GRAY),
         (imgui::StyleColor::ButtonActive, DARK_GRAY),
+        (imgui::StyleColor::SliderGrab, DARK_GRAY),
+        (imgui::StyleColor::SliderGrabActive, DARK_GRAY),
     ]);
 
     f();
