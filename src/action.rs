@@ -50,4 +50,9 @@ pub enum Action {
         widget_key: String,
         value: f32,
     },
+    SetDropDownValue {
+        node_id: String,
+        widget_key: String,
+        value: String,
+    },
 }

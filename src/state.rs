@@ -251,7 +251,7 @@ impl Widget {
         }
     }
 
-    pub fn is_drow_down(&self) -> bool {
+    pub fn is_dropdown(&self) -> bool {
         if let Widget::DropDown(_) = self {
             true
         } else {
@@ -377,17 +377,25 @@ impl Slider {
     }
 }
 
-#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
+#[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
 pub struct DropDown {
     #[getset(get = "pub")]
     key: String,
+    // TODO: Check for existence
+    #[getset(get = "pub", set = "pub")]
+    value: String,
     #[getset(get = "pub")]
     items: Vec<DropDownItem>,
 }
 
 impl DropDown {
     pub fn new(key: String, items: Vec<DropDownItem>) -> Self {
-        Self { key, items }
+        assert!(items.len() > 0, "items must not be empty");
+        Self {
+            key,
+            value: items[0].value.clone(),
+            items,
+        }
     }
 }
 
@@ -590,7 +598,14 @@ mod tests {
                 "class1".to_owned(),
                 vec![],
                 vec![
-                    Widget::DropDown(DropDown::new("key".to_owned(), vec![])),
+                    Widget::Slider(Slider::new(
+                        "key".to_owned(),
+                        0.0,
+                        10.0,
+                        5.0,
+                        "%.2f".to_owned(),
+                        120.0,
+                    )),
                     Widget::Trigger(Trigger::new("Trigger".to_owned(), "key".to_owned())),
                 ],
             );
@@ -724,6 +739,7 @@ mod tests {
             );
 
             assert_eq!(drop_down.key(), "key");
+            assert_eq!(drop_down.value(), "value1");
 
             let mut iter = drop_down.items().iter();
 
@@ -736,6 +752,12 @@ mod tests {
             assert_eq!(second.value(), "value2");
 
             assert!(iter.next().is_none());
+        }
+
+        #[test]
+        #[should_panic(expected = "items must not be empty")]
+        fn panic_on_initialize_without_items() {
+            let _drop_down = DropDown::new("key".to_owned(), vec![]);
         }
     }
 

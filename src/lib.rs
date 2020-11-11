@@ -63,6 +63,15 @@ pub fn run() {
                 "Trigger".to_owned(),
                 "triggered".to_owned(),
             )),
+            state::Widget::DropDown(state::DropDown::new(
+                "dropdown".to_owned(),
+                vec![
+                    state::DropDownItem::new("Sine".to_owned(), "sine".to_owned()),
+                    state::DropDownItem::new("Square".to_owned(), "square".to_owned()),
+                    state::DropDownItem::new("Triangle".to_owned(), "triangle".to_owned()),
+                    state::DropDownItem::new("Saw".to_owned(), "saw".to_owned()),
+                ],
+            )),
         ],
     ));
     initial_state.add_node_template(state::NodeTemplate::new(
@@ -141,6 +150,7 @@ fn set_styles<F: FnOnce()>(ui: &imgui::Ui<'_>, f: F) {
         (imgui::StyleColor::ButtonActive, DARK_GRAY),
         (imgui::StyleColor::SliderGrab, DARK_GRAY),
         (imgui::StyleColor::SliderGrabActive, DARK_GRAY),
+        (imgui::StyleColor::Header, GRAY),
     ]);
 
     f();

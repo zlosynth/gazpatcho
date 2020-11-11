@@ -1,3 +1,4 @@
+pub mod dropdown;
 pub mod label;
 pub mod multiline_input;
 pub mod node;

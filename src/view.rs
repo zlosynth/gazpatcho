@@ -149,6 +149,7 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
                 .add_component(widget::node::Component::Space(10.0));
         }
 
+        // TODO: Split to functions
         node_widget = node.widgets().iter().fold(node_widget, |n, w| match w {
             Widget::MultilineInput(multiline_input) => {
                 let id =
@@ -229,7 +230,42 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
                 ))
                 .add_component(widget::node::Component::Space(10.0))
             }
-            _ => n,
+            Widget::DropDown(dropdown) => {
+                let id = imgui::ImString::from(format!("##{}:{}", node.id(), dropdown.key()));
+                let node_id = node.id().to_string();
+                let widget_key = dropdown.key().to_string();
+                let items = dropdown.items().clone();
+                let original_value = dropdown.value().to_owned();
+                let original_value_index = items
+                    .iter()
+                    .enumerate()
+                    .find(|(_, v)| *v.value() == original_value)
+                    .expect("dropdown value must be available in dropdown items")
+                    .0;
+                let actions = Rc::clone(&actions);
+                n.add_component(widget::node::Component::DropDown(
+                    widget::dropdown::DropDown::new(
+                        id,
+                        original_value_index,
+                        dropdown
+                            .items()
+                            .iter()
+                            .map(|i| imgui::ImString::new(i.label()))
+                            .collect(),
+                    )
+                    .value_callback(Box::new(move |i| {
+                        let value = items[i].value().clone();
+                        if value != original_value {
+                            actions.borrow_mut().push(Action::SetDropDownValue {
+                                node_id,
+                                widget_key,
+                                value,
+                            });
+                        }
+                    })),
+                ))
+                .add_component(widget::node::Component::Space(10.0))
+            }
         });
 
         node_widget.build(ui);

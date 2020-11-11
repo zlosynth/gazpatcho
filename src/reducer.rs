@@ -43,6 +43,11 @@ pub fn reduce(state: &mut State, action: Action) {
             widget_key,
             value,
         } => set_slider_value(state, node_id, widget_key, value),
+        Action::SetDropDownValue {
+            node_id,
+            widget_key,
+            value,
+        } => set_dropdown_value(state, node_id, widget_key, value),
     }
 }
 
@@ -160,11 +165,29 @@ fn set_slider_value(state: &mut State, node_id: String, widget_key: String, valu
     }
 }
 
+fn set_dropdown_value(state: &mut State, node_id: String, widget_key: String, value: String) {
+    let widget = state
+        .nodes_mut()
+        .iter_mut()
+        .find(|n| n.id() == &node_id)
+        .expect("node_id must match an existing node")
+        .widgets_mut()
+        .iter_mut()
+        .find(|w| w.key() == widget_key && w.is_dropdown())
+        .expect("widget_key must match an existing DropDown");
+
+    if let Widget::DropDown(dropdown) = widget {
+        dropdown.set_value(value);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::state::{Direction, MultilineInput, NodeTemplate, Pin, Slider, Trigger};
+    use crate::state::{
+        Direction, DropDown, DropDownItem, MultilineInput, NodeTemplate, Pin, Slider, Trigger,
+    };
 
     #[test]
     fn scroll() {
@@ -578,6 +601,39 @@ mod tests {
 
         if let Widget::Slider(slider) = &state.nodes()[0].widgets()[0] {
             assert_eq!(slider.value(), 6.0);
+        } else {
+            panic!("invalid widget type");
+        }
+    }
+
+    #[test]
+    fn set_dropdown() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![],
+            vec![Widget::DropDown(DropDown::new(
+                "key".to_owned(),
+                vec![
+                    DropDownItem::new("Label 1".to_owned(), "value1".to_owned()),
+                    DropDownItem::new("Label 2".to_owned(), "value2".to_owned()),
+                ],
+            ))],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        reduce(
+            &mut state,
+            Action::SetDropDownValue {
+                node_id: "class:0".to_owned(),
+                widget_key: "key".to_owned(),
+                value: "value2".to_owned(),
+            },
+        );
+
+        if let Widget::DropDown(dropdown) = &state.nodes()[0].widgets()[0] {
+            assert_eq!(dropdown.value(), "value2");
         } else {
             panic!("invalid widget type");
         }

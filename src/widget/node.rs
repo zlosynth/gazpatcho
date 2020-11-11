@@ -1,6 +1,7 @@
 extern crate imgui;
 
 use crate::vec2;
+use crate::widget::dropdown::DropDown;
 use crate::widget::label::Label;
 use crate::widget::multiline_input::MultilineInput;
 use crate::widget::pin_group::PinGroup;
@@ -14,6 +15,7 @@ pub enum Component<'a> {
     MultilineInput(MultilineInput),
     Trigger(Trigger),
     Slider(Slider),
+    DropDown(DropDown),
 }
 
 pub struct Node<'a> {
@@ -116,6 +118,11 @@ impl<'a> Node<'a> {
                     slider.position(cursor).build(ui, width);
                     cursor[1] += component_height;
                 }
+                Component::DropDown(dropdown) => {
+                    let component_height = dropdown.get_height();
+                    dropdown.position(cursor).build(ui, width);
+                    cursor[1] += component_height;
+                }
             };
         }
 
@@ -133,6 +140,7 @@ impl<'a> Node<'a> {
                 Component::MultilineInput(multiline_input) => multiline_input.get_min_width(),
                 Component::Trigger(trigger) => trigger.get_min_width(ui),
                 Component::Slider(slider) => slider.get_min_width(),
+                Component::DropDown(dropdown) => dropdown.get_min_width(ui),
             })
             .fold(0.0, f32::max)
     }
@@ -147,6 +155,7 @@ impl<'a> Node<'a> {
                 Component::MultilineInput(multiline_input) => multiline_input.get_height(),
                 Component::Trigger(trigger) => trigger.get_height(ui),
                 Component::Slider(slider) => slider.get_height(),
+                Component::DropDown(dropdown) => dropdown.get_height(),
             })
             .sum()
     }

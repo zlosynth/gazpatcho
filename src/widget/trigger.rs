@@ -11,6 +11,7 @@ pub struct Trigger {
     active_callback: Option<Box<dyn FnOnce(bool)>>,
 }
 
+// Define a trait, most of this is shared
 impl Trigger {
     pub fn new(label: imgui::ImString) -> Self {
         Self {
