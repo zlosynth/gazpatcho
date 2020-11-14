@@ -107,14 +107,13 @@ fn set_triggered_pin(state: &mut State, pin_address: PinAddress) -> bool {
     let newly_triggered_pin = pin_address;
 
     if let Some(previously_triggered_pin) = state.triggered_pin_take() {
-        state.add_patch(
-            previously_triggered_pin.clone(),
-            newly_triggered_pin.clone(),
-        );
-        state.set_triggered_patch(Some(Patch::new(
-            previously_triggered_pin,
-            newly_triggered_pin,
-        )));
+        let stored_patch = state
+            .add_patch(
+                previously_triggered_pin.clone(),
+                newly_triggered_pin.clone(),
+            )
+            .unwrap();
+        state.set_triggered_patch(Some(stored_patch));
         true
     } else {
         state.set_triggered_pin(Some(newly_triggered_pin));

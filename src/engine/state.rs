@@ -548,7 +548,7 @@ pub struct Patch {
 }
 
 impl State {
-    pub fn add_patch(&mut self, side_a: PinAddress, side_b: PinAddress) -> Result<(), String> {
+    pub fn add_patch(&mut self, side_a: PinAddress, side_b: PinAddress) -> Result<Patch, String> {
         if side_a.node_id() == side_b.node_id() {
             return Err("Patch cannot loop between pins of a single node".to_owned());
         }
@@ -568,10 +568,11 @@ impl State {
             (side_a, side_b)
         };
 
-        self.patches
-            .insert(Patch::new(source_address, destination_address));
+        let patch = Patch::new(source_address, destination_address);
 
-        Ok(())
+        self.patches.insert(patch.clone());
+
+        Ok(patch)
     }
 }
 
@@ -913,12 +914,17 @@ mod tests {
         fn add_patch_output_input() {
             let mut state = initialize_state();
 
-            assert!(state
+            let patch = state
                 .add_patch(
                     PinAddress::new("node:0".to_owned(), "out1".to_owned()),
-                    PinAddress::new("node:1".to_owned(), "in1".to_owned())
+                    PinAddress::new("node:1".to_owned(), "in1".to_owned()),
                 )
-                .is_ok());
+                .unwrap();
+
+            assert_eq!(patch.source().node_id(), "node:0");
+            assert_eq!(patch.source().pin_class(), "out1");
+            assert_eq!(patch.destination().node_id(), "node:1");
+            assert_eq!(patch.destination().pin_class(), "in1");
 
             let patch = state.patches().iter().next().unwrap();
             assert_eq!(patch.source().node_id(), "node:0");
@@ -931,12 +937,17 @@ mod tests {
         fn add_patch_input_output() {
             let mut state = initialize_state();
 
-            assert!(state
+            let patch = state
                 .add_patch(
                     PinAddress::new("node:0".to_owned(), "in1".to_owned()),
-                    PinAddress::new("node:1".to_owned(), "out1".to_owned())
+                    PinAddress::new("node:1".to_owned(), "out1".to_owned()),
                 )
-                .is_ok());
+                .unwrap();
+
+            assert_eq!(patch.source().node_id(), "node:1");
+            assert_eq!(patch.source().pin_class(), "out1");
+            assert_eq!(patch.destination().node_id(), "node:0");
+            assert_eq!(patch.destination().pin_class(), "in1");
 
             let patch = state.patches().iter().next().unwrap();
             assert_eq!(patch.source().node_id(), "node:1");
@@ -1005,7 +1016,7 @@ mod tests {
                 PinAddress::new("node:0".to_owned(), "out1".to_owned()),
                 PinAddress::new("node:0".to_owned(), "in1".to_owned()),
             ) {
-                Ok(()) => panic!("Operation should fail"),
+                Ok(_) => panic!("Operation should fail"),
                 Err(err) => assert_eq!(err, "Patch cannot loop between pins of a single node"),
             }
         }
@@ -1018,7 +1029,7 @@ mod tests {
                 PinAddress::new("node:0".to_owned(), "out1".to_owned()),
                 PinAddress::new("node:1".to_owned(), "out1".to_owned()),
             ) {
-                Ok(()) => panic!("Operation should fail"),
+                Ok(_) => panic!("Operation should fail"),
                 Err(err) => assert_eq!(err, "Patch cannot connect pins of the same direction"),
             }
         }
