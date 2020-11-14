@@ -4,28 +4,20 @@ use crate::vec2;
 
 // TODO: Keep all in functions
 // TODO: When changed, return true
-pub fn reduce(state: &mut State, action: Action) {
+pub fn reduce(state: &mut State, action: Action) -> bool {
     dbg!(&action);
     match action {
-        Action::Scroll { offset } => state.offset = vec2::sum(&[state.offset, offset]),
+        Action::Scroll { offset } => scroll(state, offset),
         Action::AddNode { class, position } => add_node(state, class, position),
         Action::MoveNode { node_id, offset } => move_node(state, node_id, offset),
         Action::RemoveNode { node_id } => remove_node(state, node_id),
-        Action::RemovePatch { patch } => {
-            state.patches_mut().remove(&patch);
-        }
+        Action::RemovePatch { patch } => remove_patch(state, patch),
         Action::SetTriggeredNode { node_id } => set_triggered_node(state, node_id),
-        Action::ResetTriggeredNode => {
-            state.set_triggered_node(None);
-        }
+        Action::ResetTriggeredNode => reset_triggered_node(state),
         Action::SetTriggeredPin { pin_address } => set_triggered_pin(state, pin_address),
         Action::ResetTriggeredPin => reset_triggered_pin(state),
-        Action::SetTriggeredPatch { patch } => {
-            state.set_triggered_patch(Some(patch));
-        }
-        Action::ResetTriggeredPatch => {
-            state.set_triggered_patch(None);
-        }
+        Action::SetTriggeredPatch { patch } => set_triggered_patch(state, patch),
+        Action::ResetTriggeredPatch => reset_triggered_patch(state),
         Action::SetMultilineInputContent {
             node_id,
             widget_key,
@@ -52,7 +44,12 @@ pub fn reduce(state: &mut State, action: Action) {
     }
 }
 
-fn add_node(state: &mut State, class: String, position: [f32; 2]) {
+fn scroll(state: &mut State, offset: [f32; 2]) -> bool {
+    state.offset = vec2::sum(&[state.offset, offset]);
+    false
+}
+
+fn add_node(state: &mut State, class: String, position: [f32; 2]) -> bool {
     let node_template = state
         .node_templates()
         .iter()
@@ -61,16 +58,23 @@ fn add_node(state: &mut State, class: String, position: [f32; 2]) {
     let node = node_template.instantiate(position);
     state.set_triggered_node(Some(node.id().to_string()));
     state.add_node(node);
+    true
 }
 
-fn remove_node(state: &mut State, node_id: String) {
+fn remove_node(state: &mut State, node_id: String) -> bool {
     state.nodes_mut().retain(|n| *n.id() != node_id);
     state
         .patches_mut()
         .retain(|p| *p.source().node_id() != node_id && *p.destination().node_id() != node_id);
+    true
 }
 
-fn set_triggered_node(state: &mut State, node_id: String) {
+fn remove_patch(state: &mut State, patch: Patch) -> bool {
+    state.patches_mut().remove(&patch);
+    true
+}
+
+fn set_triggered_node(state: &mut State, node_id: String) -> bool {
     let node_index = state
         .nodes()
         .iter()
@@ -81,18 +85,25 @@ fn set_triggered_node(state: &mut State, node_id: String) {
     let node = state.nodes_mut().remove(node_index);
     state.nodes_mut().push(node);
     state.set_triggered_node(Some(node_id));
+    false
 }
 
-fn move_node(state: &mut State, node_id: String, offset: [f32; 2]) {
+fn reset_triggered_node(state: &mut State) -> bool {
+    state.set_triggered_node(None);
+    false
+}
+
+fn move_node(state: &mut State, node_id: String, offset: [f32; 2]) -> bool {
     let mut node = state
         .nodes_mut()
         .iter_mut()
         .find(|n| n.id() == &node_id)
         .expect("node_id must match an existing node");
     node.position = vec2::sum(&[node.position, offset]);
+    false
 }
 
-fn set_triggered_pin(state: &mut State, pin_address: PinAddress) {
+fn set_triggered_pin(state: &mut State, pin_address: PinAddress) -> bool {
     let newly_triggered_pin = pin_address;
 
     if let Some(previously_triggered_pin) = state.triggered_pin_take() {
@@ -104,13 +115,26 @@ fn set_triggered_pin(state: &mut State, pin_address: PinAddress) {
             previously_triggered_pin,
             newly_triggered_pin,
         )));
+        true
     } else {
         state.set_triggered_pin(Some(newly_triggered_pin));
+        false
     }
 }
 
-fn reset_triggered_pin(state: &mut State) {
+fn reset_triggered_pin(state: &mut State) -> bool {
     state.set_triggered_pin(None);
+    false
+}
+
+fn set_triggered_patch(state: &mut State, patch: Patch) -> bool {
+    state.set_triggered_patch(Some(patch));
+    false
+}
+
+fn reset_triggered_patch(state: &mut State) -> bool {
+    state.set_triggered_patch(None);
+    false
 }
 
 fn set_multiline_input_content(
@@ -118,7 +142,7 @@ fn set_multiline_input_content(
     node_id: String,
     widget_key: String,
     content: String,
-) {
+) -> bool {
     let widget = state
         .nodes_mut()
         .iter_mut()
@@ -132,9 +156,16 @@ fn set_multiline_input_content(
     if let Widget::MultilineInput(multiline_input) = widget {
         multiline_input.set_content(content);
     }
+
+    true
 }
 
-fn set_trigger_active(state: &mut State, node_id: String, widget_key: String, active: bool) {
+fn set_trigger_active(
+    state: &mut State,
+    node_id: String,
+    widget_key: String,
+    active: bool,
+) -> bool {
     let widget = state
         .nodes_mut()
         .iter_mut()
@@ -148,9 +179,11 @@ fn set_trigger_active(state: &mut State, node_id: String, widget_key: String, ac
     if let Widget::Trigger(trigger) = widget {
         trigger.set_active(active);
     }
+
+    true
 }
 
-fn set_slider_value(state: &mut State, node_id: String, widget_key: String, value: f32) {
+fn set_slider_value(state: &mut State, node_id: String, widget_key: String, value: f32) -> bool {
     let widget = state
         .nodes_mut()
         .iter_mut()
@@ -164,9 +197,16 @@ fn set_slider_value(state: &mut State, node_id: String, widget_key: String, valu
     if let Widget::Slider(slider) = widget {
         slider.set_value(value);
     }
+
+    true
 }
 
-fn set_dropdown_value(state: &mut State, node_id: String, widget_key: String, value: String) {
+fn set_dropdown_value(
+    state: &mut State,
+    node_id: String,
+    widget_key: String,
+    value: String,
+) -> bool {
     let widget = state
         .nodes_mut()
         .iter_mut()
@@ -180,6 +220,8 @@ fn set_dropdown_value(state: &mut State, node_id: String, widget_key: String, va
     if let Widget::DropDown(dropdown) = widget {
         dropdown.set_value(value);
     }
+
+    true
 }
 
 #[cfg(test)]
@@ -195,7 +237,7 @@ mod tests {
         let mut state = State::default();
         let original_offset = state.offset;
 
-        reduce(&mut state, Action::Scroll { offset: [1.0, 2.0] });
+        assert!(!reduce(&mut state, Action::Scroll { offset: [1.0, 2.0] }));
 
         assert_eq!(state.offset[0], original_offset[0] + 1.0);
         assert_eq!(state.offset[1], original_offset[1] + 2.0);
@@ -211,13 +253,13 @@ mod tests {
             vec![],
         ));
 
-        reduce(
+        assert!(reduce(
             &mut state,
             Action::AddNode {
                 class: "class".to_owned(),
                 position: [100.0, 200.0],
             },
-        );
+        ));
 
         assert_eq!(state.nodes()[0].class(), "class");
         assert_eq!(state.nodes()[0].position, [100.0, 200.0]);
@@ -246,12 +288,12 @@ mod tests {
             )
             .unwrap();
 
-        reduce(
+        assert!(reduce(
             &mut state,
             Action::RemoveNode {
                 node_id: "class:1".to_owned(),
             },
-        );
+        ));
 
         assert_eq!(state.nodes().len(), 1);
         assert!(state.patches().is_empty());
@@ -269,13 +311,13 @@ mod tests {
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
         let original_position = state.nodes()[0].position;
 
-        reduce(
+        assert!(!reduce(
             &mut state,
             Action::MoveNode {
                 node_id: "class:0".to_owned(),
                 offset: [100.0, 200.0],
             },
-        );
+        ));
 
         let updated_position1 = state.nodes()[0].position;
         assert_eq!(
@@ -283,13 +325,13 @@ mod tests {
             vec2::sum(&[original_position, [100.0, 200.0]])
         );
 
-        reduce(
+        assert!(!reduce(
             &mut state,
             Action::MoveNode {
                 node_id: "class:0".to_owned(),
                 offset: [10.0, -10.0],
             },
-        );
+        ));
 
         let updated_position2 = state.nodes()[0].position;
         assert_eq!(
@@ -313,17 +355,17 @@ mod tests {
         ));
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
 
-        reduce(
+        assert!(!reduce(
             &mut state,
             Action::SetTriggeredNode {
                 node_id: "class:0".to_owned(),
             },
-        );
+        ));
 
         assert!(state.triggered_node().is_some());
         assert_eq!(state.triggered_node().as_ref().unwrap(), "class:0");
 
-        reduce(&mut state, Action::ResetTriggeredNode);
+        assert!(!reduce(&mut state, Action::ResetTriggeredNode));
 
         assert!(state.triggered_node().is_none());
     }
@@ -342,12 +384,12 @@ mod tests {
         assert_eq!(state.nodes()[0].id(), "class:0");
         assert_eq!(state.nodes()[1].id(), "class:1");
 
-        reduce(
+        assert!(!reduce(
             &mut state,
             Action::SetTriggeredNode {
                 node_id: "class:0".to_owned(),
             },
-        );
+        ));
 
         assert_eq!(state.nodes()[0].id(), "class:1");
         assert_eq!(state.nodes()[1].id(), "class:0");
@@ -378,17 +420,17 @@ mod tests {
             PinAddress::new("class:0".to_owned(), "out".to_owned()),
             PinAddress::new("class:1".to_owned(), "in".to_owned()),
         );
-        reduce(
+        assert!(!reduce(
             &mut state,
             Action::SetTriggeredPatch {
                 patch: patch.clone(),
             },
-        );
+        ));
 
         assert!(state.triggered_patch().is_some());
         assert_eq!(state.triggered_patch().as_ref().unwrap(), &patch);
 
-        reduce(&mut state, Action::ResetTriggeredPatch);
+        assert!(!reduce(&mut state, Action::ResetTriggeredPatch));
 
         assert!(state.triggered_patch().is_none());
     }
@@ -408,18 +450,18 @@ mod tests {
         ));
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
 
-        reduce(
+        assert!(!reduce(
             &mut state,
             Action::SetTriggeredPin {
                 pin_address: PinAddress::new("class:0".to_owned(), "in".to_owned()),
             },
-        );
+        ));
 
         assert!(state.triggered_pin().is_some());
         assert_eq!(state.triggered_pin().as_ref().unwrap().node_id(), "class:0");
         assert_eq!(state.triggered_pin().as_ref().unwrap().pin_class(), "in");
 
-        reduce(&mut state, Action::ResetTriggeredPin);
+        assert!(!reduce(&mut state, Action::ResetTriggeredPin));
 
         assert!(state.triggered_pin().is_none());
     }
@@ -439,19 +481,19 @@ mod tests {
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
 
-        reduce(
+        assert!(!reduce(
             &mut state,
             Action::SetTriggeredPin {
                 pin_address: PinAddress::new("class:0".to_owned(), "out".to_owned()),
             },
-        );
+        ));
 
-        reduce(
+        assert!(reduce(
             &mut state,
             Action::SetTriggeredPin {
                 pin_address: PinAddress::new("class:1".to_owned(), "in".to_owned()),
             },
-        );
+        ));
 
         let patch = state.patches().iter().next().unwrap();
         assert_eq!(
@@ -486,7 +528,7 @@ mod tests {
             )
             .unwrap();
 
-        reduce(
+        assert!(reduce(
             &mut state,
             Action::RemovePatch {
                 patch: Patch::new(
@@ -494,7 +536,7 @@ mod tests {
                     PinAddress::new("class:1".to_owned(), "in".to_owned()),
                 ),
             },
-        );
+        ));
 
         assert!(state.patches().is_empty());
     }
@@ -514,14 +556,14 @@ mod tests {
         ));
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
 
-        reduce(
+        assert!(reduce(
             &mut state,
             Action::SetMultilineInputContent {
                 node_id: "class:0".to_owned(),
                 widget_key: "key".to_owned(),
                 content: "hello world".to_owned(),
             },
-        );
+        ));
 
         if let Widget::MultilineInput(multiline_input) = &state.nodes()[0].widgets()[0] {
             assert_eq!(multiline_input.content(), "hello world");
@@ -544,13 +586,13 @@ mod tests {
         ));
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
 
-        reduce(
+        assert!(reduce(
             &mut state,
             Action::SetTriggerActive {
                 node_id: "class:0".to_owned(),
                 widget_key: "key".to_owned(),
             },
-        );
+        ));
 
         if let Widget::Trigger(trigger) = &state.nodes()[0].widgets()[0] {
             assert!(trigger.active());
@@ -558,13 +600,13 @@ mod tests {
             panic!("invalid widget type");
         }
 
-        reduce(
+        assert!(reduce(
             &mut state,
             Action::SetTriggerInactive {
                 node_id: "class:0".to_owned(),
                 widget_key: "key".to_owned(),
             },
-        );
+        ));
 
         if let Widget::Trigger(trigger) = &state.nodes()[0].widgets()[0] {
             assert!(!trigger.active());
@@ -591,14 +633,14 @@ mod tests {
         ));
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
 
-        reduce(
+        assert!(reduce(
             &mut state,
             Action::SetSliderValue {
                 node_id: "class:0".to_owned(),
                 widget_key: "key".to_owned(),
                 value: 6.0,
             },
-        );
+        ));
 
         if let Widget::Slider(slider) = &state.nodes()[0].widgets()[0] {
             assert_eq!(slider.value(), 6.0);
@@ -624,14 +666,14 @@ mod tests {
         ));
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
 
-        reduce(
+        assert!(reduce(
             &mut state,
             Action::SetDropDownValue {
                 node_id: "class:0".to_owned(),
                 widget_key: "key".to_owned(),
                 value: "value2".to_owned(),
             },
-        );
+        ));
 
         if let Widget::DropDown(dropdown) = &state.nodes()[0].widgets()[0] {
             assert_eq!(dropdown.value(), "value2");

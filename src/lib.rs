@@ -17,15 +17,18 @@ mod vec2;
 mod view;
 mod widget;
 
+use std::sync::mpsc;
+
 const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const GRAY: [f32; 4] = [0.9, 0.9, 0.9, 1.0];
 const DARK_GRAY: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
 
-pub fn run(conf: config::Config) {
+pub fn run(conf: config::Config) -> mpsc::Receiver<report::Report> {
+    let (sender, receiver) = mpsc::channel();
+
     let initial_state = state::State::from(conf);
     let mut store = store::Store::new(initial_state, reducer::reduce);
-
     let s = system::System::init("Gazpatcho");
     s.main_loop(move |_, ui| {
         set_styles(ui, || {
@@ -41,11 +44,16 @@ pub fn run(conf: config::Config) {
                     view::draw(store.state(), ui)
                         .into_iter()
                         .for_each(|action| {
-                            store.reduce(action);
-                        })
+                            if store.reduce(action) {
+                                println!("Changed");
+                            }
+                        });
+                    // TODO: If updated, put to sender
                 });
         })
     });
+
+    receiver
 }
 
 fn set_styles<F: FnOnce()>(ui: &imgui::Ui<'_>, f: F) {

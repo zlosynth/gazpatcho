@@ -3,11 +3,11 @@ use crate::state::State;
 
 pub struct Store {
     state: State,
-    reducer: fn(&mut State, Action),
+    reducer: fn(&mut State, Action) -> bool,
 }
 
 impl Store {
-    pub fn new(state: State, reducer: fn(&mut State, Action)) -> Self {
+    pub fn new(state: State, reducer: fn(&mut State, Action) -> bool) -> Self {
         Self { state, reducer }
     }
 
@@ -15,7 +15,7 @@ impl Store {
         &self.state
     }
 
-    pub fn reduce(&mut self, action: Action) {
-        (self.reducer)(&mut self.state, action);
+    pub fn reduce(&mut self, action: Action) -> bool {
+        (self.reducer)(&mut self.state, action)
     }
 }
