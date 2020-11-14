@@ -9,7 +9,7 @@ use std::convert::From;
 
 use imgui::ImString;
 
-#[derive(Getters, MutGetters, Setters, PartialEq, Default, Debug)]
+#[derive(Getters, MutGetters, Setters, PartialEq, Clone, Default, Debug)]
 pub struct State {
     pub offset: [f32; 2],
 
@@ -31,6 +31,7 @@ pub struct State {
     triggered_patch: Option<Patch>,
 }
 
+// TODO: take by reference
 impl From<crate::config::Config> for State {
     fn from(config: crate::config::Config) -> Self {
         let mut state = Self::default();
@@ -95,7 +96,67 @@ impl From<crate::config::Widget> for Widget {
     }
 }
 
-#[derive(Getters, PartialEq, Debug)]
+// TODO: Implement convertor from reference
+impl From<State> for crate::report::Report {
+    fn from(state: State) -> Self {
+        Self {
+            nodes: state
+                .nodes
+                .into_iter()
+                .map(|n| crate::report::Node::from(n))
+                .collect(),
+            patches: state
+                .patches
+                .into_iter()
+                .map(|p| crate::report::Patch::from(p))
+                .collect(),
+        }
+    }
+}
+
+impl From<Node> for crate::report::Node {
+    fn from(state: Node) -> Self {
+        Self {
+            id: state.id().to_string(),
+            class: state.class().to_string(),
+            data: state
+                .widgets
+                .into_iter()
+                .map(|w| (w.key().to_string(), crate::report::Value::from(w)))
+                .collect(),
+        }
+    }
+}
+
+impl From<Widget> for crate::report::Value {
+    fn from(state: Widget) -> Self {
+        match state {
+            Widget::DropDown(dropdown) => Self::String(dropdown.value().to_string()),
+            Widget::MultilineInput(multiline_input) => {
+                Self::String(multiline_input.content().to_string())
+            }
+            Widget::Slider(slider) => Self::F32(slider.value()),
+            Widget::Trigger(trigger) => Self::Bool(trigger.active()),
+        }
+    }
+}
+
+impl From<Patch> for crate::report::Patch {
+    fn from(state: Patch) -> Self {
+        Self {
+            source: crate::report::PinAddress {
+                node_id: state.source.node_id.clone(),
+                pin_class: state.source.pin_class.clone(),
+            },
+            destination: crate::report::PinAddress {
+                node_id: state.destination.node_id.clone(),
+                pin_class: state.destination.pin_class.clone(),
+            },
+        }
+    }
+}
+
+#[derive(Getters, PartialEq, Clone, Debug)]
 pub struct NodeTemplate {
     label: ImString,
     #[getset(get = "pub")]

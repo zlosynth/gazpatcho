@@ -1,16 +1,19 @@
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct Report {
     pub nodes: Vec<Node>,
     pub patches: Vec<Patch>,
 }
 
+#[derive(Debug)]
 pub struct Node {
     pub id: String,
     pub class: String,
     pub data: HashMap<String, Value>,
 }
 
+#[derive(Debug)]
 pub enum Value {
     String(String),
     F32(f32),
@@ -43,11 +46,13 @@ impl Value {
     }
 }
 
+#[derive(Debug)]
 pub struct Patch {
     pub source: PinAddress,
     pub destination: PinAddress,
 }
 
+#[derive(Debug)]
 pub struct PinAddress {
     pub node_id: String,
     pub pin_class: String,

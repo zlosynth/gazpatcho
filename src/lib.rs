@@ -45,7 +45,8 @@ pub fn run(conf: config::Config) -> mpsc::Receiver<report::Report> {
                         .into_iter()
                         .for_each(|action| {
                             if store.reduce(action) {
-                                println!("Changed");
+                                println!("Changed:");
+                                dbg!(crate::report::Report::from((*store.state()).clone()));
                             }
                         });
                     // TODO: If updated, put to sender

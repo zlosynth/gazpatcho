@@ -5,7 +5,7 @@ use crate::vec2;
 // TODO: Keep all in functions
 // TODO: When changed, return true
 pub fn reduce(state: &mut State, action: Action) -> bool {
-    dbg!(&action);
+    // dbg!(&action);
     match action {
         Action::Scroll { offset } => scroll(state, offset),
         Action::AddNode { class, position } => add_node(state, class, position),
