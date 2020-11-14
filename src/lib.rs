@@ -8,14 +8,11 @@ extern crate getset;
 pub mod config;
 pub mod report;
 
-mod action;
-mod reducer;
-mod state;
-mod store;
-mod system;
+mod engine;
 mod vec2;
-mod view;
 mod widget;
+
+use engine::{reducer, state, store, system, view};
 
 const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
@@ -44,7 +41,9 @@ where
                         .into_iter()
                         .for_each(|action| {
                             if store.reduce(action) {
-                                report_callback(crate::report::Report::from((*store.state()).clone()));
+                                report_callback(crate::report::Report::from(
+                                    (*store.state()).clone(),
+                                ));
                             }
                         });
                 });

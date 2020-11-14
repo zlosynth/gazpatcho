@@ -1,5 +1,5 @@
 // TODO: Introduce WidgetAddress
-use crate::state::{Patch, PinAddress};
+use crate::engine::state::{Patch, PinAddress};
 
 #[derive(Debug)]
 pub enum Action {

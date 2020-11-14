@@ -1,7 +1,8 @@
 extern crate imgui;
 
-use crate::vec2;
 use std::boxed::Box;
+
+use crate::vec2;
 
 const HEIGHT: f32 = 17.0;
 
