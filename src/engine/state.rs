@@ -103,12 +103,12 @@ impl From<State> for crate::report::Report {
             nodes: state
                 .nodes
                 .into_iter()
-                .map(|n| crate::report::Node::from(n))
+                .map(crate::report::Node::from)
                 .collect(),
             patches: state
                 .patches
                 .into_iter()
-                .map(|p| crate::report::Patch::from(p))
+                .map(crate::report::Patch::from)
                 .collect(),
         }
     }
@@ -145,12 +145,12 @@ impl From<Patch> for crate::report::Patch {
     fn from(state: Patch) -> Self {
         Self {
             source: crate::report::PinAddress {
-                node_id: state.source.node_id.clone(),
-                pin_class: state.source.pin_class.clone(),
+                node_id: state.source.node_id,
+                pin_class: state.source.pin_class,
             },
             destination: crate::report::PinAddress {
-                node_id: state.destination.node_id.clone(),
-                pin_class: state.destination.pin_class.clone(),
+                node_id: state.destination.node_id,
+                pin_class: state.destination.pin_class,
             },
         }
     }
@@ -288,6 +288,7 @@ pub enum Direction {
     Output,
 }
 
+// TODO: Make this into Enum, to make type checks easier
 #[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct Pin {
     label: ImString,
@@ -354,35 +355,19 @@ impl Widget {
     }
 
     pub fn is_trigger(&self) -> bool {
-        if let Widget::Trigger(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Widget::Trigger(_))
     }
 
     pub fn is_multiline_input(&self) -> bool {
-        if let Widget::MultilineInput(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Widget::MultilineInput(_))
     }
 
     pub fn is_slider(&self) -> bool {
-        if let Widget::Slider(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Widget::Slider(_))
     }
 
     pub fn is_dropdown(&self) -> bool {
-        if let Widget::DropDown(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Widget::DropDown(_))
     }
 }
 
@@ -516,7 +501,7 @@ pub struct DropDown {
 
 impl DropDown {
     pub fn new(key: String, items: Vec<DropDownItem>) -> Self {
-        assert!(items.len() > 0, "items must not be empty");
+        assert!(!items.is_empty(), "items must not be empty");
         Self {
             key,
             value: items[0].value.clone(),
@@ -576,14 +561,14 @@ impl State {
     }
 }
 
-fn must_find_node<'a>(nodes: &'a Vec<Node>, id: &str) -> &'a Node {
+fn must_find_node<'a>(nodes: &'a [Node], id: &str) -> &'a Node {
     nodes
         .iter()
         .find(|n| n.id() == id)
         .expect("Patch must reference an existing node")
 }
 
-fn must_find_pin<'a>(pins: &'a Vec<Pin>, class: &str) -> &'a Pin {
+fn must_find_pin<'a>(pins: &'a [Pin], class: &str) -> &'a Pin {
     pins.iter()
         .find(|p| p.class() == class)
         .expect("Patch must reference pin class available in the given node")
@@ -659,7 +644,7 @@ mod tests {
     mod node_template {
         use super::*;
 
-        fn pin_label(pins: &Vec<Pin>, class: &str) -> String {
+        fn pin_label(pins: &[Pin], class: &str) -> String {
             pins.iter()
                 .find(|p| p.class() == class)
                 .expect("Pin of given class was not found")

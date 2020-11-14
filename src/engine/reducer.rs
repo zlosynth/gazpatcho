@@ -79,7 +79,7 @@ fn set_triggered_node(state: &mut State, node_id: String) -> bool {
         .nodes()
         .iter()
         .enumerate()
-        .find(|(_, n)| n.id() == &node_id)
+        .find(|(_, n)| n.id() == node_id)
         .expect("node_id must match an existing node")
         .0;
     let node = state.nodes_mut().remove(node_index);
@@ -97,7 +97,7 @@ fn move_node(state: &mut State, node_id: String, offset: [f32; 2]) -> bool {
     let mut node = state
         .nodes_mut()
         .iter_mut()
-        .find(|n| n.id() == &node_id)
+        .find(|n| n.id() == node_id)
         .expect("node_id must match an existing node");
     node.position = vec2::sum(&[node.position, offset]);
     false
@@ -108,10 +108,7 @@ fn set_triggered_pin(state: &mut State, pin_address: PinAddress) -> bool {
 
     if let Some(previously_triggered_pin) = state.triggered_pin_take() {
         let stored_patch = state
-            .add_patch(
-                previously_triggered_pin.clone(),
-                newly_triggered_pin.clone(),
-            )
+            .add_patch(previously_triggered_pin, newly_triggered_pin)
             .unwrap();
         state.set_triggered_patch(Some(stored_patch));
         true
@@ -145,7 +142,7 @@ fn set_multiline_input_content(
     let widget = state
         .nodes_mut()
         .iter_mut()
-        .find(|n| n.id() == &node_id)
+        .find(|n| n.id() == node_id)
         .expect("node_id must match an existing node")
         .widgets_mut()
         .iter_mut()
@@ -168,7 +165,7 @@ fn set_trigger_active(
     let widget = state
         .nodes_mut()
         .iter_mut()
-        .find(|n| n.id() == &node_id)
+        .find(|n| n.id() == node_id)
         .expect("node_id must match an existing node")
         .widgets_mut()
         .iter_mut()
@@ -186,7 +183,7 @@ fn set_slider_value(state: &mut State, node_id: String, widget_key: String, valu
     let widget = state
         .nodes_mut()
         .iter_mut()
-        .find(|n| n.id() == &node_id)
+        .find(|n| n.id() == node_id)
         .expect("node_id must match an existing node")
         .widgets_mut()
         .iter_mut()
@@ -209,7 +206,7 @@ fn set_dropdown_value(
     let widget = state
         .nodes_mut()
         .iter_mut()
-        .find(|n| n.id() == &node_id)
+        .find(|n| n.id() == node_id)
         .expect("node_id must match an existing node")
         .widgets_mut()
         .iter_mut()
