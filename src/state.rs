@@ -5,10 +5,11 @@ extern crate imgui;
 use std::cell::RefCell;
 use std::clone::Clone;
 use std::collections::HashSet;
+use std::convert::From;
 
 use imgui::ImString;
 
-#[derive(Getters, MutGetters, Setters, Default, Debug)]
+#[derive(Getters, MutGetters, Setters, PartialEq, Default, Debug)]
 pub struct State {
     pub offset: [f32; 2],
 
@@ -30,7 +31,71 @@ pub struct State {
     triggered_patch: Option<Patch>,
 }
 
-#[derive(Getters, Debug)]
+impl From<crate::config::Config> for State {
+    fn from(config: crate::config::Config) -> Self {
+        let mut state = Self::default();
+        config
+            .node_templates
+            .into_iter()
+            .for_each(|t| state.add_node_template(NodeTemplate::from(t)));
+        state
+    }
+}
+
+impl From<crate::config::NodeTemplate> for NodeTemplate {
+    fn from(config: crate::config::NodeTemplate) -> Self {
+        NodeTemplate::new(
+            config.label,
+            config.class,
+            config.pins.into_iter().map(Pin::from).collect(),
+            config.widgets.into_iter().map(Widget::from).collect(),
+        )
+    }
+}
+
+impl From<crate::config::Pin> for Pin {
+    fn from(config: crate::config::Pin) -> Self {
+        Pin::new(
+            config.label,
+            config.class,
+            match config.direction {
+                crate::config::Direction::Input => Direction::Input,
+                crate::config::Direction::Output => Direction::Output,
+            },
+        )
+    }
+}
+
+impl From<crate::config::Widget> for Widget {
+    fn from(config: crate::config::Widget) -> Self {
+        match config {
+            crate::config::Widget::MultilineInput {
+                key,
+                capacity,
+                size,
+            } => Widget::MultilineInput(MultilineInput::new(key, capacity, size)),
+            crate::config::Widget::Slider {
+                key,
+                min,
+                max,
+                format,
+                width,
+            } => Widget::Slider(Slider::new(key, min, max, min, format, width)),
+            crate::config::Widget::Trigger { key, label } => {
+                Widget::Trigger(Trigger::new(label, key))
+            }
+            crate::config::Widget::DropDown { key, items } => Widget::DropDown(DropDown::new(
+                key,
+                items
+                    .into_iter()
+                    .map(|i| DropDownItem::new(i.label, i.value))
+                    .collect(),
+            )),
+        }
+    }
+}
+
+#[derive(Getters, PartialEq, Debug)]
 pub struct NodeTemplate {
     label: ImString,
     #[getset(get = "pub")]
@@ -895,6 +960,100 @@ mod tests {
                 Ok(()) => panic!("Operation should fail"),
                 Err(err) => assert_eq!(err, "Patch cannot connect pins of the same direction"),
             }
+        }
+    }
+
+    mod from_config {
+        use super::*;
+
+        #[test]
+        fn initialize_state_from_config() {
+            use crate::config as c;
+            let config = c::Config {
+                node_templates: vec![c::NodeTemplate {
+                    label: "Node Label".to_owned(),
+                    class: "node_class".to_owned(),
+                    pins: vec![
+                        c::Pin {
+                            label: "Input".to_owned(),
+                            class: "input1".to_owned(),
+                            direction: c::Input,
+                        },
+                        c::Pin {
+                            label: "Output".to_owned(),
+                            class: "output1".to_owned(),
+                            direction: c::Output,
+                        },
+                    ],
+                    widgets: vec![
+                        c::MultilineInput {
+                            key: "multiline_input".to_owned(),
+                            capacity: 1000,
+                            size: [300.0, 100.0],
+                        },
+                        c::Slider {
+                            key: "slider".to_owned(),
+                            min: 0.0,
+                            max: 10.0,
+                            format: "%.1f".to_owned(),
+                            width: 150.0,
+                        },
+                        c::Trigger {
+                            label: "Trigger".to_owned(),
+                            key: "trigger".to_owned(),
+                        },
+                        c::DropDown {
+                            key: "dropdown".to_owned(),
+                            items: vec![
+                                c::DropDownItem {
+                                    label: "Item 1".to_owned(),
+                                    value: "item1".to_owned(),
+                                },
+                                c::DropDownItem {
+                                    label: "Item 2".to_owned(),
+                                    value: "item2".to_owned(),
+                                },
+                            ],
+                        },
+                    ],
+                }],
+            };
+            let mut expected_state = State::default();
+            expected_state.add_node_template(NodeTemplate::new(
+                "Node Label".to_owned(),
+                "node_class".to_owned(),
+                vec![
+                    Pin::new("Input".to_owned(), "input1".to_owned(), Direction::Input),
+                    Pin::new("Output".to_owned(), "output1".to_owned(), Direction::Output),
+                ],
+                vec![
+                    Widget::MultilineInput(MultilineInput::new(
+                        "multiline_input".to_owned(),
+                        1000,
+                        [300.0, 100.0],
+                    )),
+                    Widget::Slider(Slider::new(
+                        "slider".to_owned(),
+                        0.0,
+                        10.0,
+                        0.0,
+                        "%.1f".to_owned(),
+                        150.0,
+                    )),
+                    Widget::Trigger(Trigger::new("Trigger".to_owned(), "trigger".to_owned())),
+                    Widget::DropDown(DropDown::new(
+                        "dropdown".to_owned(),
+                        vec![
+                            DropDownItem::new("Item 1".to_owned(), "item1".to_owned()),
+                            DropDownItem::new("Item 2".to_owned(), "item2".to_owned()),
+                        ],
+                    )),
+                ],
+            ));
+
+            let state = State::from(config);
+
+            assert_eq!(state, expected_state);
         }
     }
 }

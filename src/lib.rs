@@ -1,8 +1,11 @@
+// TODO: Have just lib, config, snapshot and XXX for internal
 #[macro_use]
 extern crate imgui;
 
 #[macro_use]
 extern crate getset;
+
+pub mod config;
 
 mod action;
 mod reducer;
@@ -18,84 +21,8 @@ const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const GRAY: [f32; 4] = [0.9, 0.9, 0.9, 1.0];
 const DARK_GRAY: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
 
-pub fn run() {
-    let mut initial_state = state::State::default();
-    initial_state.add_node_template(state::NodeTemplate::new(
-        "Comment".to_owned(),
-        "comment".to_owned(),
-        vec![],
-        vec![state::Widget::MultilineInput(state::MultilineInput::new(
-            "comment".to_owned(),
-            1000,
-            [300.0, 100.0],
-        ))],
-    ));
-    initial_state.add_node_template(state::NodeTemplate::new(
-        "Oscillator".to_owned(),
-        "oscillator".to_owned(),
-        vec![
-            state::Pin::new(
-                "Frequency".to_owned(),
-                "frequency".to_owned(),
-                state::Direction::Input,
-            ),
-            state::Pin::new(
-                "Waveform".to_owned(),
-                "waveform".to_owned(),
-                state::Direction::Input,
-            ),
-            state::Pin::new(
-                "Output".to_owned(),
-                "output".to_owned(),
-                state::Direction::Output,
-            ),
-        ],
-        vec![
-            state::Widget::Slider(state::Slider::new(
-                "slider".to_owned(),
-                0.0,
-                10.0,
-                5.0,
-                "%.1f".to_owned(),
-                150.0,
-            )),
-            state::Widget::Trigger(state::Trigger::new(
-                "Trigger".to_owned(),
-                "triggered".to_owned(),
-            )),
-            state::Widget::DropDown(state::DropDown::new(
-                "dropdown".to_owned(),
-                vec![
-                    state::DropDownItem::new("Sine".to_owned(), "sine".to_owned()),
-                    state::DropDownItem::new("Square".to_owned(), "square".to_owned()),
-                    state::DropDownItem::new("Triangle".to_owned(), "triangle".to_owned()),
-                    state::DropDownItem::new("Saw".to_owned(), "saw".to_owned()),
-                ],
-            )),
-        ],
-    ));
-    initial_state.add_node_template(state::NodeTemplate::new(
-        "Mixer".to_owned(),
-        "mixer".to_owned(),
-        vec![
-            state::Pin::new(
-                "Input 1".to_owned(),
-                "input1".to_owned(),
-                state::Direction::Input,
-            ),
-            state::Pin::new(
-                "Input 2".to_owned(),
-                "input2".to_owned(),
-                state::Direction::Input,
-            ),
-            state::Pin::new(
-                "Output".to_owned(),
-                "output".to_owned(),
-                state::Direction::Output,
-            ),
-        ],
-        vec![],
-    ));
+pub fn run(conf: config::Config) {
+    let initial_state = state::State::from(conf);
     let mut store = store::Store::new(initial_state, reducer::reduce);
 
     let s = system::System::init("Gazpatcho");
