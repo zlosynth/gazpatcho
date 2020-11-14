@@ -22,7 +22,10 @@ const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const GRAY: [f32; 4] = [0.9, 0.9, 0.9, 1.0];
 const DARK_GRAY: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
 
-pub fn run(conf: config::Config)  {
+pub fn run<F>(conf: config::Config, report_callback: F)
+where
+    F: Fn(crate::report::Report) + 'static,
+{
     let initial_state = state::State::from(conf);
     let mut store = store::Store::new(initial_state, reducer::reduce);
     let s = system::System::init("Gazpatcho");
@@ -41,8 +44,7 @@ pub fn run(conf: config::Config)  {
                         .into_iter()
                         .for_each(|action| {
                             if store.reduce(action) {
-                                println!("Changed:");
-                                dbg!(crate::report::Report::from((*store.state()).clone()));
+                                report_callback(crate::report::Report::from((*store.state()).clone()));
                             }
                         });
                 });

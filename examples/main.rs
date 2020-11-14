@@ -13,6 +13,7 @@ fn main() {
             size: [300.0, 100.0],
         }],
     };
+
     let oscillator = NodeTemplate {
         label: "Oscillator".to_owned(),
         class: "oscillator".to_owned(),
@@ -68,6 +69,7 @@ fn main() {
             },
         ],
     };
+
     let mixer = NodeTemplate {
         label: "Mixer".to_owned(),
         class: "mixer".to_owned(),
@@ -90,14 +92,12 @@ fn main() {
         ],
         widgets: vec![],
     };
+
     let config = Config {
         node_templates: vec![comment, oscillator, mixer],
     };
-    // let handle = gazpatcho::start("Gazpatcho example", config);
-    // for updated_state in handle.read_state() {
-    //     // every time the state is updated; use channels
-    // }
-    // DEFINED A WRAPPER FOR STATE CALLED CONFIG, JUST TEMPLATES
-    // DEFINE A SIMPLIFIED STATE TO PASS, JUST NODES and PATCHES
-    gazpatcho::run(config);
+
+    gazpatcho::run(config, |report| {
+        dbg!(report);
+    });
 }
