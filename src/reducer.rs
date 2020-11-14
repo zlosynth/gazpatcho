@@ -3,6 +3,7 @@ use crate::state::{Patch, PinAddress, State, Widget};
 use crate::vec2;
 
 // TODO: Keep all in functions
+// TODO: When changed, return true
 pub fn reduce(state: &mut State, action: Action) {
     dbg!(&action);
     match action {

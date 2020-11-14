@@ -6,6 +6,7 @@ extern crate imgui;
 extern crate getset;
 
 pub mod config;
+pub mod report;
 
 mod action;
 mod reducer;
