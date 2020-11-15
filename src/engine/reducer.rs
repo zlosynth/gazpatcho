@@ -2,9 +2,21 @@ use crate::engine::action::Action;
 use crate::engine::state::{Patch, PinAddress, State, Widget};
 use crate::vec2;
 
-// TODO: Keep all in functions
-// TODO: When changed, return true
-pub fn reduce(state: &mut State, action: Action) -> bool {
+pub enum ReduceResult {
+    ModelChanged,
+    ModelUnchanged,
+}
+
+use ReduceResult::*;
+
+impl ReduceResult {
+    pub fn model_changed(&self) -> bool {
+        matches!(self, ModelChanged)
+    }
+}
+
+// TODO: Turn the returned bool into enum Changed, Unchanged
+pub fn reduce(state: &mut State, action: Action) -> ReduceResult {
     // dbg!(&action);
     match action {
         Action::Scroll { offset } => scroll(state, offset),
@@ -44,12 +56,12 @@ pub fn reduce(state: &mut State, action: Action) -> bool {
     }
 }
 
-fn scroll(state: &mut State, offset: [f32; 2]) -> bool {
+fn scroll(state: &mut State, offset: [f32; 2]) -> ReduceResult {
     state.offset = vec2::sum(&[state.offset, offset]);
-    false
+    ModelUnchanged
 }
 
-fn add_node(state: &mut State, class: String, position: [f32; 2]) -> bool {
+fn add_node(state: &mut State, class: String, position: [f32; 2]) -> ReduceResult {
     let node_template = state
         .node_templates()
         .iter()
@@ -58,23 +70,23 @@ fn add_node(state: &mut State, class: String, position: [f32; 2]) -> bool {
     let node = node_template.instantiate(position);
     state.set_triggered_node(Some(node.id().to_string()));
     state.add_node(node);
-    true
+    ModelChanged
 }
 
-fn remove_node(state: &mut State, node_id: String) -> bool {
+fn remove_node(state: &mut State, node_id: String) -> ReduceResult {
     state.nodes_mut().retain(|n| *n.id() != node_id);
     state
         .patches_mut()
         .retain(|p| *p.source().node_id() != node_id && *p.destination().node_id() != node_id);
-    true
+    ModelChanged
 }
 
-fn remove_patch(state: &mut State, patch: Patch) -> bool {
+fn remove_patch(state: &mut State, patch: Patch) -> ReduceResult {
     state.patches_mut().remove(&patch);
-    true
+    ModelChanged
 }
 
-fn set_triggered_node(state: &mut State, node_id: String) -> bool {
+fn set_triggered_node(state: &mut State, node_id: String) -> ReduceResult {
     let node_index = state
         .nodes()
         .iter()
@@ -85,25 +97,25 @@ fn set_triggered_node(state: &mut State, node_id: String) -> bool {
     let node = state.nodes_mut().remove(node_index);
     state.nodes_mut().push(node);
     state.set_triggered_node(Some(node_id));
-    false
+    ModelUnchanged
 }
 
-fn reset_triggered_node(state: &mut State) -> bool {
+fn reset_triggered_node(state: &mut State) -> ReduceResult {
     state.set_triggered_node(None);
-    false
+    ModelUnchanged
 }
 
-fn move_node(state: &mut State, node_id: String, offset: [f32; 2]) -> bool {
+fn move_node(state: &mut State, node_id: String, offset: [f32; 2]) -> ReduceResult {
     let mut node = state
         .nodes_mut()
         .iter_mut()
         .find(|n| n.id() == node_id)
         .expect("node_id must match an existing node");
     node.position = vec2::sum(&[node.position, offset]);
-    false
+    ModelUnchanged
 }
 
-fn set_triggered_pin(state: &mut State, pin_address: PinAddress) -> bool {
+fn set_triggered_pin(state: &mut State, pin_address: PinAddress) -> ReduceResult {
     let newly_triggered_pin = pin_address;
 
     if let Some(previously_triggered_pin) = state.triggered_pin_take() {
@@ -111,26 +123,26 @@ fn set_triggered_pin(state: &mut State, pin_address: PinAddress) -> bool {
             .add_patch(previously_triggered_pin, newly_triggered_pin)
             .unwrap();
         state.set_triggered_patch(Some(stored_patch));
-        true
+        ModelChanged
     } else {
         state.set_triggered_pin(Some(newly_triggered_pin));
-        false
+        ModelUnchanged
     }
 }
 
-fn reset_triggered_pin(state: &mut State) -> bool {
+fn reset_triggered_pin(state: &mut State) -> ReduceResult {
     state.set_triggered_pin(None);
-    false
+    ModelUnchanged
 }
 
-fn set_triggered_patch(state: &mut State, patch: Patch) -> bool {
+fn set_triggered_patch(state: &mut State, patch: Patch) -> ReduceResult {
     state.set_triggered_patch(Some(patch));
-    false
+    ModelUnchanged
 }
 
-fn reset_triggered_patch(state: &mut State) -> bool {
+fn reset_triggered_patch(state: &mut State) -> ReduceResult {
     state.set_triggered_patch(None);
-    false
+    ModelUnchanged
 }
 
 fn set_multiline_input_content(
@@ -138,7 +150,7 @@ fn set_multiline_input_content(
     node_id: String,
     widget_key: String,
     content: String,
-) -> bool {
+) -> ReduceResult {
     let widget = state
         .nodes_mut()
         .iter_mut()
@@ -153,7 +165,7 @@ fn set_multiline_input_content(
         multiline_input.set_content(content);
     }
 
-    true
+    ModelChanged
 }
 
 fn set_trigger_active(
@@ -161,7 +173,7 @@ fn set_trigger_active(
     node_id: String,
     widget_key: String,
     active: bool,
-) -> bool {
+) -> ReduceResult {
     let widget = state
         .nodes_mut()
         .iter_mut()
@@ -176,10 +188,15 @@ fn set_trigger_active(
         trigger.set_active(active);
     }
 
-    true
+    ModelChanged
 }
 
-fn set_slider_value(state: &mut State, node_id: String, widget_key: String, value: f32) -> bool {
+fn set_slider_value(
+    state: &mut State,
+    node_id: String,
+    widget_key: String,
+    value: f32,
+) -> ReduceResult {
     let widget = state
         .nodes_mut()
         .iter_mut()
@@ -194,7 +211,7 @@ fn set_slider_value(state: &mut State, node_id: String, widget_key: String, valu
         slider.set_value(value);
     }
 
-    true
+    ModelChanged
 }
 
 fn set_dropdown_value(
@@ -202,7 +219,7 @@ fn set_dropdown_value(
     node_id: String,
     widget_key: String,
     value: String,
-) -> bool {
+) -> ReduceResult {
     let widget = state
         .nodes_mut()
         .iter_mut()
@@ -217,7 +234,7 @@ fn set_dropdown_value(
         dropdown.set_value(value);
     }
 
-    true
+    ModelChanged
 }
 
 #[cfg(test)]
@@ -233,7 +250,7 @@ mod tests {
         let mut state = State::default();
         let original_offset = state.offset;
 
-        assert!(!reduce(&mut state, Action::Scroll { offset: [1.0, 2.0] }));
+        assert!(!reduce(&mut state, Action::Scroll { offset: [1.0, 2.0] }).model_changed());
 
         assert_eq!(state.offset[0], original_offset[0] + 1.0);
         assert_eq!(state.offset[1], original_offset[1] + 2.0);
@@ -255,7 +272,8 @@ mod tests {
                 class: "class".to_owned(),
                 position: [100.0, 200.0],
             },
-        ));
+        )
+        .model_changed());
 
         assert_eq!(state.nodes()[0].class(), "class");
         assert_eq!(state.nodes()[0].position, [100.0, 200.0]);
@@ -289,7 +307,8 @@ mod tests {
             Action::RemoveNode {
                 node_id: "class:1".to_owned(),
             },
-        ));
+        )
+        .model_changed());
 
         assert_eq!(state.nodes().len(), 1);
         assert!(state.patches().is_empty());
@@ -313,7 +332,8 @@ mod tests {
                 node_id: "class:0".to_owned(),
                 offset: [100.0, 200.0],
             },
-        ));
+        )
+        .model_changed());
 
         let updated_position1 = state.nodes()[0].position;
         assert_eq!(
@@ -327,7 +347,8 @@ mod tests {
                 node_id: "class:0".to_owned(),
                 offset: [10.0, -10.0],
             },
-        ));
+        )
+        .model_changed());
 
         let updated_position2 = state.nodes()[0].position;
         assert_eq!(
@@ -356,12 +377,13 @@ mod tests {
             Action::SetTriggeredNode {
                 node_id: "class:0".to_owned(),
             },
-        ));
+        )
+        .model_changed());
 
         assert!(state.triggered_node().is_some());
         assert_eq!(state.triggered_node().as_ref().unwrap(), "class:0");
 
-        assert!(!reduce(&mut state, Action::ResetTriggeredNode));
+        assert!(!reduce(&mut state, Action::ResetTriggeredNode).model_changed());
 
         assert!(state.triggered_node().is_none());
     }
@@ -385,7 +407,8 @@ mod tests {
             Action::SetTriggeredNode {
                 node_id: "class:0".to_owned(),
             },
-        ));
+        )
+        .model_changed());
 
         assert_eq!(state.nodes()[0].id(), "class:1");
         assert_eq!(state.nodes()[1].id(), "class:0");
@@ -421,12 +444,13 @@ mod tests {
             Action::SetTriggeredPatch {
                 patch: patch.clone(),
             },
-        ));
+        )
+        .model_changed());
 
         assert!(state.triggered_patch().is_some());
         assert_eq!(state.triggered_patch().as_ref().unwrap(), &patch);
 
-        assert!(!reduce(&mut state, Action::ResetTriggeredPatch));
+        assert!(!reduce(&mut state, Action::ResetTriggeredPatch).model_changed());
 
         assert!(state.triggered_patch().is_none());
     }
@@ -451,13 +475,14 @@ mod tests {
             Action::SetTriggeredPin {
                 pin_address: PinAddress::new("class:0".to_owned(), "in".to_owned()),
             },
-        ));
+        )
+        .model_changed());
 
         assert!(state.triggered_pin().is_some());
         assert_eq!(state.triggered_pin().as_ref().unwrap().node_id(), "class:0");
         assert_eq!(state.triggered_pin().as_ref().unwrap().pin_class(), "in");
 
-        assert!(!reduce(&mut state, Action::ResetTriggeredPin));
+        assert!(!reduce(&mut state, Action::ResetTriggeredPin).model_changed());
 
         assert!(state.triggered_pin().is_none());
     }
@@ -482,14 +507,16 @@ mod tests {
             Action::SetTriggeredPin {
                 pin_address: PinAddress::new("class:0".to_owned(), "out".to_owned()),
             },
-        ));
+        )
+        .model_changed());
 
         assert!(reduce(
             &mut state,
             Action::SetTriggeredPin {
                 pin_address: PinAddress::new("class:1".to_owned(), "in".to_owned()),
             },
-        ));
+        )
+        .model_changed());
 
         let patch = state.patches().iter().next().unwrap();
         assert_eq!(
@@ -532,7 +559,8 @@ mod tests {
                     PinAddress::new("class:1".to_owned(), "in".to_owned()),
                 ),
             },
-        ));
+        )
+        .model_changed());
 
         assert!(state.patches().is_empty());
     }
@@ -559,7 +587,8 @@ mod tests {
                 widget_key: "key".to_owned(),
                 content: "hello world".to_owned(),
             },
-        ));
+        )
+        .model_changed());
 
         if let Widget::MultilineInput(multiline_input) = &state.nodes()[0].widgets()[0] {
             assert_eq!(multiline_input.content(), "hello world");
@@ -588,7 +617,8 @@ mod tests {
                 node_id: "class:0".to_owned(),
                 widget_key: "key".to_owned(),
             },
-        ));
+        )
+        .model_changed());
 
         if let Widget::Trigger(trigger) = &state.nodes()[0].widgets()[0] {
             assert!(trigger.active());
@@ -602,7 +632,8 @@ mod tests {
                 node_id: "class:0".to_owned(),
                 widget_key: "key".to_owned(),
             },
-        ));
+        )
+        .model_changed());
 
         if let Widget::Trigger(trigger) = &state.nodes()[0].widgets()[0] {
             assert!(!trigger.active());
@@ -636,7 +667,8 @@ mod tests {
                 widget_key: "key".to_owned(),
                 value: 6.0,
             },
-        ));
+        )
+        .model_changed());
 
         if let Widget::Slider(slider) = &state.nodes()[0].widgets()[0] {
             assert_eq!(slider.value(), 6.0);
@@ -669,7 +701,8 @@ mod tests {
                 widget_key: "key".to_owned(),
                 value: "value2".to_owned(),
             },
-        ));
+        )
+        .model_changed());
 
         if let Widget::DropDown(dropdown) = &state.nodes()[0].widgets()[0] {
             assert_eq!(dropdown.value(), "value2");
