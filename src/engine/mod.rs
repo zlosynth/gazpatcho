@@ -1,7 +1,7 @@
 pub mod reducer;
 pub mod state;
-pub mod store;
 pub mod system;
 pub mod view;
+pub mod window;
 
 mod action;

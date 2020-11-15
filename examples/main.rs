@@ -97,7 +97,7 @@ fn main() {
         node_templates: vec![comment, oscillator, mixer],
     };
 
-    gazpatcho::run(config, |report| {
+    gazpatcho::run("Gazpatcho", config, |report| {
         dbg!(report);
     });
 }
