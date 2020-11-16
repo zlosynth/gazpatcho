@@ -1,5 +1,8 @@
-// TODO: Introduce WidgetAddress
-use crate::engine::state::{Patch, PinAddress};
+//! Actions are used as messages. They are returned from the view to be later
+//! passed to reduce function which, based on the action type, applies requested
+//! changes on the state.
+
+use crate::engine::state::{Patch, PinAddress, WidgetAddress};
 
 #[derive(Debug)]
 pub enum Action {
@@ -33,26 +36,21 @@ pub enum Action {
     },
     ResetTriggeredPatch,
     SetMultilineInputContent {
-        node_id: String,
-        widget_key: String,
+        widget_address: WidgetAddress,
         content: String,
     },
     SetTriggerActive {
-        node_id: String,
-        widget_key: String,
+        widget_address: WidgetAddress,
     },
     SetTriggerInactive {
-        node_id: String,
-        widget_key: String,
+        widget_address: WidgetAddress,
     },
     SetSliderValue {
-        node_id: String,
-        widget_key: String,
+        widget_address: WidgetAddress,
         value: f32,
     },
     SetDropDownValue {
-        node_id: String,
-        widget_key: String,
+        widget_address: WidgetAddress,
         value: String,
     },
 }

@@ -1,4 +1,6 @@
-// TODO: Limit all public that is only to be internal
+//! Internal representation of the state of the application. This module is
+//! responsible for the state to stay consistent.
+
 extern crate getset;
 extern crate imgui;
 
@@ -9,6 +11,9 @@ use std::convert::From;
 
 use imgui::ImString;
 
+use crate::config as c;
+use crate::report as r;
+
 #[derive(Getters, MutGetters, Setters, PartialEq, Clone, Default, Debug)]
 pub struct State {
     pub offset: [f32; 2],
@@ -17,23 +22,19 @@ pub struct State {
     node_templates: Vec<NodeTemplate>,
     #[getset(get = "pub", get_mut = "pub")]
     nodes: Vec<Node>,
-    // TODO: Verify existence on set
     #[getset(get = "pub", set = "pub")]
     triggered_node: Option<String>,
-    // TODO: Verify existence on set
     #[getset(get = "pub", set = "pub")]
     triggered_pin: Option<PinAddress>,
 
     #[getset(get = "pub", get_mut = "pub")]
     patches: HashSet<Patch>,
-    // TODO: Verify existence on set
     #[getset(get = "pub", set = "pub")]
     triggered_patch: Option<Patch>,
 }
 
-// TODO: take by reference
-impl From<crate::config::Config> for State {
-    fn from(config: crate::config::Config) -> Self {
+impl From<c::Config> for State {
+    fn from(config: c::Config) -> Self {
         let mut state = Self::default();
         config
             .node_templates
@@ -43,8 +44,8 @@ impl From<crate::config::Config> for State {
     }
 }
 
-impl From<crate::config::NodeTemplate> for NodeTemplate {
-    fn from(config: crate::config::NodeTemplate) -> Self {
+impl From<c::NodeTemplate> for NodeTemplate {
+    fn from(config: c::NodeTemplate) -> Self {
         NodeTemplate::new(
             config.label,
             config.class,
@@ -54,38 +55,36 @@ impl From<crate::config::NodeTemplate> for NodeTemplate {
     }
 }
 
-impl From<crate::config::Pin> for Pin {
-    fn from(config: crate::config::Pin) -> Self {
+impl From<c::Pin> for Pin {
+    fn from(config: c::Pin) -> Self {
         Pin::new(
             config.label,
             config.class,
             match config.direction {
-                crate::config::Direction::Input => Direction::Input,
-                crate::config::Direction::Output => Direction::Output,
+                c::Direction::Input => Direction::Input,
+                c::Direction::Output => Direction::Output,
             },
         )
     }
 }
 
-impl From<crate::config::Widget> for Widget {
-    fn from(config: crate::config::Widget) -> Self {
+impl From<c::Widget> for Widget {
+    fn from(config: c::Widget) -> Self {
         match config {
-            crate::config::Widget::MultilineInput {
+            c::Widget::MultilineInput {
                 key,
                 capacity,
                 size,
             } => Widget::MultilineInput(MultilineInput::new(key, capacity, size)),
-            crate::config::Widget::Slider {
+            c::Widget::Slider {
                 key,
                 min,
                 max,
                 format,
                 width,
             } => Widget::Slider(Slider::new(key, min, max, min, format, width)),
-            crate::config::Widget::Trigger { key, label } => {
-                Widget::Trigger(Trigger::new(label, key))
-            }
-            crate::config::Widget::DropDown { key, items } => Widget::DropDown(DropDown::new(
+            c::Widget::Trigger { key, label } => Widget::Trigger(Trigger::new(label, key)),
+            c::Widget::DropDown { key, items } => Widget::DropDown(DropDown::new(
                 key,
                 items
                     .into_iter()
@@ -96,40 +95,31 @@ impl From<crate::config::Widget> for Widget {
     }
 }
 
-// TODO: Implement convertor from reference
-impl From<State> for crate::report::Report {
-    fn from(state: State) -> Self {
+impl From<&State> for r::Report {
+    fn from(state: &State) -> Self {
         Self {
-            nodes: state
-                .nodes
-                .into_iter()
-                .map(crate::report::Node::from)
-                .collect(),
-            patches: state
-                .patches
-                .into_iter()
-                .map(crate::report::Patch::from)
-                .collect(),
+            nodes: state.nodes.iter().map(r::Node::from).collect(),
+            patches: state.patches.iter().map(r::Patch::from).collect(),
         }
     }
 }
 
-impl From<Node> for crate::report::Node {
-    fn from(state: Node) -> Self {
+impl From<&Node> for r::Node {
+    fn from(state: &Node) -> Self {
         Self {
             id: state.id().to_string(),
             class: state.class().to_string(),
             data: state
                 .widgets
-                .into_iter()
-                .map(|w| (w.key().to_string(), crate::report::Value::from(w)))
+                .iter()
+                .map(|w| (w.key().to_string(), r::Value::from(w)))
                 .collect(),
         }
     }
 }
 
-impl From<Widget> for crate::report::Value {
-    fn from(state: Widget) -> Self {
+impl From<&Widget> for r::Value {
+    fn from(state: &Widget) -> Self {
         match state {
             Widget::DropDown(dropdown) => Self::String(dropdown.value().to_string()),
             Widget::MultilineInput(multiline_input) => {
@@ -141,16 +131,16 @@ impl From<Widget> for crate::report::Value {
     }
 }
 
-impl From<Patch> for crate::report::Patch {
-    fn from(state: Patch) -> Self {
+impl From<&Patch> for r::Patch {
+    fn from(state: &Patch) -> Self {
         Self {
-            source: crate::report::PinAddress {
-                node_id: state.source.node_id,
-                pin_class: state.source.pin_class,
+            source: r::PinAddress {
+                node_id: state.source.node_id.clone(),
+                pin_class: state.source.pin_class.clone(),
             },
-            destination: crate::report::PinAddress {
-                node_id: state.destination.node_id,
-                pin_class: state.destination.pin_class,
+            destination: r::PinAddress {
+                node_id: state.destination.node_id.clone(),
+                pin_class: state.destination.pin_class.clone(),
             },
         }
     }
@@ -288,7 +278,6 @@ pub enum Direction {
     Output,
 }
 
-// TODO: Make this into Enum, to make type checks easier
 #[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct Pin {
     label: ImString,
@@ -342,6 +331,23 @@ pub enum Widget {
     MultilineInput(MultilineInput),
     Slider(Slider),
     DropDown(DropDown),
+}
+
+#[derive(Getters, Clone, Hash, PartialEq, Eq, Debug)]
+pub struct WidgetAddress {
+    #[getset(get = "pub")]
+    node_id: String,
+    #[getset(get = "pub")]
+    widget_key: String,
+}
+
+impl WidgetAddress {
+    pub fn new(node_id: String, widget_key: String) -> Self {
+        Self {
+            node_id,
+            widget_key,
+        }
+    }
 }
 
 impl Widget {
@@ -488,12 +494,11 @@ impl Slider {
     }
 }
 
-#[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
+#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct DropDown {
     #[getset(get = "pub")]
     key: String,
-    // TODO: Check for existence
-    #[getset(get = "pub", set = "pub")]
+    #[getset(get = "pub")]
     value: String,
     #[getset(get = "pub")]
     items: Vec<DropDownItem>,
@@ -507,6 +512,14 @@ impl DropDown {
             value: items[0].value.clone(),
             items,
         }
+    }
+
+    pub fn set_value(&mut self, value: String) {
+        assert!(
+            self.items.iter().any(|i| i.value == value),
+            "The value must be available in the dropdown"
+        );
+        self.value = value;
     }
 }
 
@@ -871,6 +884,35 @@ mod tests {
         fn panic_on_initialize_without_items() {
             let _drop_down = DropDown::new("key".to_owned(), vec![]);
         }
+
+        #[test]
+        fn set_value() {
+            let mut drop_down = DropDown::new(
+                "key".to_owned(),
+                vec![
+                    DropDownItem::new("Item 1".to_owned(), "value1".to_owned()),
+                    DropDownItem::new("Item 2".to_owned(), "value2".to_owned()),
+                ],
+            );
+
+            drop_down.set_value("value2".to_owned());
+
+            assert_eq!(drop_down.value(), "value2");
+        }
+
+        #[test]
+        #[should_panic(expected = "The value must be available in the dropdown")]
+        fn panic_on_set_unavailable_value() {
+            let mut drop_down = DropDown::new(
+                "key".to_owned(),
+                vec![
+                    DropDownItem::new("Item 1".to_owned(), "value1".to_owned()),
+                    DropDownItem::new("Item 2".to_owned(), "value2".to_owned()),
+                ],
+            );
+
+            drop_down.set_value("non_existent_value".to_owned());
+        }
     }
 
     mod patch {
@@ -1025,7 +1067,7 @@ mod tests {
 
         #[test]
         fn initialize_state_from_config() {
-            use crate::config as c;
+            use c;
             let config = c::Config {
                 node_templates: vec![c::NodeTemplate {
                     label: "Node Label".to_owned(),

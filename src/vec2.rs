@@ -1,3 +1,5 @@
+//! Helper module for vector calculations.
+
 pub fn sum(vec2s: &[[f32; 2]]) -> [f32; 2] {
     vec2s
         .iter()

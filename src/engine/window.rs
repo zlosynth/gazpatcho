@@ -1,3 +1,7 @@
+//! This module prepares the canvas to render the view of the application.
+//! Currently it is one full window. In case the format should change, it should
+//! happen here. It also sets up styles and colors.
+
 extern crate imgui;
 
 use crate::engine::system;

@@ -1,9 +1,16 @@
+//! Reducer is reconciling actions received from the user on the state.
+
 use crate::engine::action::Action;
-use crate::engine::state::{Patch, PinAddress, State, Widget};
+use crate::engine::state::{Patch, PinAddress, State, Widget, WidgetAddress};
 use crate::vec2;
 
+/// Type signalizing the effect of a reduce function.
 pub enum ReduceResult {
+    /// The function changed the model, i.e. some of the graph modeling values
+    /// was changed.
     ModelChanged,
+    /// The function only changed secondary properties of the state, e.g. moved
+    /// nodes around.
     ModelUnchanged,
 }
 
@@ -15,9 +22,7 @@ impl ReduceResult {
     }
 }
 
-// TODO: Turn the returned bool into enum Changed, Unchanged
 pub fn reduce(state: &mut State, action: Action) -> ReduceResult {
-    // dbg!(&action);
     match action {
         Action::Scroll { offset } => scroll(state, offset),
         Action::AddNode { class, position } => add_node(state, class, position),
@@ -31,28 +36,23 @@ pub fn reduce(state: &mut State, action: Action) -> ReduceResult {
         Action::SetTriggeredPatch { patch } => set_triggered_patch(state, patch),
         Action::ResetTriggeredPatch => reset_triggered_patch(state),
         Action::SetMultilineInputContent {
-            node_id,
-            widget_key,
+            widget_address,
             content,
-        } => set_multiline_input_content(state, node_id, widget_key, content),
-        Action::SetTriggerActive {
-            node_id,
-            widget_key,
-        } => set_trigger_active(state, node_id, widget_key, true),
-        Action::SetTriggerInactive {
-            node_id,
-            widget_key,
-        } => set_trigger_active(state, node_id, widget_key, false),
+        } => set_multiline_input_content(state, widget_address, content),
+        Action::SetTriggerActive { widget_address } => {
+            set_trigger_active(state, widget_address, true)
+        }
+        Action::SetTriggerInactive { widget_address } => {
+            set_trigger_active(state, widget_address, false)
+        }
         Action::SetSliderValue {
-            node_id,
-            widget_key,
+            widget_address,
             value,
-        } => set_slider_value(state, node_id, widget_key, value),
+        } => set_slider_value(state, widget_address, value),
         Action::SetDropDownValue {
-            node_id,
-            widget_key,
+            widget_address,
             value,
-        } => set_dropdown_value(state, node_id, widget_key, value),
+        } => set_dropdown_value(state, widget_address, value),
     }
 }
 
@@ -119,11 +119,13 @@ fn set_triggered_pin(state: &mut State, pin_address: PinAddress) -> ReduceResult
     let newly_triggered_pin = pin_address;
 
     if let Some(previously_triggered_pin) = state.triggered_pin_take() {
-        let stored_patch = state
-            .add_patch(previously_triggered_pin, newly_triggered_pin)
-            .unwrap();
-        state.set_triggered_patch(Some(stored_patch));
-        ModelChanged
+        match state.add_patch(previously_triggered_pin, newly_triggered_pin) {
+            Ok(stored_patch) => {
+                state.set_triggered_patch(Some(stored_patch));
+                ModelChanged
+            }
+            Err(_) => ModelUnchanged,
+        }
     } else {
         state.set_triggered_pin(Some(newly_triggered_pin));
         ModelUnchanged
@@ -145,24 +147,27 @@ fn reset_triggered_patch(state: &mut State) -> ReduceResult {
     ModelUnchanged
 }
 
-fn set_multiline_input_content(
-    state: &mut State,
-    node_id: String,
-    widget_key: String,
-    content: String,
-) -> ReduceResult {
-    let widget = state
+fn find_widget(state: &mut State, widget_address: WidgetAddress) -> &mut Widget {
+    state
         .nodes_mut()
         .iter_mut()
-        .find(|n| n.id() == node_id)
+        .find(|n| n.id() == widget_address.node_id())
         .expect("node_id must match an existing node")
         .widgets_mut()
         .iter_mut()
-        .find(|w| w.key() == widget_key && w.is_multiline_input())
-        .expect("widget_key must match an existing MultilineInput");
+        .find(|w| w.key() == widget_address.widget_key())
+        .expect("widget_key must match an existing widget")
+}
 
-    if let Widget::MultilineInput(multiline_input) = widget {
+fn set_multiline_input_content(
+    state: &mut State,
+    widget_address: WidgetAddress,
+    content: String,
+) -> ReduceResult {
+    if let Widget::MultilineInput(multiline_input) = find_widget(state, widget_address) {
         multiline_input.set_content(content);
+    } else {
+        panic!("Widget of the given key has an invalid type");
     }
 
     ModelChanged
@@ -170,45 +175,23 @@ fn set_multiline_input_content(
 
 fn set_trigger_active(
     state: &mut State,
-    node_id: String,
-    widget_key: String,
+    widget_address: WidgetAddress,
     active: bool,
 ) -> ReduceResult {
-    let widget = state
-        .nodes_mut()
-        .iter_mut()
-        .find(|n| n.id() == node_id)
-        .expect("node_id must match an existing node")
-        .widgets_mut()
-        .iter_mut()
-        .find(|w| w.key() == widget_key && w.is_trigger())
-        .expect("widget_key must match an existing Trigger");
-
-    if let Widget::Trigger(trigger) = widget {
+    if let Widget::Trigger(trigger) = find_widget(state, widget_address) {
         trigger.set_active(active);
+    } else {
+        panic!("Widget of the given key has an invalid type");
     }
 
     ModelChanged
 }
 
-fn set_slider_value(
-    state: &mut State,
-    node_id: String,
-    widget_key: String,
-    value: f32,
-) -> ReduceResult {
-    let widget = state
-        .nodes_mut()
-        .iter_mut()
-        .find(|n| n.id() == node_id)
-        .expect("node_id must match an existing node")
-        .widgets_mut()
-        .iter_mut()
-        .find(|w| w.key() == widget_key && w.is_slider())
-        .expect("widget_key must match an existing Slider");
-
-    if let Widget::Slider(slider) = widget {
+fn set_slider_value(state: &mut State, widget_address: WidgetAddress, value: f32) -> ReduceResult {
+    if let Widget::Slider(slider) = find_widget(state, widget_address) {
         slider.set_value(value);
+    } else {
+        panic!("Widget of the given key has an invalid type");
     }
 
     ModelChanged
@@ -216,22 +199,13 @@ fn set_slider_value(
 
 fn set_dropdown_value(
     state: &mut State,
-    node_id: String,
-    widget_key: String,
+    widget_address: WidgetAddress,
     value: String,
 ) -> ReduceResult {
-    let widget = state
-        .nodes_mut()
-        .iter_mut()
-        .find(|n| n.id() == node_id)
-        .expect("node_id must match an existing node")
-        .widgets_mut()
-        .iter_mut()
-        .find(|w| w.key() == widget_key && w.is_dropdown())
-        .expect("widget_key must match an existing DropDown");
-
-    if let Widget::DropDown(dropdown) = widget {
+    if let Widget::DropDown(dropdown) = find_widget(state, widget_address) {
         dropdown.set_value(value);
+    } else {
+        panic!("Widget of the given key has an invalid type");
     }
 
     ModelChanged
@@ -583,8 +557,7 @@ mod tests {
         assert!(reduce(
             &mut state,
             Action::SetMultilineInputContent {
-                node_id: "class:0".to_owned(),
-                widget_key: "key".to_owned(),
+                widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
                 content: "hello world".to_owned(),
             },
         )
@@ -614,8 +587,7 @@ mod tests {
         assert!(reduce(
             &mut state,
             Action::SetTriggerActive {
-                node_id: "class:0".to_owned(),
-                widget_key: "key".to_owned(),
+                widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
             },
         )
         .model_changed());
@@ -629,8 +601,7 @@ mod tests {
         assert!(reduce(
             &mut state,
             Action::SetTriggerInactive {
-                node_id: "class:0".to_owned(),
-                widget_key: "key".to_owned(),
+                widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
             },
         )
         .model_changed());
@@ -663,8 +634,7 @@ mod tests {
         assert!(reduce(
             &mut state,
             Action::SetSliderValue {
-                node_id: "class:0".to_owned(),
-                widget_key: "key".to_owned(),
+                widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
                 value: 6.0,
             },
         )
@@ -697,8 +667,7 @@ mod tests {
         assert!(reduce(
             &mut state,
             Action::SetDropDownValue {
-                node_id: "class:0".to_owned(),
-                widget_key: "key".to_owned(),
+                widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
                 value: "value2".to_owned(),
             },
         )

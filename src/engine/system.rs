@@ -1,3 +1,6 @@
+//! Backend implementation for the UI backend. Handling rendering of the
+//! application as a system window.
+
 extern crate glium;
 extern crate imgui;
 extern crate imgui_glium_renderer;

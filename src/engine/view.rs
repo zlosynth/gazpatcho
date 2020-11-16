@@ -1,4 +1,6 @@
-// TODO: Clean this up once all v1 features are done and patterns emerge.
+//! Module responsible for rendering of the state as an imgui UI. The state goes
+//! in, list of actions triggered by the user goes out.
+
 extern crate imgui;
 
 use std::boxed::Box;
@@ -9,9 +11,14 @@ use std::ptr;
 use std::rc::Rc;
 
 use crate::engine::action::Action;
-use crate::engine::state::{Direction, PinAddress, State, Widget};
+use crate::engine::state::{
+    Direction, DropDown, MultilineInput, Node, Patch, PinAddress, Slider, State, Trigger, Widget,
+    WidgetAddress,
+};
 use crate::vec2;
 use crate::widget;
+
+const PATCH_CLICK_MAX_DISTANCE: f32 = 5.0;
 
 pub fn draw(state: &State, ui: &imgui::Ui) -> Vec<Action> {
     let mut actions = Vec::new();
@@ -24,10 +31,10 @@ pub fn draw(state: &State, ui: &imgui::Ui) -> Vec<Action> {
         actions.push(action);
     }
 
-    let (node_actions, patch_positions) = draw_nodes(state, ui);
+    let (node_actions, pin_positions) = draw_nodes(state, ui);
     actions.extend(node_actions);
 
-    actions.extend(draw_patches(state, patch_positions, ui));
+    actions.extend(draw_patches(state, pin_positions, ui));
 
     actions
 }
@@ -90,18 +97,13 @@ fn draw_menu(state: &State, ui: &imgui::Ui) -> Option<Action> {
 
 fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress, [f32; 2]>) {
     let actions = Rc::new(RefCell::new(Vec::new()));
-    let patch_positions = Rc::new(RefCell::new(HashMap::new()));
-    let mut triggered_node = None;
-    let triggered_pin = Rc::new(RefCell::new(None));
+    let pin_positions = Rc::new(RefCell::new(HashMap::new()));
+    let mut newly_triggered_node = None;
+    let newly_triggered_pin = Rc::new(RefCell::new(None));
 
     state.nodes().iter().for_each(|node| {
         let mut node_widget = widget::node::Node::new(node.id_im())
-            .position(vec2::sum(&[node.position, state.offset]))
-            .add_component(widget::node::Component::Space(10.0))
-            .add_component(widget::node::Component::Label(widget::label::Label::new(
-                node.label_im(),
-            )))
-            .add_component(widget::node::Component::Space(10.0));
+            .position(vec2::sum(&[node.position, state.offset]));
 
         if let Some(triggered_node_id) = state.triggered_node() {
             if triggered_node_id == node.id() {
@@ -109,170 +111,54 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
             }
         }
 
-        if !node.pins().is_empty() {
-            let mut pin_group = widget::pin_group::PinGroup::new();
-            pin_group = node.pins().iter().fold(pin_group, |pin_group, pin| {
-                let ui_callback = {
-                    let pin_address =
-                        PinAddress::new(node.id().to_string(), pin.class().to_string());
-                    let triggered_pin = Rc::clone(&triggered_pin);
-                    Box::new(move |ui: &imgui::Ui| {
-                        if ui.is_item_active() && ui.is_mouse_clicked(imgui::MouseButton::Left) {
-                            *triggered_pin.borrow_mut() = Some(pin_address);
-                        };
-                    })
-                };
-                let patch_position_callback = {
-                    let pin_address =
-                        PinAddress::new(node.id().to_string(), pin.class().to_string());
-                    let patch_positions = Rc::clone(&patch_positions);
-                    Box::new(move |position| {
-                        patch_positions.borrow_mut().insert(pin_address, position);
-                    })
-                };
-                pin_group.add_pin(
-                    widget::pin::Pin::new(
-                        imgui::ImString::from(format!("{}:{}", node.id(), pin.class())),
-                        pin.label_im(),
-                    )
-                    .orientation(match pin.direction() {
-                        Direction::Input => widget::pin::Orientation::Left,
-                        Direction::Output => widget::pin::Orientation::Right,
-                    })
-                    .ui_callback(ui_callback)
-                    .patch_position_callback(patch_position_callback),
-                )
-            });
+        node_widget = node_widget
+            .add_component(widget::node::Component::Space(10.0))
+            .add_component(widget::node::Component::Label(widget::label::Label::new(
+                node.label_im(),
+            )))
+            .add_component(widget::node::Component::Space(10.0));
 
+        if !node.pins().is_empty() {
+            let pin_group = new_pin_group_widget(node, &pin_positions, &newly_triggered_pin);
             node_widget = node_widget
                 .add_component(widget::node::Component::PinGroup(pin_group))
                 .add_component(widget::node::Component::Space(10.0));
         }
 
-        // TODO: Split to functions
         node_widget = node.widgets().iter().fold(node_widget, |n, w| match w {
-            Widget::MultilineInput(multiline_input) => {
-                let id =
-                    imgui::ImString::from(format!("##{}:{}", node.id(), multiline_input.key()));
-                let node_id = node.id().to_string();
-                let widget_key = multiline_input.key().to_string();
-                let original_content = multiline_input.content_im().clone();
-                let mut buffer = multiline_input.content_im().clone();
-                buffer.reserve(multiline_input.capacity() - buffer.capacity());
-                let actions = Rc::clone(&actions);
-                n.add_component(widget::node::Component::MultilineInput(
-                    widget::multiline_input::MultilineInput::new(
-                        id,
-                        buffer,
-                        multiline_input.size()[0],
-                        multiline_input.size()[1],
-                    )
-                    .content_callback(Box::new(move |c| {
-                        if *c != original_content {
-                            actions.borrow_mut().push(Action::SetMultilineInputContent {
-                                node_id,
-                                widget_key,
-                                content: c.to_str().to_owned(),
-                            })
-                        }
-                    })),
+            Widget::MultilineInput(multiline_input) => n
+                .add_component(widget::node::Component::MultilineInput(
+                    new_multiline_input_widget(node.id(), multiline_input, &actions),
                 ))
-                .add_component(widget::node::Component::Space(10.0))
-            }
-            Widget::Trigger(trigger) => {
-                let node_id = node.id().to_string();
-                let label = trigger.label_im().clone();
-                let widget_key = trigger.key().to_string();
-                let was_triggered = trigger.active();
-                let actions = Rc::clone(&actions);
-                n.add_component(widget::node::Component::Trigger(
-                    widget::trigger::Trigger::new(label).active_callback(Box::new(
-                        move |is_triggered| {
-                            if is_triggered != was_triggered {
-                                actions.borrow_mut().push(if is_triggered {
-                                    Action::SetTriggerActive {
-                                        node_id,
-                                        widget_key,
-                                    }
-                                } else {
-                                    Action::SetTriggerInactive {
-                                        node_id,
-                                        widget_key,
-                                    }
-                                });
-                            }
-                        },
-                    )),
-                ))
-                .add_component(widget::node::Component::Space(10.0))
-            }
-            Widget::Slider(slider) => {
-                let id = imgui::ImString::from(format!("##{}:{}", node.id(), slider.key()));
-                let node_id = node.id().to_string();
-                let widget_key = slider.key().to_string();
-                let original_value = slider.value();
-                let actions = Rc::clone(&actions);
-                n.add_component(widget::node::Component::Slider(
-                    widget::slider::Slider::new(id, slider.min(), slider.max(), slider.value())
-                        .min_width(slider.width())
-                        .display_format(slider.display_format_im().clone())
-                        .value_callback(Box::new(move |new_value| {
-                            if (new_value - original_value).abs() > 0.000000001 {
-                                actions.borrow_mut().push({
-                                    Action::SetSliderValue {
-                                        node_id,
-                                        widget_key,
-                                        value: new_value,
-                                    }
-                                });
-                            }
-                        })),
-                ))
-                .add_component(widget::node::Component::Space(10.0))
-            }
-            Widget::DropDown(dropdown) => {
-                let id = imgui::ImString::from(format!("##{}:{}", node.id(), dropdown.key()));
-                let node_id = node.id().to_string();
-                let widget_key = dropdown.key().to_string();
-                let items = dropdown.items().clone();
-                let original_value = dropdown.value().to_owned();
-                let original_value_index = items
-                    .iter()
-                    .enumerate()
-                    .find(|(_, v)| *v.value() == original_value)
-                    .expect("dropdown value must be available in dropdown items")
-                    .0;
-                let actions = Rc::clone(&actions);
-                n.add_component(widget::node::Component::DropDown(
-                    widget::dropdown::DropDown::new(
-                        id,
-                        original_value_index,
-                        dropdown
-                            .items()
-                            .iter()
-                            .map(|i| imgui::ImString::new(i.label()))
-                            .collect(),
-                    )
-                    .value_callback(Box::new(move |i| {
-                        let value = items[i].value().clone();
-                        if value != original_value {
-                            actions.borrow_mut().push(Action::SetDropDownValue {
-                                node_id,
-                                widget_key,
-                                value,
-                            });
-                        }
-                    })),
-                ))
-                .add_component(widget::node::Component::Space(10.0))
-            }
+                .add_component(widget::node::Component::Space(10.0)),
+            Widget::Trigger(trigger) => n
+                .add_component(widget::node::Component::Trigger(new_trigger_widget(
+                    node.id(),
+                    trigger,
+                    &actions,
+                )))
+                .add_component(widget::node::Component::Space(10.0)),
+            Widget::Slider(slider) => n
+                .add_component(widget::node::Component::Slider(new_slider_widget(
+                    node.id(),
+                    slider,
+                    &actions,
+                )))
+                .add_component(widget::node::Component::Space(10.0)),
+            Widget::DropDown(dropdown) => n
+                .add_component(widget::node::Component::DropDown(new_dropdown_widget(
+                    node.id(),
+                    dropdown,
+                    &actions,
+                )))
+                .add_component(widget::node::Component::Space(10.0)),
         });
 
         node_widget.build(ui);
 
         if ui.is_item_active() {
             if ui.is_mouse_clicked(imgui::MouseButton::Left) {
-                triggered_node = Some(node.id().to_string());
+                newly_triggered_node = Some(node.id().to_string());
             }
 
             if ui.is_mouse_down(imgui::MouseButton::Left)
@@ -294,28 +180,29 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
         }
     });
 
-    if let Some(triggered_node_id) = triggered_node {
+    if let Some(newly_triggered_node_id) = newly_triggered_node {
         actions.borrow_mut().push(Action::SetTriggeredNode {
-            node_id: triggered_node_id,
+            node_id: newly_triggered_node_id,
         });
-    } else if state.triggered_node().is_some()
-        && (ui.is_mouse_clicked(imgui::MouseButton::Left)
-            || ui.is_key_pressed(ui.key_index(imgui::Key::Escape)))
-    {
-        actions.borrow_mut().push(Action::ResetTriggeredNode)
     }
 
-    if let Some(triggered_node_id) = state.triggered_node() {
+    if let Some(previously_triggered_node_id) = state.triggered_node() {
         if ui.is_key_pressed(ui.key_index(imgui::Key::Delete)) {
             actions.borrow_mut().push(Action::RemoveNode {
-                node_id: triggered_node_id.to_string(),
+                node_id: previously_triggered_node_id.to_string(),
             });
+        } else if ui.is_mouse_clicked(imgui::MouseButton::Left)
+            || ui.is_key_pressed(ui.key_index(imgui::Key::Escape))
+        {
+            actions.borrow_mut().push(Action::ResetTriggeredNode)
         }
     }
 
-    if let Some(triggered_pin_address) = Rc::try_unwrap(triggered_pin).unwrap().into_inner() {
+    if let Some(newly_triggered_pin_address) =
+        Rc::try_unwrap(newly_triggered_pin).unwrap().into_inner()
+    {
         actions.borrow_mut().extend(vec![Action::SetTriggeredPin {
-            pin_address: triggered_pin_address,
+            pin_address: newly_triggered_pin_address,
         }]);
     } else if state.triggered_pin().is_some()
         && (ui.is_mouse_clicked(imgui::MouseButton::Left)
@@ -326,73 +213,242 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
 
     (
         Rc::try_unwrap(actions).unwrap().into_inner(),
-        Rc::try_unwrap(patch_positions).unwrap().into_inner(),
+        Rc::try_unwrap(pin_positions).unwrap().into_inner(),
     )
+}
+
+fn new_pin_group_widget<'a>(
+    node: &'a Node,
+    pin_positions: &'a Rc<RefCell<HashMap<PinAddress, [f32; 2]>>>,
+    triggered_pin: &'a Rc<RefCell<Option<PinAddress>>>,
+) -> widget::pin_group::PinGroup<'a> {
+    node.pins()
+        .iter()
+        .fold(widget::pin_group::PinGroup::new(), |pin_group, pin| {
+            let ui_callback = {
+                let pin_address = PinAddress::new(node.id().to_string(), pin.class().to_string());
+                let newly_triggered_pin = Rc::clone(triggered_pin);
+                Box::new(move |ui: &imgui::Ui| {
+                    if ui.is_item_active() && ui.is_mouse_clicked(imgui::MouseButton::Left) {
+                        *newly_triggered_pin.borrow_mut() = Some(pin_address);
+                    };
+                })
+            };
+            let patch_position_callback = {
+                let pin_address = PinAddress::new(node.id().to_string(), pin.class().to_string());
+                let pin_positions = Rc::clone(pin_positions);
+                Box::new(move |position| {
+                    pin_positions.borrow_mut().insert(pin_address, position);
+                })
+            };
+            pin_group.add_pin(
+                widget::pin::Pin::new(
+                    imgui::ImString::from(format!("{}:{}", node.id(), pin.class())),
+                    pin.label_im(),
+                )
+                .orientation(match pin.direction() {
+                    Direction::Input => widget::pin::Orientation::Left,
+                    Direction::Output => widget::pin::Orientation::Right,
+                })
+                .ui_callback(ui_callback)
+                .patch_position_callback(patch_position_callback),
+            )
+        })
+}
+
+fn new_multiline_input_widget(
+    node_id: &str,
+    multiline_input: &MultilineInput,
+    actions: &Rc<RefCell<Vec<Action>>>,
+) -> widget::multiline_input::MultilineInput {
+    let id = imgui::ImString::from(format!("##{}:{}", node_id, multiline_input.key()));
+    let widget_address = WidgetAddress::new(node_id.to_string(), multiline_input.key().to_string());
+    let original_content = multiline_input.content_im().clone();
+    let mut buffer = multiline_input.content_im().clone();
+    buffer.reserve(multiline_input.capacity() - buffer.capacity());
+    let actions = Rc::clone(&actions);
+    widget::multiline_input::MultilineInput::new(
+        id,
+        buffer,
+        multiline_input.size()[0],
+        multiline_input.size()[1],
+    )
+    .content_callback(Box::new(move |c| {
+        if *c != original_content {
+            actions.borrow_mut().push(Action::SetMultilineInputContent {
+                widget_address,
+                content: c.to_str().to_owned(),
+            })
+        }
+    }))
+}
+
+fn new_trigger_widget(
+    node_id: &str,
+    trigger: &Trigger,
+    actions: &Rc<RefCell<Vec<Action>>>,
+) -> widget::trigger::Trigger {
+    let widget_address = WidgetAddress::new(node_id.to_string(), trigger.key().to_string());
+    let label = trigger.label_im().clone();
+    let was_triggered = trigger.active();
+    let actions = Rc::clone(&actions);
+    widget::trigger::Trigger::new(label).active_callback(Box::new(move |is_triggered| {
+        if is_triggered != was_triggered {
+            actions.borrow_mut().push(if is_triggered {
+                Action::SetTriggerActive { widget_address }
+            } else {
+                Action::SetTriggerInactive { widget_address }
+            });
+        }
+    }))
+}
+
+fn new_slider_widget(
+    node_id: &str,
+    slider: &Slider,
+    actions: &Rc<RefCell<Vec<Action>>>,
+) -> widget::slider::Slider {
+    let id = imgui::ImString::from(format!("##{}:{}", node_id, slider.key()));
+    let widget_address = WidgetAddress::new(node_id.to_string(), slider.key().to_string());
+    let original_value = slider.value();
+    let actions = Rc::clone(&actions);
+    widget::slider::Slider::new(id, slider.min(), slider.max(), slider.value())
+        .min_width(slider.width())
+        .display_format(slider.display_format_im().clone())
+        .value_callback(Box::new(move |new_value| {
+            if (new_value - original_value).abs() > 0.000000001 {
+                actions.borrow_mut().push({
+                    Action::SetSliderValue {
+                        widget_address,
+                        value: new_value,
+                    }
+                });
+            }
+        }))
+}
+
+fn new_dropdown_widget(
+    node_id: &str,
+    dropdown: &DropDown,
+    actions: &Rc<RefCell<Vec<Action>>>,
+) -> widget::dropdown::DropDown {
+    let id = imgui::ImString::from(format!("##{}:{}", node_id, dropdown.key()));
+    let widget_address = WidgetAddress::new(node_id.to_string(), dropdown.key().to_string());
+    let items = dropdown.items().clone();
+    let original_value = dropdown.value().to_owned();
+    let original_value_index = items
+        .iter()
+        .enumerate()
+        .find(|(_, v)| *v.value() == original_value)
+        .expect("dropdown value must be available in dropdown items")
+        .0;
+    let actions = Rc::clone(&actions);
+    widget::dropdown::DropDown::new(
+        id,
+        original_value_index,
+        dropdown
+            .items()
+            .iter()
+            .map(|i| imgui::ImString::new(i.label()))
+            .collect(),
+    )
+    .value_callback(Box::new(move |i| {
+        let value = items[i].value().clone();
+        if value != original_value {
+            actions.borrow_mut().push(Action::SetDropDownValue {
+                widget_address,
+                value,
+            });
+        }
+    }))
 }
 
 fn draw_patches(
     state: &State,
-    patch_positions: HashMap<PinAddress, [f32; 2]>,
+    pin_positions: HashMap<PinAddress, [f32; 2]>,
     ui: &imgui::Ui,
 ) -> Vec<Action> {
-    let mut actions = Vec::new();
-
-    let mut triggered_patch = None;
-
     if let Some(triggered_pin_address) = state.triggered_pin() {
-        let source = patch_positions[triggered_pin_address];
+        let source = pin_positions[triggered_pin_address];
         let destination = ui.io().mouse_pos;
-        let draw_list = ui.get_window_draw_list();
-        draw_list
-            .add_line(source, destination, [0.0, 0.0, 0.0])
-            .build();
+        draw_patch(source, destination, 1.0, ui);
     }
 
-    state.patches().iter().for_each(|p| {
-        let source = patch_positions[p.source()];
-        let destination = patch_positions[p.destination()];
-        let draw_list = ui.get_window_draw_list();
-        let mut line = draw_list.add_line(source, destination, [0.0, 0.0, 0.0]);
-        if let Some(triggered_patch) = state.triggered_patch() {
-            if triggered_patch == p {
-                line = line.thickness(2.0);
-            }
-        }
-        line.build();
+    let mut newly_triggered_patch = None;
 
-        if ui.is_mouse_clicked(imgui::MouseButton::Left) {
-            let distance_from_line = distance_from_line(ui.io().mouse_pos, (source, destination));
-            let distance_from_source = distance_between_points(ui.io().mouse_pos, source);
-            let distance_from_destination = distance_between_points(ui.io().mouse_pos, destination);
-            if distance_from_line < 5.0
-                && distance_from_source > 5.0
-                && distance_from_destination > 5.0
-            {
-                triggered_patch = Some(p.clone());
-            }
+    state.patches().iter().for_each(|p| {
+        let source = pin_positions[p.source()];
+        let destination = pin_positions[p.destination()];
+        let thickness = if is_patch_triggered(state, p) {
+            2.0
+        } else {
+            1.0
+        };
+        draw_patch(source, destination, thickness, ui);
+
+        if is_patch_clicked(&pin_positions, p, ui) {
+            newly_triggered_patch = Some(p.clone());
         }
     });
 
-    if let Some(triggered_patch) = triggered_patch {
+    let mut actions = Vec::new();
+
+    if let Some(newly_triggered_patch) = newly_triggered_patch {
         actions.push(Action::SetTriggeredPatch {
-            patch: triggered_patch,
+            patch: newly_triggered_patch,
         });
-    } else if state.triggered_patch().is_some()
-        && (ui.is_mouse_clicked(imgui::MouseButton::Left)
-            || ui.is_key_pressed(ui.key_index(imgui::Key::Escape)))
-    {
-        actions.push(Action::ResetTriggeredPatch)
     }
 
-    if let Some(triggered_patch) = state.triggered_patch() {
+    if let Some(previously_triggered_patch) = state.triggered_patch() {
         if ui.is_key_pressed(ui.key_index(imgui::Key::Delete)) {
             actions.push(Action::RemovePatch {
-                patch: triggered_patch.clone(),
+                patch: previously_triggered_patch.clone(),
             });
+        } else if ui.is_mouse_clicked(imgui::MouseButton::Left)
+            || ui.is_key_pressed(ui.key_index(imgui::Key::Escape))
+        {
+            actions.push(Action::ResetTriggeredPatch);
         }
     }
 
     actions
+}
+
+fn draw_patch(a: [f32; 2], b: [f32; 2], thickness: f32, ui: &imgui::Ui) {
+    let draw_list = ui.get_window_draw_list();
+    draw_list
+        .add_line(a, b, [0.0, 0.0, 0.0])
+        .thickness(thickness)
+        .build();
+}
+
+fn is_patch_triggered(state: &State, patch: &Patch) -> bool {
+    if let Some(triggered_patch) = state.triggered_patch() {
+        triggered_patch == patch
+    } else {
+        false
+    }
+}
+
+fn is_patch_clicked(
+    pin_positions: &HashMap<PinAddress, [f32; 2]>,
+    patch: &Patch,
+    ui: &imgui::Ui,
+) -> bool {
+    if ui.is_mouse_clicked(imgui::MouseButton::Left) {
+        let source = pin_positions[patch.source()];
+        let destination = pin_positions[patch.destination()];
+        let distance_from_line = distance_from_line(ui.io().mouse_pos, (source, destination));
+        let distance_from_source = distance_between_points(ui.io().mouse_pos, source);
+        let distance_from_destination = distance_between_points(ui.io().mouse_pos, destination);
+        if distance_from_line < PATCH_CLICK_MAX_DISTANCE
+            && distance_from_source > PATCH_CLICK_MAX_DISTANCE
+            && distance_from_destination > PATCH_CLICK_MAX_DISTANCE
+        {
+            return true;
+        }
+    }
+    false
 }
 
 // https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
@@ -422,5 +478,31 @@ fn area_of_triangle(a: [f32; 2], b: [f32; 2], c: [f32; 2]) -> f32 {
     let yb = b[1];
     let xc = c[0];
     let yc = c[1];
-    f32::abs((yc - yb) * xa - (xc - xb) * ya + xc * yb - yc * xb)
+    f32::abs((yc - yb) * xa - (xc - xb) * ya + xc * yb - yc * xb) / 2.0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn measure_distance_from_line() {
+        assert_eq!(
+            distance_from_line([0.0, 0.0], ([1.0, 0.0], [1.0, 1.0])),
+            1.0,
+        );
+    }
+
+    #[test]
+    fn measure_distance_between_points() {
+        assert_eq!(
+            distance_between_points([0.0, 0.0], [1.0, 1.0]),
+            f32::sqrt(2.0),
+        );
+    }
+
+    #[test]
+    fn measure_area_of_triangle() {
+        assert_eq!(area_of_triangle([0.0, 0.0], [0.0, 1.0], [1.0, 0.0]), 0.5);
+    }
 }
