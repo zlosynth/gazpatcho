@@ -1,4 +1,62 @@
 //! Definition of the current state of the graph modeled in the UI.
+//!
+//! # Example
+//!
+//! The following example represents a possible report returned from an
+//! application instantiated via the [`Config`
+//! example](../config/index.html#example). Note that it is not a valid rust
+//! code, but an output of the `dbg!` macro.
+//!
+//! ```ignore
+//! Report {
+//!     nodes: [
+//!         Node {
+//!             id: "comment:0",
+//!             class: "comment",
+//!             data: {
+//!                 "comment": String(
+//!                     "Content of the comment block.",
+//!                 ),
+//!             },
+//!         },
+//!         Node {
+//!             id: "oscillator:0",
+//!             class: "oscillator",
+//!             data: {
+//!                 "switch": Bool(
+//!                     true,
+//!                 ),
+//!                 "trigger": Bool(
+//!                     false,
+//!                 ),
+//!                 "dropdown": String(
+//!                     "triangle",
+//!                 ),
+//!                 "slider": F32(
+//!                     7.5,
+//!                 ),
+//!             },
+//!         },
+//!         Node {
+//!             id: "mixer:0",
+//!             class: "mixer",
+//!             data: {},
+//!         },
+//!     ],
+//!     patches: [
+//!         Patch {
+//!             source: PinAddress {
+//!                 node_id: "oscillator:0",
+//!                 pin_class: "output",
+//!             },
+//!             destination: PinAddress {
+//!                 node_id: "mixer:0",
+//!                 pin_class: "input1",
+//!             },
+//!         },
+//!     ],
+//! }
+//! ```
 
 use std::collections::HashMap;
 
