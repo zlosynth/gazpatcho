@@ -39,10 +39,10 @@ pub enum Action {
         widget_address: WidgetAddress,
         content: String,
     },
-    SetTriggerActive {
+    SetButtonActive {
         widget_address: WidgetAddress,
     },
-    SetTriggerInactive {
+    SetButtonInactive {
         widget_address: WidgetAddress,
     },
     SetSliderValue {

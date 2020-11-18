@@ -23,6 +23,7 @@ impl ReduceResult {
 }
 
 pub fn reduce(state: &mut State, action: Action) -> ReduceResult {
+    dbg!(&action);
     match action {
         Action::Scroll { offset } => scroll(state, offset),
         Action::AddNode { class, position } => add_node(state, class, position),
@@ -39,11 +40,11 @@ pub fn reduce(state: &mut State, action: Action) -> ReduceResult {
             widget_address,
             content,
         } => set_multiline_input_content(state, widget_address, content),
-        Action::SetTriggerActive { widget_address } => {
-            set_trigger_active(state, widget_address, true)
+        Action::SetButtonActive { widget_address } => {
+            set_button_active(state, widget_address, true)
         }
-        Action::SetTriggerInactive { widget_address } => {
-            set_trigger_active(state, widget_address, false)
+        Action::SetButtonInactive { widget_address } => {
+            set_button_active(state, widget_address, false)
         }
         Action::SetSliderValue {
             widget_address,
@@ -173,13 +174,13 @@ fn set_multiline_input_content(
     ModelChanged
 }
 
-fn set_trigger_active(
+fn set_button_active(
     state: &mut State,
     widget_address: WidgetAddress,
     active: bool,
 ) -> ReduceResult {
-    if let Widget::Trigger(trigger) = find_widget(state, widget_address) {
-        trigger.set_active(active);
+    if let Widget::Button(button) = find_widget(state, widget_address) {
+        button.set_active(active);
     } else {
         panic!("Widget of the given key has an invalid type");
     }
@@ -216,7 +217,8 @@ mod tests {
     use super::*;
 
     use crate::state::{
-        Direction, DropDown, DropDownItem, MultilineInput, NodeTemplate, Pin, Slider, Trigger,
+        Button, ButtonActivationMode, Direction, DropDown, DropDownItem, MultilineInput,
+        NodeTemplate, Pin, Slider,
     };
 
     #[test]
@@ -571,43 +573,44 @@ mod tests {
     }
 
     #[test]
-    fn set_trigger() {
+    fn set_button() {
         let mut state = State::default();
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
             vec![],
-            vec![Widget::Trigger(Trigger::new(
-                "Trigger".to_owned(),
+            vec![Widget::Button(Button::new(
+                "Button".to_owned(),
                 "key".to_owned(),
+                ButtonActivationMode::OnClick,
             ))],
         ));
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
 
         assert!(reduce(
             &mut state,
-            Action::SetTriggerActive {
+            Action::SetButtonActive {
                 widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
             },
         )
         .model_changed());
 
-        if let Widget::Trigger(trigger) = &state.nodes()[0].widgets()[0] {
-            assert!(trigger.active());
+        if let Widget::Button(button) = &state.nodes()[0].widgets()[0] {
+            assert!(button.active());
         } else {
             panic!("invalid widget type");
         }
 
         assert!(reduce(
             &mut state,
-            Action::SetTriggerInactive {
+            Action::SetButtonInactive {
                 widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
             },
         )
         .model_changed());
 
-        if let Widget::Trigger(trigger) = &state.nodes()[0].widgets()[0] {
-            assert!(!trigger.active());
+        if let Widget::Button(button) = &state.nodes()[0].widgets()[0] {
+            assert!(!button.active());
         } else {
             panic!("invalid widget type");
         }

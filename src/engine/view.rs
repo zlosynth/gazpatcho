@@ -12,8 +12,8 @@ use std::rc::Rc;
 
 use crate::engine::action::Action;
 use crate::engine::state::{
-    Direction, DropDown, MultilineInput, Node, Patch, PinAddress, Slider, State, Trigger, Widget,
-    WidgetAddress,
+    Button, ButtonActivationMode, Direction, DropDown, MultilineInput, Node, Patch, PinAddress,
+    Slider, State, Widget, WidgetAddress,
 };
 use crate::vec2;
 use crate::widget;
@@ -131,10 +131,10 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
                     new_multiline_input_widget(node.id(), multiline_input, &actions),
                 ))
                 .add_component(widget::node::Component::Space(10.0)),
-            Widget::Trigger(trigger) => n
-                .add_component(widget::node::Component::Trigger(new_trigger_widget(
+            Widget::Button(button) => n
+                .add_component(widget::node::Component::Button(new_button_widget(
                     node.id(),
-                    trigger,
+                    button,
                     &actions,
                 )))
                 .add_component(widget::node::Component::Space(10.0)),
@@ -283,24 +283,41 @@ fn new_multiline_input_widget(
     }))
 }
 
-fn new_trigger_widget(
+fn new_button_widget(
     node_id: &str,
-    trigger: &Trigger,
+    button: &Button,
     actions: &Rc<RefCell<Vec<Action>>>,
-) -> widget::trigger::Trigger {
-    let widget_address = WidgetAddress::new(node_id.to_string(), trigger.key().to_string());
-    let label = trigger.label_im().clone();
-    let was_triggered = trigger.active();
+) -> widget::button::Button {
+    let mut button_widget = widget::button::Button::new(button.label_im().clone());
+
+    let widget_address = WidgetAddress::new(node_id.to_string(), button.key().to_string());
+    let was_active = button.active();
     let actions = Rc::clone(&actions);
-    widget::trigger::Trigger::new(label).active_callback(Box::new(move |is_triggered| {
-        if is_triggered != was_triggered {
-            actions.borrow_mut().push(if is_triggered {
-                Action::SetTriggerActive { widget_address }
-            } else {
-                Action::SetTriggerInactive { widget_address }
-            });
-        }
-    }))
+    button_widget = match button.activation_mode() {
+        ButtonActivationMode::OnClick => button_widget.ui_callback(Box::new(move |ui| {
+            if ui.is_item_active() && ui.is_mouse_clicked(imgui::MouseButton::Left) {
+                actions.borrow_mut().push(if was_active {
+                    Action::SetButtonInactive { widget_address }
+                } else {
+                    Action::SetButtonActive { widget_address }
+                });
+            }
+        })),
+        ButtonActivationMode::OnHold => button_widget.ui_callback(Box::new(move |ui| {
+            let is_active = ui.is_item_active();
+            if is_active != was_active {
+                actions.borrow_mut().push(if is_active {
+                    Action::SetButtonActive { widget_address }
+                } else {
+                    Action::SetButtonInactive { widget_address }
+                });
+            }
+        })),
+    };
+
+    button_widget = button_widget.highlighted(button.active());
+
+    button_widget
 }
 
 fn new_slider_widget(

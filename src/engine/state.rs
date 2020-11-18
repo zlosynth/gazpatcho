@@ -83,7 +83,12 @@ impl From<c::Widget> for Widget {
                 format,
                 width,
             } => Widget::Slider(Slider::new(key, min, max, min, format, width)),
-            c::Widget::Trigger { key, label } => Widget::Trigger(Trigger::new(label, key)),
+            c::Widget::Trigger { key, label } => {
+                Widget::Button(Button::new(label, key, ButtonActivationMode::OnHold))
+            }
+            c::Widget::Switch { key, label } => {
+                Widget::Button(Button::new(label, key, ButtonActivationMode::OnClick))
+            }
             c::Widget::DropDown { key, items } => Widget::DropDown(DropDown::new(
                 key,
                 items
@@ -126,7 +131,7 @@ impl From<&Widget> for r::Value {
                 Self::String(multiline_input.content().to_string())
             }
             Widget::Slider(slider) => Self::F32(slider.value()),
-            Widget::Trigger(trigger) => Self::Bool(trigger.active()),
+            Widget::Button(button) => Self::Bool(button.active()),
         }
     }
 }
@@ -187,7 +192,7 @@ impl NodeTemplate {
             let mut keys = HashSet::new();
             widgets.iter().for_each(|w| {
                 let key = match w {
-                    Widget::Trigger(widget) => widget.key(),
+                    Widget::Button(button) => button.key(),
                     Widget::MultilineInput(widget) => widget.key(),
                     Widget::Slider(widget) => widget.key(),
                     Widget::DropDown(widget) => widget.key(),
@@ -327,7 +332,7 @@ impl PinAddress {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Widget {
-    Trigger(Trigger),
+    Button(Button),
     MultilineInput(MultilineInput),
     Slider(Slider),
     DropDown(DropDown),
@@ -353,15 +358,15 @@ impl WidgetAddress {
 impl Widget {
     pub fn key(&self) -> &str {
         match self {
-            Widget::Trigger(trigger) => trigger.key(),
+            Widget::Button(button) => button.key(),
             Widget::MultilineInput(multiline_input) => multiline_input.key(),
             Widget::Slider(slider) => slider.key(),
             Widget::DropDown(drop_down) => drop_down.key(),
         }
     }
 
-    pub fn is_trigger(&self) -> bool {
-        matches!(self, Widget::Trigger(_))
+    pub fn is_button(&self) -> bool {
+        matches!(self, Widget::Button(_))
     }
 
     pub fn is_multiline_input(&self) -> bool {
@@ -378,20 +383,29 @@ impl Widget {
 }
 
 #[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
-pub struct Trigger {
+pub struct Button {
     label: ImString,
     #[getset(get = "pub")]
     key: String,
     #[getset(get_copy = "pub", set = "pub")]
     active: bool,
+    #[getset(get_copy = "pub")]
+    activation_mode: ButtonActivationMode,
 }
 
-impl Trigger {
-    pub fn new(label: String, key: String) -> Self {
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum ButtonActivationMode {
+    OnClick,
+    OnHold,
+}
+
+impl Button {
+    pub fn new(label: String, key: String, activation_mode: ButtonActivationMode) -> Self {
         Self {
             label: ImString::from(label),
             key,
             active: false,
+            activation_mode,
         }
     }
 
@@ -674,9 +688,10 @@ mod tests {
                     Pin::new("Input 1".to_owned(), "in1".to_owned(), Direction::Input),
                     Pin::new("Output 1".to_owned(), "out1".to_owned(), Direction::Output),
                 ],
-                vec![Widget::Trigger(Trigger::new(
-                    "Trigger".to_owned(),
-                    "trigger1".to_owned(),
+                vec![Widget::Button(Button::new(
+                    "Button".to_owned(),
+                    "button".to_owned(),
+                    ButtonActivationMode::OnClick,
                 ))],
             );
 
@@ -731,40 +746,57 @@ mod tests {
                         "%.2f".to_owned(),
                         120.0,
                     )),
-                    Widget::Trigger(Trigger::new("Trigger".to_owned(), "key".to_owned())),
+                    Widget::Button(Button::new(
+                        "Button".to_owned(),
+                        "key".to_owned(),
+                        ButtonActivationMode::OnClick,
+                    )),
                 ],
             );
         }
     }
 
-    mod trigger {
+    mod button {
         use super::*;
 
         #[test]
         fn initialize() {
-            let trigger = Trigger::new("Trigger".to_owned(), "key".to_owned());
+            let button = Button::new(
+                "Button".to_owned(),
+                "key".to_owned(),
+                ButtonActivationMode::OnClick,
+            );
 
-            assert_eq!(trigger.label(), "Trigger");
-            assert_eq!(trigger.key(), "key");
-            assert!(!trigger.active());
+            assert_eq!(button.label(), "Button");
+            assert_eq!(button.key(), "key");
+            assert_eq!(button.activation_mode(), ButtonActivationMode::OnClick);
+            assert!(!button.active());
         }
 
         #[test]
         fn turn_on() {
-            let mut trigger = Trigger::new("Trigger".to_owned(), "key".to_owned());
+            let mut button = Button::new(
+                "Button".to_owned(),
+                "key".to_owned(),
+                ButtonActivationMode::OnClick,
+            );
 
-            trigger.set_active(true);
+            button.set_active(true);
 
-            assert!(trigger.active());
+            assert!(button.active());
         }
 
         #[test]
         fn turn_off() {
-            let mut trigger = Trigger::new("Trigger".to_owned(), "key".to_owned());
+            let mut button = Button::new(
+                "Button".to_owned(),
+                "key".to_owned(),
+                ButtonActivationMode::OnClick,
+            );
 
-            trigger.set_active(false);
+            button.set_active(false);
 
-            assert!(!trigger.active());
+            assert!(!button.active());
         }
     }
 
@@ -1101,6 +1133,10 @@ mod tests {
                             label: "Trigger".to_owned(),
                             key: "trigger".to_owned(),
                         },
+                        c::Switch {
+                            label: "Switch".to_owned(),
+                            key: "switch".to_owned(),
+                        },
                         c::DropDown {
                             key: "dropdown".to_owned(),
                             items: vec![
@@ -1139,7 +1175,16 @@ mod tests {
                         "%.1f".to_owned(),
                         150.0,
                     )),
-                    Widget::Trigger(Trigger::new("Trigger".to_owned(), "trigger".to_owned())),
+                    Widget::Button(Button::new(
+                        "Trigger".to_owned(),
+                        "trigger".to_owned(),
+                        ButtonActivationMode::OnHold,
+                    )),
+                    Widget::Button(Button::new(
+                        "Switch".to_owned(),
+                        "switch".to_owned(),
+                        ButtonActivationMode::OnClick,
+                    )),
                     Widget::DropDown(DropDown::new(
                         "dropdown".to_owned(),
                         vec![

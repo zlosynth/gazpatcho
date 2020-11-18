@@ -42,7 +42,11 @@
 //!                 },
 //!                 Trigger {
 //!                     label: "Trigger".to_owned(),
-//!                     key: "triggered".to_owned(),
+//!                     key: "trigger".to_owned(),
+//!                 },
+//!                 Switch {
+//!                     label: "Switch".to_owned(),
+//!                     key: "switch".to_owned(),
 //!                 },
 //!                 DropDown {
 //!                     key: "dropdown".to_owned(),
@@ -153,8 +157,15 @@ pub enum Widget {
         width: f32,
     },
     /// Trigger is nothing but a simple button. When clicked, it sets value of
-    /// given `key` to `true`.
+    /// given `key` to `true`. When released, it turns back to `false`.
     Trigger {
+        key: String,
+        /// Label shown on the button.
+        label: String,
+    },
+    /// Switch is nothing but a simple button. When clicked, it sets value of
+    /// given `key` to `true`. When clicked again, it turns back to `false`.
+    Switch {
         key: String,
         /// Label shown on the button.
         label: String,

@@ -44,7 +44,11 @@ fn main() {
             },
             Trigger {
                 label: "Trigger".to_owned(),
-                key: "triggered".to_owned(),
+                key: "trigger".to_owned(),
+            },
+            Switch {
+                label: "Switch".to_owned(),
+                key: "switch".to_owned(),
             },
             DropDown {
                 key: "dropdown".to_owned(),
