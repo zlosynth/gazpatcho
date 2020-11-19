@@ -288,7 +288,9 @@ fn new_button_widget(
     button: &Button,
     actions: &Rc<RefCell<Vec<Action>>>,
 ) -> widget::button::Button {
-    let mut button_widget = widget::button::Button::new(button.label_im().clone());
+    let label_id =
+        imgui::ImString::from(format!("{}##{}:{}", button.label(), node_id, button.key()));
+    let mut button_widget = widget::button::Button::new(label_id);
 
     let widget_address = WidgetAddress::new(node_id.to_string(), button.key().to_string());
     let was_active = button.active();
