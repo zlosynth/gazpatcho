@@ -1,5 +1,5 @@
 .PHONY: clean
-all: format lint check test
+all: format lint check doc test
 
 .PHONY: format
 format:
@@ -13,6 +13,10 @@ lint:
 check:
 	cargo check
 	cargo check --examples
+
+.PHONY: doc
+doc:
+	cargo doc
 
 .PHONY: test
 test:
