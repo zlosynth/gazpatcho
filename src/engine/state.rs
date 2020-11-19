@@ -18,7 +18,7 @@ use crate::report as r;
 pub struct State {
     pub offset: [f32; 2],
 
-    #[getset(get = "pub", get_mut = "pub")]
+    #[getset(get = "pub")]
     node_templates: Vec<NodeTemplate>,
     #[getset(get = "pub", get_mut = "pub")]
     nodes: Vec<Node>,
