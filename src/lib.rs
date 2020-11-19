@@ -45,6 +45,7 @@
 //! represented in the UI.
 //!
 //! ```no_run
+//! # use gazpatcho::config::*;
 //! # let config = Config { node_templates: vec![] };
 //! gazpatcho::run("Application Name", config, |report| {
 //!     // Act upon the current report
