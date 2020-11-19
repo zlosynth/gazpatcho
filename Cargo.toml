@@ -3,7 +3,11 @@ name = "gazpatcho"
 version = "0.1.0"
 authors = ["Petr Horáček <hrck@protonmail.com>"]
 edition = "2018"
+categories = ["Visualization"]
+keywords = ["user", "interface", "graph"]
 license = "GPL-3.0-or-later"
+description = "Simple node-based graph editor for Rust. Register nodes, let the user mingle with them, read the result."
+documentation = "https://docs.rs/gazpatcho"
 repository = "https://github.com/zlosynth/gazpatcho"
 readme = "README.md"
 
