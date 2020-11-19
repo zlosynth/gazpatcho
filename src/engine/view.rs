@@ -98,7 +98,6 @@ fn draw_menu(state: &State, ui: &imgui::Ui) -> Option<Action> {
 fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress, [f32; 2]>) {
     let actions = Rc::new(RefCell::new(Vec::new()));
     let pin_positions = Rc::new(RefCell::new(HashMap::new()));
-    let mut newly_triggered_node = None;
     let newly_triggered_pin = Rc::new(RefCell::new(None));
 
     state.nodes().iter().for_each(|node| {
@@ -157,14 +156,23 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
         node_widget.build(ui);
 
         if ui.is_item_active() {
-            if ui.is_mouse_clicked(imgui::MouseButton::Left) {
-                newly_triggered_node = Some(node.id().to_string());
-            }
-
             if ui.is_mouse_down(imgui::MouseButton::Left)
                 || ui.is_mouse_dragging(imgui::MouseButton::Left)
             {
                 ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
+
+                let triggered_node_id = node.id().to_string();
+                let new_trigger = match state.triggered_node() {
+                    Some(previously_triggered_node_id) => {
+                        triggered_node_id != *previously_triggered_node_id
+                    }
+                    None => true,
+                };
+                if new_trigger {
+                    actions.borrow_mut().push(Action::SetTriggeredNode {
+                        node_id: triggered_node_id,
+                    });
+                }
             }
 
             if ui.is_mouse_dragging(imgui::MouseButton::Left) {
@@ -179,12 +187,6 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
             imgui::sys::igSetItemAllowOverlap();
         }
     });
-
-    if let Some(newly_triggered_node_id) = newly_triggered_node {
-        actions.borrow_mut().push(Action::SetTriggeredNode {
-            node_id: newly_triggered_node_id,
-        });
-    }
 
     if let Some(previously_triggered_node_id) = state.triggered_node() {
         if ui.is_key_pressed(ui.key_index(imgui::Key::Delete)) {
