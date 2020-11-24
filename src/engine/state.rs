@@ -1,8 +1,10 @@
 //! Internal representation of the state of the application. This module is
 //! responsible for the state to stay consistent.
 
+extern crate dirs;
 extern crate getset;
 extern crate imgui;
+extern crate serde;
 
 use std::cell::RefCell;
 use std::clone::Clone;
@@ -10,6 +12,7 @@ use std::collections::HashSet;
 use std::convert::From;
 
 use imgui::ImString;
+use serde::{Deserialize, Serialize};
 
 use crate::config as c;
 use crate::report as r;
@@ -20,17 +23,19 @@ pub struct State {
 
     #[getset(get = "pub")]
     node_templates: Vec<NodeTemplate>,
-    #[getset(get = "pub", get_mut = "pub")]
+    #[getset(get = "pub", get_mut = "pub", set = "pub")]
     nodes: Vec<Node>,
     #[getset(get = "pub", set = "pub")]
     triggered_node: Option<String>,
     #[getset(get = "pub", set = "pub")]
     triggered_pin: Option<PinAddress>,
 
-    #[getset(get = "pub", get_mut = "pub")]
+    #[getset(get = "pub", get_mut = "pub", set = "pub")]
     patches: HashSet<Patch>,
     #[getset(get = "pub", set = "pub")]
     triggered_patch: Option<Patch>,
+
+    pub file_dialog: FileDialog,
 }
 
 impl From<c::Config> for State {
@@ -151,11 +156,12 @@ impl From<&Patch> for r::Patch {
     }
 }
 
-#[derive(Getters, PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Getters, PartialEq, Clone, Debug)]
 pub struct NodeTemplate {
-    label: ImString,
+    label: ImStringWrapper,
     #[getset(get = "pub")]
     class: String,
+    #[getset(get = "pub")]
     id_counter: RefCell<usize>,
     pins: Vec<Pin>,
     #[getset(get = "pub")]
@@ -202,7 +208,7 @@ impl NodeTemplate {
         }
 
         NodeTemplate {
-            label: ImString::from(label),
+            label: ImStringWrapper::from(label),
             class,
             id_counter: RefCell::new(0),
             pins,
@@ -211,7 +217,7 @@ impl NodeTemplate {
     }
 
     pub fn instantiate(&self, position: [f32; 2]) -> Node {
-        let id = ImString::from(format!("{}:{}", self.class(), self.id_counter.borrow()));
+        let id = ImStringWrapper::from(format!("{}:{}", self.class(), self.id_counter.borrow()));
         *self.id_counter.borrow_mut() += 1;
         Node {
             id,
@@ -224,18 +230,18 @@ impl NodeTemplate {
     }
 
     pub fn label(&self) -> &str {
-        self.label.to_str()
+        self.label.im_str().to_str()
     }
 
     pub fn label_im(&self) -> &ImString {
-        &self.label
+        self.label.im_str()
     }
 }
 
-#[derive(Getters, MutGetters, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Getters, MutGetters, Clone, PartialEq, Debug)]
 pub struct Node {
-    id: ImString,
-    label: ImString,
+    id: ImStringWrapper,
+    label: ImStringWrapper,
     #[getset(get = "pub")]
     class: String,
 
@@ -261,31 +267,31 @@ impl State {
 
 impl Node {
     pub fn id(&self) -> &str {
-        self.id.to_str()
+        self.id.im_str().to_str()
     }
 
     pub fn id_im(&self) -> &ImString {
-        &self.id
+        &self.id.im_str()
     }
 
     pub fn label(&self) -> &str {
-        self.label.to_str()
+        self.label.im_str().to_str()
     }
 
     pub fn label_im(&self) -> &ImString {
-        &self.label
+        self.label.im_str()
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Copy, Debug)]
 pub enum Direction {
     Input,
     Output,
 }
 
-#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct Pin {
-    label: ImString,
+    label: ImStringWrapper,
     #[getset(get = "pub")]
     class: String,
     #[getset(get_copy = "pub")]
@@ -302,21 +308,21 @@ impl Pin {
     pub fn new(label: String, class: String, direction: Direction) -> Self {
         Self {
             class,
-            label: ImString::from(label),
+            label: ImStringWrapper::from(label),
             direction,
         }
     }
 
     pub fn label(&self) -> &str {
-        self.label.to_str()
+        self.label.im_str().to_str()
     }
 
     pub fn label_im(&self) -> &ImString {
-        &self.label
+        self.label.im_str()
     }
 }
 
-#[derive(Getters, Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Getters, Clone, Hash, PartialEq, Eq, Debug)]
 pub struct PinAddress {
     #[getset(get = "pub")]
     node_id: String,
@@ -330,7 +336,7 @@ impl PinAddress {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub enum Widget {
     Button(Button),
     MultilineInput(MultilineInput),
@@ -338,7 +344,7 @@ pub enum Widget {
     DropDown(DropDown),
 }
 
-#[derive(Getters, Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Getters, Clone, Hash, PartialEq, Eq, Debug)]
 pub struct WidgetAddress {
     #[getset(get = "pub")]
     node_id: String,
@@ -382,9 +388,9 @@ impl Widget {
     }
 }
 
-#[derive(Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
 pub struct Button {
-    label: ImString,
+    label: ImStringWrapper,
     #[getset(get = "pub")]
     key: String,
     #[getset(get_copy = "pub", set = "pub")]
@@ -393,7 +399,7 @@ pub struct Button {
     activation_mode: ButtonActivationMode,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Debug)]
 pub enum ButtonActivationMode {
     OnClick,
     OnHold,
@@ -402,7 +408,7 @@ pub enum ButtonActivationMode {
 impl Button {
     pub fn new(label: String, key: String, activation_mode: ButtonActivationMode) -> Self {
         Self {
-            label: ImString::from(label),
+            label: ImStringWrapper::from(label),
             key,
             active: false,
             activation_mode,
@@ -410,15 +416,17 @@ impl Button {
     }
 
     pub fn label(&self) -> &str {
-        self.label.to_str()
+        self.label.im_str().to_str()
     }
 
     pub fn label_im(&self) -> &ImString {
-        &self.label
+        self.label.im_str()
     }
 }
 
-#[derive(Getters, MutGetters, CopyGetters, Setters, PartialEq, Clone, Debug)]
+#[derive(
+    Serialize, Deserialize, Getters, MutGetters, CopyGetters, Setters, PartialEq, Clone, Debug,
+)]
 pub struct MultilineInput {
     #[getset(get = "pub")]
     key: String,
@@ -426,7 +434,7 @@ pub struct MultilineInput {
     capacity: usize,
     #[getset(get_copy = "pub")]
     size: [f32; 2],
-    content: ImString,
+    content: ImStringWrapper,
 }
 
 impl MultilineInput {
@@ -435,24 +443,24 @@ impl MultilineInput {
             key,
             capacity,
             size,
-            content: ImString::new(""),
+            content: ImStringWrapper::new(""),
         }
     }
 
     pub fn content(&self) -> &str {
-        self.content.to_str()
+        self.content.im_str().to_str()
     }
 
     pub fn content_im(&self) -> &ImString {
-        &self.content
+        &self.content.im_str()
     }
 
     pub fn set_content(&mut self, content: String) {
-        self.content = ImString::from(content);
+        self.content = ImStringWrapper::from(content);
     }
 }
 
-#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct Slider {
     #[getset(get = "pub")]
     key: String,
@@ -462,7 +470,7 @@ pub struct Slider {
     max: f32,
     #[getset(get_copy = "pub")]
     value: f32,
-    display_format: ImString,
+    display_format: ImStringWrapper,
     #[getset(get_copy = "pub")]
     width: f32,
 }
@@ -486,7 +494,7 @@ impl Slider {
             min,
             max,
             value,
-            display_format: ImString::from(display_format),
+            display_format: ImStringWrapper::from(display_format),
             width,
         }
     }
@@ -500,15 +508,15 @@ impl Slider {
     }
 
     pub fn display_format(&self) -> &str {
-        self.display_format.to_str()
+        self.display_format.im_str().to_str()
     }
 
     pub fn display_format_im(&self) -> &ImString {
-        &self.display_format
+        &self.display_format.im_str()
     }
 }
 
-#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct DropDown {
     #[getset(get = "pub")]
     key: String,
@@ -537,7 +545,7 @@ impl DropDown {
     }
 }
 
-#[derive(Getters, CopyGetters, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Getters, CopyGetters, Clone, PartialEq, Debug)]
 pub struct DropDownItem {
     #[getset(get = "pub")]
     label: String,
@@ -551,7 +559,7 @@ impl DropDownItem {
     }
 }
 
-#[derive(Getters, Hash, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Getters, Hash, PartialEq, Eq, Clone, Debug)]
 pub struct Patch {
     #[getset(get = "pub")]
     source: PinAddress,
@@ -607,6 +615,65 @@ impl Patch {
             source,
             destination,
         }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct FileDialog {
+    pub buffer: String,
+    pub mode: FileDialogMode,
+    pub recent_file: Option<String>,
+    pub result: Result<(), String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub enum FileDialogMode {
+    Load,
+    Save,
+    Closed,
+}
+
+impl FileDialogMode {
+    pub fn is_open(&self) -> bool {
+        !matches!(self, FileDialogMode::Closed)
+    }
+}
+
+impl Default for FileDialog {
+    fn default() -> Self {
+        Self {
+            buffer: "".to_owned(),
+            mode: FileDialogMode::Closed,
+            recent_file: None,
+            result: Ok(()),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+#[serde(from = "String")]
+#[serde(into = "String")]
+struct ImStringWrapper(ImString);
+
+impl ImStringWrapper {
+    pub fn new(string: &str) -> Self {
+        Self(ImString::new(string))
+    }
+
+    pub fn im_str(&self) -> &ImString {
+        &self.0
+    }
+}
+
+impl From<String> for ImStringWrapper {
+    fn from(string: String) -> Self {
+        Self(ImString::from(string))
+    }
+}
+
+impl From<ImStringWrapper> for String {
+    fn from(im_string: ImStringWrapper) -> Self {
+        im_string.im_str().to_str().to_owned()
     }
 }
 

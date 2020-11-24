@@ -12,8 +12,8 @@ use std::rc::Rc;
 
 use crate::engine::action::Action;
 use crate::engine::state::{
-    Button, ButtonActivationMode, Direction, DropDown, MultilineInput, Node, Patch, PinAddress,
-    Slider, State, Widget, WidgetAddress,
+    Button, ButtonActivationMode, Direction, DropDown, FileDialogMode, MultilineInput, Node, Patch,
+    PinAddress, Slider, State, Widget, WidgetAddress,
 };
 use crate::vec2;
 use crate::widget;
@@ -35,6 +35,10 @@ pub fn draw(state: &State, ui: &imgui::Ui) -> Vec<Action> {
     actions.extend(node_actions);
 
     actions.extend(draw_patches(state, pin_positions, ui));
+
+    if let Some(action) = draw_file_dialog(state, ui) {
+        actions.push(action);
+    }
 
     actions
 }
@@ -78,6 +82,16 @@ fn draw_menu(state: &State, ui: &imgui::Ui) -> Option<Action> {
             [-state.offset[0], -state.offset[1]],
         ]);
 
+        if imgui::MenuItem::new(im_str!("Load...")).build(ui) {
+            action = Some(Action::OpenFileLoadDialog)
+        }
+
+        if imgui::MenuItem::new(im_str!("Save as...")).build(ui) {
+            action = Some(Action::OpenFileSaveDialog)
+        }
+
+        ui.separator();
+
         for template in state.node_templates().iter() {
             if imgui::MenuItem::new(template.label_im()).build(ui) {
                 action = Some(Action::AddNode {
@@ -89,6 +103,82 @@ fn draw_menu(state: &State, ui: &imgui::Ui) -> Option<Action> {
 
         unsafe { imgui_sys::igEndPopup() };
     }
+
+    style_vars.pop(ui);
+
+    action
+}
+
+// TODO: use constants for colors and sizes
+fn draw_file_dialog(state: &State, ui: &imgui::Ui) -> Option<Action> {
+    let mut action = None;
+
+    if state.file_dialog.mode.is_open() {
+        let draw_list = ui.get_window_draw_list();
+        draw_list
+            .add_rect([0.0, 0.0], ui.io().display_size, [1.0, 1.0, 1.0, 1.0])
+            .filled(true)
+            .build();
+        ui.open_popup(im_str!("##file_dialog"));
+    }
+
+    let style_vars = ui.push_style_vars(&[imgui::StyleVar::WindowPadding([5.0, 5.0])]);
+    ui.popup_modal(im_str!("##file_dialog"))
+        .title_bar(false)
+        .resizable(false)
+        .movable(false)
+        .always_auto_resize(true)
+        .build(|| {
+            let mut buf = imgui::ImString::from(state.file_dialog.buffer.clone());
+            buf.reserve(4096 - buf.capacity());
+
+            ui.push_item_width(350.0);
+            ui.input_text(im_str!("##file_path"), &mut buf).build();
+            if buf.to_str() != state.file_dialog.buffer {
+                action = Some(Action::SetFileDialogBuffer {
+                    value: buf.to_str().to_owned(),
+                });
+            }
+
+            if let Err(error) = &state.file_dialog.result {
+                ui.text(imgui::ImString::from(format!("Error: {}", error)));
+            }
+
+            ui.indent_by(125.0);
+
+            match state.file_dialog.mode {
+                FileDialogMode::Load => {
+                    if ui.is_key_pressed(ui.key_index(imgui::Key::Enter))
+                        || ui.button(im_str!("Load"), [0.0, 0.0])
+                    {
+                        action = Some(Action::LoadFile {
+                            path: buf.to_str().to_owned(),
+                        });
+                        ui.close_current_popup();
+                    }
+                }
+                FileDialogMode::Save => {
+                    if ui.is_key_pressed(ui.key_index(imgui::Key::Enter))
+                        || ui.button(im_str!("Save"), [0.0, 0.0])
+                    {
+                        action = Some(Action::SaveFile {
+                            path: buf.to_str().to_owned(),
+                        });
+                        ui.close_current_popup();
+                    }
+                }
+                _ => panic!("Should never happen"),
+            }
+
+            ui.same_line(0.0);
+
+            if ui.is_key_pressed(ui.key_index(imgui::Key::Escape))
+                || ui.button(im_str!("Cancel"), [0.0, 0.0])
+            {
+                action = Some(Action::CloseFileDialog);
+                ui.close_current_popup();
+            }
+        });
 
     style_vars.pop(ui);
 
@@ -194,6 +284,7 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
                 node_id: previously_triggered_node_id.to_string(),
             });
         } else if ui.is_mouse_clicked(imgui::MouseButton::Left)
+            || ui.is_mouse_clicked(imgui::MouseButton::Right)
             || ui.is_key_pressed(ui.key_index(imgui::Key::Escape))
         {
             actions.borrow_mut().push(Action::ResetTriggeredNode)

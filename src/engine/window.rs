@@ -10,6 +10,7 @@ const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const GRAY: [f32; 4] = [0.9, 0.9, 0.9, 1.0];
 const DARK_GRAY: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
+const INVISIBLE: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
 
 pub fn run<F>(title: &str, mut ui_build_callback: F)
 where
@@ -26,10 +27,11 @@ where
                 .resizable(false)
                 .scroll_bar(false)
                 .title_bar(false)
+                .bring_to_front_on_focus(false)
                 .build(ui, || {
                     ui_build_callback(ui);
                 });
-        })
+        });
     });
 }
 
@@ -64,6 +66,7 @@ fn set_styles<F: FnOnce()>(ui: &imgui::Ui<'_>, f: F) {
         (imgui::StyleColor::TextSelectedBg, DARK_GRAY),
         (imgui::StyleColor::WindowBg, WHITE),
         (imgui::StyleColor::WindowBg, WHITE),
+        (imgui::StyleColor::ModalWindowDimBg, INVISIBLE),
     ]);
 
     f();

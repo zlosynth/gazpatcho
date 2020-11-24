@@ -21,3 +21,4 @@ pub mod view;
 pub mod window;
 
 mod action;
+mod snapshot;

@@ -1,7 +1,12 @@
 //! Reducer is reconciling actions received from the user on the state.
 
+extern crate serde_json;
+
+use std::fs;
+
 use crate::engine::action::Action;
-use crate::engine::state::{Patch, PinAddress, State, Widget, WidgetAddress};
+use crate::engine::snapshot::Snapshot;
+use crate::engine::state::{FileDialogMode, Patch, PinAddress, State, Widget, WidgetAddress};
 use crate::vec2;
 
 /// Type signalizing the effect of a reduce function.
@@ -54,6 +59,12 @@ pub fn reduce(state: &mut State, action: Action) -> ReduceResult {
             widget_address,
             value,
         } => set_dropdown_value(state, widget_address, value),
+        Action::OpenFileLoadDialog => open_file_dialog(state, FileDialogMode::Load),
+        Action::OpenFileSaveDialog => open_file_dialog(state, FileDialogMode::Save),
+        Action::SetFileDialogBuffer { value } => set_file_dialog_buffer(state, value),
+        Action::LoadFile { path } => load_file(state, path),
+        Action::SaveFile { path } => save_file(state, path),
+        Action::CloseFileDialog => close_file_dialog(state),
     }
 }
 
@@ -212,8 +223,83 @@ fn set_dropdown_value(
     ModelChanged
 }
 
+fn open_file_dialog(state: &mut State, mode: FileDialogMode) -> ReduceResult {
+    state.file_dialog.buffer = state
+        .file_dialog
+        .recent_file
+        .as_ref()
+        .map(|s| s.to_owned())
+        .unwrap_or_else(|| dirs::home_dir().unwrap().to_str().unwrap().to_owned());
+    state.file_dialog.mode = mode;
+    state.file_dialog.result = Ok(());
+    ModelUnchanged
+}
+
+fn set_file_dialog_buffer(state: &mut State, value: String) -> ReduceResult {
+    state.file_dialog.buffer = value;
+    ModelUnchanged
+}
+
+fn load_file(state: &mut State, path: String) -> ReduceResult {
+    let snapshot_raw = match fs::read_to_string(path.clone()) {
+        Ok(content) => content,
+        Err(err) => {
+            state.file_dialog.result = Err(format!("{}", err));
+            return ModelUnchanged;
+        }
+    };
+
+    let snapshot = match serde_json::from_str(&snapshot_raw) {
+        Ok(snapshot) => snapshot,
+        Err(err) => {
+            state.file_dialog.result = Err(format!("{}", err));
+            return ModelUnchanged;
+        }
+    };
+
+    match state.load_snapshot(snapshot) {
+        Ok(_) => {
+            state.file_dialog.result = Ok(());
+            state.file_dialog.recent_file = Some(path);
+            state.file_dialog.mode = FileDialogMode::Closed;
+            ModelChanged
+        }
+        Err(err) => {
+            state.file_dialog.result = Err(err);
+            ModelUnchanged
+        }
+    }
+}
+
+fn save_file(state: &mut State, path: String) -> ReduceResult {
+    let serialized_state = serde_json::to_string_pretty(&Snapshot::from(&*state))
+        .expect("Failed serializing the state");
+
+    match fs::write(path.clone(), serialized_state) {
+        Ok(_) => {
+            state.file_dialog.result = Ok(());
+            state.file_dialog.recent_file = Some(path);
+            state.file_dialog.mode = FileDialogMode::Closed;
+        }
+        Err(err) => {
+            state.file_dialog.result = Err(format!("{}", err));
+        }
+    }
+
+    ModelUnchanged
+}
+
+fn close_file_dialog(state: &mut State) -> ReduceResult {
+    state.file_dialog.mode = FileDialogMode::Closed;
+    ModelUnchanged
+}
+
 #[cfg(test)]
 mod tests {
+    extern crate tempfile;
+
+    use std::fs;
+
     use super::*;
 
     use crate::state::{
@@ -681,5 +767,414 @@ mod tests {
         } else {
             panic!("invalid widget type");
         }
+    }
+
+    #[test]
+    fn open_load_file_dialog() {
+        let mut state = State::default();
+        assert!(!reduce(&mut state, Action::OpenFileLoadDialog).model_changed());
+
+        assert_eq!(state.file_dialog.mode, FileDialogMode::Load);
+        assert!(!state.file_dialog.buffer.is_empty());
+        assert_eq!(state.file_dialog.recent_file, None);
+        assert_eq!(state.file_dialog.result, Ok(()));
+    }
+
+    #[test]
+    fn open_save_file_dialog() {
+        let mut state = State::default();
+        assert!(!reduce(&mut state, Action::OpenFileSaveDialog).model_changed());
+
+        assert_eq!(state.file_dialog.mode, FileDialogMode::Save);
+        assert!(!state.file_dialog.buffer.is_empty());
+        assert_eq!(state.file_dialog.recent_file, None);
+        assert_eq!(state.file_dialog.result, Ok(()));
+    }
+
+    #[test]
+    fn file_dialog_shows_recent_file_after_successful_save() {
+        let mut state = State::default();
+        let test_dir = tempfile::tempdir().unwrap();
+        let file_path = test_dir
+            .path()
+            .join("gazpatcho.json")
+            .to_str()
+            .unwrap()
+            .to_owned();
+
+        reduce(
+            &mut state,
+            Action::SaveFile {
+                path: file_path.clone(),
+            },
+        );
+
+        assert_eq!(state.file_dialog.recent_file, Some(file_path));
+    }
+
+    #[test]
+    fn file_dialog_does_not_show_recent_file_after_unsuccessful_save() {
+        let mut state = State::default();
+        let file_path = "does_not_exist/gazpatcho.json".to_owned();
+
+        reduce(
+            &mut state,
+            Action::SaveFile {
+                path: file_path.clone(),
+            },
+        );
+
+        assert_eq!(state.file_dialog.recent_file, None);
+    }
+
+    #[test]
+    fn file_dialog_shows_recent_file_after_successful_load() {
+        let mut state = State::default();
+        let test_dir = tempfile::tempdir().unwrap();
+        let file_path = test_dir
+            .path()
+            .join("gazpatcho.json")
+            .to_str()
+            .unwrap()
+            .to_owned();
+        reduce(
+            &mut state,
+            Action::SaveFile {
+                path: file_path.clone(),
+            },
+        );
+
+        reduce(
+            &mut state,
+            Action::LoadFile {
+                path: file_path.clone(),
+            },
+        );
+
+        assert_eq!(state.file_dialog.recent_file, Some(file_path));
+    }
+
+    #[test]
+    fn file_dialog_does_not_show_recent_file_after_unsuccessful_load() {
+        let mut state = State::default();
+        let file_path = "does_not_exist/gazpatcho.json".to_owned();
+
+        reduce(
+            &mut state,
+            Action::LoadFile {
+                path: file_path.clone(),
+            },
+        );
+
+        assert_eq!(state.file_dialog.recent_file, None);
+    }
+
+    #[test]
+    fn set_value_of_file_dialog_buffer() {
+        let mut state = State::default();
+        let file_path = "does_not_exist/gazpatcho.json".to_owned();
+
+        reduce(
+            &mut state,
+            Action::SetFileDialogBuffer {
+                value: file_path.clone(),
+            },
+        );
+
+        assert_eq!(state.file_dialog.buffer, file_path);
+    }
+
+    fn initialize_state_with_template() -> State {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![],
+            vec![Widget::DropDown(DropDown::new(
+                "key".to_owned(),
+                vec![
+                    DropDownItem::new("Label 1".to_owned(), "value1".to_owned()),
+                    DropDownItem::new("Label 2".to_owned(), "value2".to_owned()),
+                ],
+            ))],
+        ));
+        state
+    }
+
+    fn save_and_load_state(mut state_to_save: State, mut state_to_load_into: State) -> State {
+        let test_dir = tempfile::tempdir().unwrap();
+        let file_path = test_dir
+            .path()
+            .join("gazpatcho.json")
+            .to_str()
+            .unwrap()
+            .to_owned();
+
+        reduce(
+            &mut state_to_save,
+            Action::SaveFile {
+                path: file_path.clone(),
+            },
+        );
+
+        reduce(
+            &mut state_to_load_into,
+            Action::LoadFile {
+                path: file_path.clone(),
+            },
+        );
+
+        state_to_load_into
+    }
+
+    #[test]
+    fn load_state_from_file() {
+        let mut original_state = initialize_state_with_template();
+        original_state.add_node(original_state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        let new_state =
+            save_and_load_state(original_state.clone(), initialize_state_with_template());
+
+        assert_eq!(new_state.offset, original_state.offset);
+        assert_eq!(new_state.nodes(), original_state.nodes());
+        assert_eq!(new_state.patches(), original_state.patches());
+    }
+
+    #[test]
+    fn load_state_from_file_into_template_superset() {
+        fn initialize_state_with_template_subset() -> State {
+            let mut state = State::default();
+            state.add_node_template(NodeTemplate::new(
+                "Label".to_owned(),
+                "class".to_owned(),
+                vec![],
+                vec![Widget::DropDown(DropDown::new(
+                    "key".to_owned(),
+                    vec![
+                        DropDownItem::new("Label 1".to_owned(), "value1".to_owned()),
+                        DropDownItem::new("Label 2".to_owned(), "value2".to_owned()),
+                    ],
+                ))],
+            ));
+            state
+        }
+
+        fn initialize_state_with_template_superset() -> State {
+            let mut state = State::default();
+            state.add_node_template(NodeTemplate::new(
+                "Label".to_owned(),
+                "class".to_owned(),
+                vec![],
+                vec![Widget::DropDown(DropDown::new(
+                    "key".to_owned(),
+                    vec![
+                        DropDownItem::new("Label 1".to_owned(), "value1".to_owned()),
+                        DropDownItem::new("Label 2".to_owned(), "value2".to_owned()),
+                        DropDownItem::new("Label 3".to_owned(), "value3".to_owned()),
+                    ],
+                ))],
+            ));
+            state
+        }
+
+        let mut original_state = initialize_state_with_template_subset();
+        original_state.add_node(original_state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        let new_state = save_and_load_state(
+            original_state.clone(),
+            initialize_state_with_template_superset(),
+        );
+
+        assert_eq!(new_state.offset, original_state.offset);
+        assert_eq!(new_state.nodes(), original_state.nodes());
+        assert_eq!(new_state.patches(), original_state.patches());
+    }
+
+    #[test]
+    fn fail_on_load_nonexistent_file() {
+        let mut state = initialize_state_with_template();
+        let file_path = "does_not_exist/gazpatcho.json".to_owned();
+        let state_copy = state.clone();
+
+        reduce(
+            &mut state,
+            Action::LoadFile {
+                path: file_path.clone(),
+            },
+        );
+
+        assert_eq!(
+            state.file_dialog.result,
+            Err("No such file or directory (os error 2)".to_owned())
+        );
+        assert_eq!(state.offset, state_copy.offset);
+        assert_eq!(state.node_templates(), state_copy.node_templates());
+        assert_eq!(state.nodes(), state_copy.nodes());
+        assert_eq!(state.patches(), state_copy.patches());
+    }
+
+    #[test]
+    fn fail_on_load_invalid_file_format() {
+        let mut state = initialize_state_with_template();
+        let test_dir = tempfile::tempdir().unwrap();
+        let file_path = test_dir
+            .path()
+            .join("not-gazpatcho.txt")
+            .to_str()
+            .unwrap()
+            .to_owned();
+        fs::write(file_path.clone(), "I am not a valid gazpatcho save").unwrap();
+        let state_copy = state.clone();
+
+        reduce(
+            &mut state,
+            Action::LoadFile {
+                path: file_path.clone(),
+            },
+        );
+
+        assert_eq!(
+            state.file_dialog.result,
+            Err("expected value at line 1 column 1".to_owned())
+        );
+        assert_eq!(state.offset, state_copy.offset);
+        assert_eq!(state.node_templates(), state_copy.node_templates());
+        assert_eq!(state.nodes(), state_copy.nodes());
+        assert_eq!(state.patches(), state_copy.patches());
+    }
+
+    #[test]
+    fn fail_on_load_missing_templates() {
+        let mut original_state = initialize_state_with_template();
+        original_state.add_node(original_state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        let mut new_state = State::default();
+        let state_copy = new_state.clone();
+        new_state = save_and_load_state(original_state, new_state);
+
+        assert_eq!(
+            new_state.file_dialog.result,
+            Err("Cannot load a template of an unknown type".to_owned())
+        );
+        assert_eq!(new_state.offset, state_copy.offset);
+        assert_eq!(new_state.node_templates(), state_copy.node_templates());
+        assert_eq!(new_state.nodes(), state_copy.nodes());
+        assert_eq!(new_state.patches(), state_copy.patches());
+    }
+
+    #[test]
+    fn fail_on_load_directory() {
+        let mut state = initialize_state_with_template();
+        let test_dir = tempfile::tempdir().unwrap();
+        let file_path = test_dir.path().to_str().unwrap().to_owned();
+        let state_copy = state.clone();
+
+        reduce(
+            &mut state,
+            Action::LoadFile {
+                path: file_path.clone(),
+            },
+        );
+
+        assert_eq!(
+            state.file_dialog.result,
+            Err("Is a directory (os error 21)".to_owned())
+        );
+        assert_eq!(state.offset, state_copy.offset);
+        assert_eq!(state.node_templates(), state_copy.node_templates());
+        assert_eq!(state.nodes(), state_copy.nodes());
+        assert_eq!(state.patches(), state_copy.patches());
+    }
+
+    #[test]
+    fn save_state_to_file() {
+        const SERIALIZED_DEFAULT_STATE: &str = "{
+  \"offset\": [
+    0.0,
+    0.0
+  ],
+  \"node_templates\": [],
+  \"nodes\": [],
+  \"patches\": []
+}";
+
+        let mut state = State::default();
+        let test_dir = tempfile::tempdir().unwrap();
+        let file_path = test_dir
+            .path()
+            .join("gazpatcho.json")
+            .to_str()
+            .unwrap()
+            .to_owned();
+
+        reduce(
+            &mut state,
+            Action::SaveFile {
+                path: file_path.clone(),
+            },
+        );
+
+        assert!(state.file_dialog.result.is_ok());
+        assert_eq!(
+            fs::read_to_string(file_path).unwrap(),
+            SERIALIZED_DEFAULT_STATE
+        );
+    }
+
+    #[test]
+    fn fail_on_save_to_nonexistent_directory() {
+        let mut state = State::default();
+        let file_path = "does_not_exist/gazpatcho.json".to_owned();
+
+        reduce(
+            &mut state,
+            Action::SaveFile {
+                path: file_path.clone(),
+            },
+        );
+
+        assert_eq!(
+            state.file_dialog.result,
+            Err("No such file or directory (os error 2)".to_owned())
+        );
+    }
+
+    #[test]
+    fn fail_on_save_as_existing_directory() {
+        let mut state = State::default();
+        let test_dir = tempfile::tempdir().unwrap();
+        let file_path = test_dir.path().to_str().unwrap().to_owned();
+
+        reduce(
+            &mut state,
+            Action::SaveFile {
+                path: file_path.clone(),
+            },
+        );
+
+        assert_eq!(
+            state.file_dialog.result,
+            Err("Is a directory (os error 21)".to_owned())
+        );
+    }
+
+    #[test]
+    fn close_load_file_dialog() {
+        let mut state = State::default();
+        reduce(&mut state, Action::OpenFileLoadDialog);
+
+        assert!(!reduce(&mut state, Action::CloseFileDialog).model_changed());
+
+        assert_eq!(state.file_dialog.mode, FileDialogMode::Closed);
+    }
+
+    #[test]
+    fn close_save_file_dialog() {
+        let mut state = State::default();
+        reduce(&mut state, Action::OpenFileSaveDialog);
+
+        assert!(!reduce(&mut state, Action::CloseFileDialog).model_changed());
+
+        assert_eq!(state.file_dialog.mode, FileDialogMode::Closed);
     }
 }

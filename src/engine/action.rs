@@ -53,4 +53,16 @@ pub enum Action {
         widget_address: WidgetAddress,
         value: String,
     },
+    OpenFileLoadDialog,
+    OpenFileSaveDialog,
+    SetFileDialogBuffer {
+        value: String,
+    },
+    LoadFile {
+        path: String,
+    },
+    SaveFile {
+        path: String,
+    },
+    CloseFileDialog,
 }
