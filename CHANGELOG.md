@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0
+
+* Added save/load support.
+
 ## 0.1
 
 * Allows adding and removal of nodes and patches.
