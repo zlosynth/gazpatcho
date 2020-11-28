@@ -1,6 +1,6 @@
 [package]
 name = "gazpatcho"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Petr Horáček <hrck@protonmail.com>"]
 edition = "2018"
 categories = ["visualization"]
@@ -12,13 +12,11 @@ repository = "https://github.com/zlosynth/gazpatcho"
 readme = "README.md"
 
 [dependencies]
-imgui = "0.5"
-imgui-sys = "0.5"
-imgui-glium-renderer = "0.5"
-imgui-winit-support = "0.5"
-clipboard = "0.5"
-glium = { version = "0.27", default-features = true }
-image = "0.23"
+imgui = "0.6"
+imgui-sys = "0.6"
+imgui-glium-renderer = "0.6"
+imgui-winit-support = "0.6"
+glium = { version = "0.28", default-features = true }
 getset = "0.1"
 dirs = "3.0"
 serde = { version = "1.0", features = ["derive"] }

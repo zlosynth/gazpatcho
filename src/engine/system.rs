@@ -1,13 +1,6 @@
 //! Backend implementation for the UI backend. Handling rendering of the
 //! application as a system window.
 
-extern crate glium;
-extern crate imgui;
-extern crate imgui_glium_renderer;
-extern crate imgui_winit_support;
-
-use std::time::Instant;
-
 use glium::glutin;
 use glium::glutin::event::{Event, WindowEvent};
 use glium::glutin::event_loop::{ControlFlow, EventLoop};
@@ -16,6 +9,7 @@ use glium::{Display, Surface};
 use imgui::{Context, FontConfig, FontSource, Ui};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
+use std::time::Instant;
 
 pub struct System {
     pub event_loop: EventLoop<()>,
@@ -26,49 +20,53 @@ pub struct System {
     pub font_size: f32,
 }
 
-impl System {
-    pub fn init(title: &str) -> System {
-        let event_loop = EventLoop::new();
-        let context = glutin::ContextBuilder::new().with_vsync(true);
-        let builder = WindowBuilder::new()
-            .with_title(title.to_owned())
-            .with_inner_size(glutin::dpi::LogicalSize::new(1024f64, 768f64));
-        let display =
-            Display::new(builder, context, &event_loop).expect("Failed to initialize display");
+pub fn init(title: &str) -> System {
+    let title = match title.rfind('/') {
+        Some(idx) => title.split_at(idx + 1).1,
+        None => title,
+    };
+    let event_loop = EventLoop::new();
+    let context = glutin::ContextBuilder::new().with_vsync(true);
+    let builder = WindowBuilder::new()
+        .with_title(title.to_owned())
+        .with_inner_size(glutin::dpi::LogicalSize::new(1024f64, 768f64));
+    let display =
+        Display::new(builder, context, &event_loop).expect("Failed to initialize display");
 
-        let mut imgui = Context::create();
-        imgui.set_ini_filename(None);
+    let mut imgui = Context::create();
+    imgui.set_ini_filename(None);
 
-        let mut platform = WinitPlatform::init(&mut imgui);
-        {
-            let gl_window = display.gl_window();
-            let window = gl_window.window();
-            platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Rounded);
-        }
-
-        let hidpi_factor = platform.hidpi_factor();
-        let font_size = (13.0 * hidpi_factor) as f32;
-        imgui.fonts().add_font(&[FontSource::DefaultFontData {
-            config: Some(FontConfig {
-                size_pixels: font_size,
-                ..FontConfig::default()
-            }),
-        }]);
-
-        imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
-
-        let renderer = Renderer::init(&mut imgui, &display).expect("Failed to initialize renderer");
-
-        System {
-            event_loop,
-            display,
-            imgui,
-            platform,
-            renderer,
-            font_size,
-        }
+    let mut platform = WinitPlatform::init(&mut imgui);
+    {
+        let gl_window = display.gl_window();
+        let window = gl_window.window();
+        platform.attach_window(imgui.io_mut(), window, HiDpiMode::Rounded);
     }
 
+    let hidpi_factor = platform.hidpi_factor();
+    let font_size = (13.0 * hidpi_factor) as f32;
+    imgui.fonts().add_font(&[FontSource::DefaultFontData {
+        config: Some(FontConfig {
+            size_pixels: font_size,
+            ..FontConfig::default()
+        }),
+    }]);
+
+    imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
+
+    let renderer = Renderer::init(&mut imgui, &display).expect("Failed to initialize renderer");
+
+    System {
+        event_loop,
+        display,
+        imgui,
+        platform,
+        renderer,
+        font_size,
+    }
+}
+
+impl System {
     pub fn main_loop<F: FnMut(&mut bool, &mut Ui) + 'static>(self, mut run_ui: F) {
         let System {
             event_loop,
@@ -89,7 +87,7 @@ impl System {
             Event::MainEventsCleared => {
                 let gl_window = display.gl_window();
                 platform
-                    .prepare_frame(imgui.io_mut(), &gl_window.window())
+                    .prepare_frame(imgui.io_mut(), gl_window.window())
                     .expect("Failed to prepare frame");
                 gl_window.window().request_redraw();
             }

@@ -16,7 +16,7 @@ pub fn run<F>(title: &str, mut ui_build_callback: F)
 where
     F: FnMut(&imgui::Ui) + 'static,
 {
-    let s = system::System::init(title);
+    let s = system::init(title);
     s.main_loop(move |_, ui| {
         set_styles(ui, || {
             imgui::Window::new(im_str!("##main_window"))
