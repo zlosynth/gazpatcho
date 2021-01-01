@@ -16,7 +16,7 @@ imgui = "0.6"
 imgui-sys = "0.6"
 imgui-glium-renderer = "0.6"
 imgui-winit-support = "0.6"
-glium = { version = "0.28", default-features = true }
+glium = { version = "0.29", default-features = true }
 getset = "0.1"
 dirs = "3.0"
 serde = { version = "1.0", features = ["derive"] }
