@@ -4,6 +4,7 @@
 
 * `MultilineInput` widget was renamed to `TextBox`. The original is kept for
   backward compatibility.
+* Add read-only mode to `TextBox`.
 
 ## 1.1.0
 

@@ -619,6 +619,7 @@ mod tests {
                 "key".to_owned(),
                 100,
                 [100.0, 100.0],
+                false,
             ))],
         ));
         state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));

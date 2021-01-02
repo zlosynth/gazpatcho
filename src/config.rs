@@ -32,6 +32,7 @@
 //!                     key: "comment".to_owned(),
 //!                     capacity: 1000,
 //!                     size: [300.0, 100.0],
+//!                     read_only: false,
 //!                 },
 //!                 Slider {
 //!                     key: "slider".to_owned(),
@@ -153,6 +154,9 @@ pub enum Widget {
         /// treated as a minimal weight that may be increased in case there is
         /// another widget that is wider.
         size: [f32; 2],
+        /// Select whether the content of the textbox can be edited through the
+        /// UI.
+        read_only: bool,
     },
     /// Slider is a drag and drop dialog allowing users to dial-in a `f32` value
     /// within given borders.

@@ -5,6 +5,18 @@ use gazpatcho::model::*;
 use gazpatcho::request::*;
 
 fn main() {
+    let statistics = NodeTemplate {
+        label: "Statistics".to_owned(),
+        class: "statistics".to_owned(),
+        pins: vec![],
+        widgets: vec![TextBox {
+            key: "statistics".to_owned(),
+            capacity: 1000,
+            size: [200.0, 100.0],
+            read_only: true,
+        }],
+    };
+
     let comment = NodeTemplate {
         label: "Comment".to_owned(),
         class: "comment".to_owned(),
@@ -13,6 +25,7 @@ fn main() {
             key: "comment".to_owned(),
             capacity: 1000,
             size: [300.0, 100.0],
+            read_only: false,
         }],
     };
 
@@ -100,19 +113,24 @@ fn main() {
     };
 
     let config = Config {
-        node_templates: vec![comment, oscillator, mixer],
+        node_templates: vec![statistics, comment, oscillator, mixer],
     };
 
     gazpatcho::run_with_callback("Gazpatcho", config, |report| {
-        // When oscillator trigger is clicked, set oscillator slider value to 10.0
+        let current_statistics = format!(
+            "Number of nodes: {}\nNumber of patches: {}",
+            report.nodes.len(),
+            report.patches.len()
+        );
+
         let requests = report
             .nodes
             .iter()
-            .filter(|n| n.class == "oscillator" && n.data["trigger"].unwrap_bool())
+            .filter(|n| n.class == "statistics")
             .map(|n| Request::SetValue {
                 node_id: n.id.to_owned(),
-                key: "slider".to_owned(),
-                value: Value::F32(10.0),
+                key: "statistics".to_owned(),
+                value: Value::String(current_statistics.to_owned()),
             })
             .collect();
 

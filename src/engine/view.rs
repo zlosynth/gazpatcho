@@ -363,16 +363,22 @@ fn new_text_box_widget(
     let mut buffer = text_box.content_im().clone();
     buffer.reserve(text_box.capacity() - buffer.capacity());
     let actions = Rc::clone(&actions);
-    widget::text_box::TextBox::new(id, buffer, text_box.size()[0], text_box.size()[1])
-        .content_callback(Box::new(move |c| {
-            if *c != original_content {
-                actions.borrow_mut().push(Action::SetValue {
-                    node_id,
-                    key: widget_key,
-                    value: Value::String(c.to_str().to_owned()),
-                })
-            }
-        }))
+    widget::text_box::TextBox::new(
+        id,
+        buffer,
+        text_box.size()[0],
+        text_box.size()[1],
+        text_box.read_only(),
+    )
+    .content_callback(Box::new(move |c| {
+        if *c != original_content {
+            actions.borrow_mut().push(Action::SetValue {
+                node_id,
+                key: widget_key,
+                value: Value::String(c.to_str().to_owned()),
+            })
+        }
+    }))
 }
 
 fn new_button_widget(

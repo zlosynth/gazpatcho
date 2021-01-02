@@ -82,12 +82,13 @@ impl From<c::Widget> for Widget {
                 key,
                 capacity,
                 size,
-            }
-            | c::Widget::TextBox {
+            } => Widget::TextBox(TextBox::new(key, capacity, size, false)),
+            c::Widget::TextBox {
                 key,
                 capacity,
                 size,
-            } => Widget::TextBox(TextBox::new(key, capacity, size)),
+                read_only,
+            } => Widget::TextBox(TextBox::new(key, capacity, size, read_only)),
             c::Widget::Slider {
                 key,
                 min,
@@ -423,15 +424,18 @@ pub struct TextBox {
     #[getset(get_copy = "pub")]
     size: [f32; 2],
     content: ImStringWrapper,
+    #[getset(get_copy = "pub")]
+    read_only: bool,
 }
 
 impl TextBox {
-    pub fn new(key: String, capacity: usize, size: [f32; 2]) -> Self {
+    pub fn new(key: String, capacity: usize, size: [f32; 2], read_only: bool) -> Self {
         Self {
             key,
             capacity,
             size,
             content: ImStringWrapper::new(""),
+            read_only,
         }
     }
 
@@ -860,16 +864,17 @@ mod tests {
 
         #[test]
         fn intialize() {
-            let text_box = TextBox::new("key".to_owned(), 1000, [100.0, 100.0]);
+            let text_box = TextBox::new("key".to_owned(), 1000, [100.0, 100.0], false);
 
             assert_eq!(text_box.key(), "key");
             assert_eq!(text_box.size(), [100.0, 100.0]);
             assert_eq!(text_box.content(), "");
+            assert_eq!(text_box.read_only(), false);
         }
 
         #[test]
         fn change_content() {
-            let mut text_box = TextBox::new("key".to_owned(), 1000, [100.0, 100.0]);
+            let mut text_box = TextBox::new("key".to_owned(), 1000, [100.0, 100.0], false);
 
             text_box.set_content("text".to_owned());
 
@@ -1176,6 +1181,7 @@ mod tests {
                             key: "text_box".to_owned(),
                             capacity: 1000,
                             size: [300.0, 100.0],
+                            read_only: false,
                         },
                         c::Slider {
                             key: "slider".to_owned(),
@@ -1217,7 +1223,12 @@ mod tests {
                     Pin::new("Output".to_owned(), "output1".to_owned(), Direction::Output),
                 ],
                 vec![
-                    Widget::TextBox(TextBox::new("text_box".to_owned(), 1000, [300.0, 100.0])),
+                    Widget::TextBox(TextBox::new(
+                        "text_box".to_owned(),
+                        1000,
+                        [300.0, 100.0],
+                        false,
+                    )),
                     Widget::Slider(Slider::new(
                         "slider".to_owned(),
                         0.0,

@@ -10,17 +10,25 @@ pub struct TextBox {
     min_width: f32,
     height: f32,
     position: [f32; 2],
+    read_only: bool,
     content_callback: Option<Box<dyn FnOnce(&imgui::ImString)>>,
 }
 
 impl TextBox {
-    pub fn new(id: imgui::ImString, content: imgui::ImString, min_width: f32, height: f32) -> Self {
+    pub fn new(
+        id: imgui::ImString,
+        content: imgui::ImString,
+        min_width: f32,
+        height: f32,
+        read_only: bool,
+    ) -> Self {
         Self {
             id,
             content,
             min_width,
             height,
             position: [0.0, 0.0],
+            read_only,
             content_callback: None,
         }
     }
@@ -50,6 +58,7 @@ impl TextBox {
             &mut self.content,
             [width - HORIZONTAL_MARGIN * 2.0, self.height],
         )
+        .read_only(self.read_only)
         .build();
 
         if let Some(content_callback) = self.content_callback {
