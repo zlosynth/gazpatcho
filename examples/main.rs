@@ -9,7 +9,7 @@ fn main() {
         label: "Comment".to_owned(),
         class: "comment".to_owned(),
         pins: vec![],
-        widgets: vec![MultilineInput {
+        widgets: vec![TextBox {
             key: "comment".to_owned(),
             capacity: 1000,
             size: [300.0, 100.0],

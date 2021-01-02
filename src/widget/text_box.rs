@@ -4,7 +4,7 @@ use crate::vec2;
 
 const HORIZONTAL_MARGIN: f32 = 10.0;
 
-pub struct MultilineInput {
+pub struct TextBox {
     id: imgui::ImString,
     content: imgui::ImString,
     min_width: f32,
@@ -13,7 +13,7 @@ pub struct MultilineInput {
     content_callback: Option<Box<dyn FnOnce(&imgui::ImString)>>,
 }
 
-impl MultilineInput {
+impl TextBox {
     pub fn new(id: imgui::ImString, content: imgui::ImString, min_width: f32, height: f32) -> Self {
         Self {
             id,

@@ -28,7 +28,7 @@
 //!                 },
 //!             ],
 //!             widgets: vec![
-//!                 MultilineInput {
+//!                 TextBox {
 //!                     key: "comment".to_owned(),
 //!                     capacity: 1000,
 //!                     size: [300.0, 100.0],
@@ -133,7 +133,19 @@ pub use Direction::*;
 pub enum Widget {
     /// Multiline input provides text box for the user to type into and record a
     /// `String`.
+    #[deprecated(since = "1.2.0", note = "Please use TextBox instead")]
     MultilineInput {
+        key: String,
+        /// Maximum capacity that the widget will allow.
+        capacity: usize,
+        /// Width and height of the widget shown in a node. The width will be
+        /// treated as a minimal weight that may be increased in case there is
+        /// another widget that is wider.
+        size: [f32; 2],
+    },
+    /// TextBox provides text input for the user to type into and record a
+    /// `String`.
+    TextBox {
         key: String,
         /// Maximum capacity that the widget will allow.
         capacity: usize,

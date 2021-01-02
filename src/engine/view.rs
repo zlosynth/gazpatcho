@@ -12,8 +12,8 @@ use std::rc::Rc;
 
 use crate::engine::action::{Action, Value};
 use crate::engine::state::{
-    Button, ButtonActivationMode, Direction, DropDown, FileDialogMode, MultilineInput, Node, Patch,
-    PinAddress, Slider, State, Widget,
+    Button, ButtonActivationMode, Direction, DropDown, FileDialogMode, Node, Patch, PinAddress,
+    Slider, State, TextBox, Widget,
 };
 use crate::vec2;
 use crate::widget;
@@ -215,10 +215,12 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
         }
 
         node_widget = node.widgets().iter().fold(node_widget, |n, w| match w {
-            Widget::MultilineInput(multiline_input) => n
-                .add_component(widget::node::Component::MultilineInput(
-                    new_multiline_input_widget(node.id(), multiline_input, &actions),
-                ))
+            Widget::TextBox(text_box) => n
+                .add_component(widget::node::Component::TextBox(new_text_box_widget(
+                    node.id(),
+                    text_box,
+                    &actions,
+                )))
                 .add_component(widget::node::Component::Space(10.0)),
             Widget::Button(button) => n
                 .add_component(widget::node::Component::Button(new_button_widget(
@@ -349,33 +351,28 @@ fn new_pin_group_widget<'a>(
         })
 }
 
-fn new_multiline_input_widget(
+fn new_text_box_widget(
     node_id: &str,
-    multiline_input: &MultilineInput,
+    text_box: &TextBox,
     actions: &Rc<RefCell<Vec<Action>>>,
-) -> widget::multiline_input::MultilineInput {
-    let id = imgui::ImString::from(format!("##{}:{}", node_id, multiline_input.key()));
+) -> widget::text_box::TextBox {
+    let id = imgui::ImString::from(format!("##{}:{}", node_id, text_box.key()));
     let node_id = node_id.to_string();
-    let widget_key = multiline_input.key().to_string();
-    let original_content = multiline_input.content_im().clone();
-    let mut buffer = multiline_input.content_im().clone();
-    buffer.reserve(multiline_input.capacity() - buffer.capacity());
+    let widget_key = text_box.key().to_string();
+    let original_content = text_box.content_im().clone();
+    let mut buffer = text_box.content_im().clone();
+    buffer.reserve(text_box.capacity() - buffer.capacity());
     let actions = Rc::clone(&actions);
-    widget::multiline_input::MultilineInput::new(
-        id,
-        buffer,
-        multiline_input.size()[0],
-        multiline_input.size()[1],
-    )
-    .content_callback(Box::new(move |c| {
-        if *c != original_content {
-            actions.borrow_mut().push(Action::SetValue {
-                node_id,
-                key: widget_key,
-                value: Value::String(c.to_str().to_owned()),
-            })
-        }
-    }))
+    widget::text_box::TextBox::new(id, buffer, text_box.size()[0], text_box.size()[1])
+        .content_callback(Box::new(move |c| {
+            if *c != original_content {
+                actions.borrow_mut().push(Action::SetValue {
+                    node_id,
+                    key: widget_key,
+                    value: Value::String(c.to_str().to_owned()),
+                })
+            }
+        }))
 }
 
 fn new_button_widget(

@@ -1,6 +1,11 @@
 # Changelog
 
-## 1.0.0
+## Main
+
+* `MultilineInput` widget was renamed to `TextBox`. The original is kept for
+  backward compatibility.
+
+## 1.1.0
 
 * Allow control of the graph state from the user code.
 * Deprecate `run` in favor of `run_with_callback` and `run_with_mpsc`.

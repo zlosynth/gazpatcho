@@ -174,12 +174,11 @@ fn set_value(state: &mut State, node_id: String, key: String, value: Value) -> R
                 ModelUnchanged
             }
         }
-        Widget::MultilineInput(multiline_input) => {
-            let value = value.expect_string(
-                "Given widget is a MultilineInput and accepts only values of type String",
-            );
-            if multiline_input.content() != value {
-                multiline_input.set_content(value);
+        Widget::TextBox(text_box) => {
+            let value = value
+                .expect_string("Given widget is a TextBox and accepts only values of type String");
+            if text_box.content() != value {
+                text_box.set_content(value);
                 ModelChanged
             } else {
                 ModelUnchanged
@@ -285,8 +284,8 @@ mod tests {
     use super::*;
 
     use crate::state::{
-        Button, ButtonActivationMode, Direction, DropDown, DropDownItem, MultilineInput,
-        NodeTemplate, Pin, Slider,
+        Button, ButtonActivationMode, Direction, DropDown, DropDownItem, NodeTemplate, Pin, Slider,
+        TextBox,
     };
 
     #[test]
@@ -610,13 +609,13 @@ mod tests {
     }
 
     #[test]
-    fn set_multiline_input_content() {
+    fn set_text_box_content() {
         let mut state = State::default();
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
             vec![],
-            vec![Widget::MultilineInput(MultilineInput::new(
+            vec![Widget::TextBox(TextBox::new(
                 "key".to_owned(),
                 100,
                 [100.0, 100.0],
@@ -634,8 +633,8 @@ mod tests {
         )
         .model_changed());
 
-        if let Widget::MultilineInput(multiline_input) = &state.nodes()[0].widgets()[0] {
-            assert_eq!(multiline_input.content(), "hello world");
+        if let Widget::TextBox(text_box) = &state.nodes()[0].widgets()[0] {
+            assert_eq!(text_box.content(), "hello world");
         } else {
             panic!("invalid widget type");
         }

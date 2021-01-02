@@ -77,11 +77,17 @@ impl From<c::Pin> for Pin {
 impl From<c::Widget> for Widget {
     fn from(config: c::Widget) -> Self {
         match config {
+            #[allow(deprecated)]
             c::Widget::MultilineInput {
                 key,
                 capacity,
                 size,
-            } => Widget::MultilineInput(MultilineInput::new(key, capacity, size)),
+            }
+            | c::Widget::TextBox {
+                key,
+                capacity,
+                size,
+            } => Widget::TextBox(TextBox::new(key, capacity, size)),
             c::Widget::Slider {
                 key,
                 min,
@@ -133,9 +139,7 @@ impl From<&Widget> for m::Value {
     fn from(state: &Widget) -> Self {
         match state {
             Widget::DropDown(dropdown) => Self::String(dropdown.value().to_string()),
-            Widget::MultilineInput(multiline_input) => {
-                Self::String(multiline_input.content().to_string())
-            }
+            Widget::TextBox(text_box) => Self::String(text_box.content().to_string()),
             Widget::Slider(slider) => Self::F32(slider.value()),
             Widget::Button(button) => Self::Bool(button.active()),
         }
@@ -200,7 +204,7 @@ impl NodeTemplate {
             widgets.iter().for_each(|w| {
                 let key = match w {
                     Widget::Button(button) => button.key(),
-                    Widget::MultilineInput(widget) => widget.key(),
+                    Widget::TextBox(widget) => widget.key(),
                     Widget::Slider(widget) => widget.key(),
                     Widget::DropDown(widget) => widget.key(),
                 };
@@ -340,7 +344,7 @@ impl PinAddress {
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub enum Widget {
     Button(Button),
-    MultilineInput(MultilineInput),
+    TextBox(TextBox),
     Slider(Slider),
     DropDown(DropDown),
 }
@@ -349,7 +353,7 @@ impl Widget {
     pub fn key(&self) -> &str {
         match self {
             Widget::Button(button) => button.key(),
-            Widget::MultilineInput(multiline_input) => multiline_input.key(),
+            Widget::TextBox(text_box) => text_box.key(),
             Widget::Slider(slider) => slider.key(),
             Widget::DropDown(drop_down) => drop_down.key(),
         }
@@ -359,8 +363,8 @@ impl Widget {
         matches!(self, Widget::Button(_))
     }
 
-    pub fn is_multiline_input(&self) -> bool {
-        matches!(self, Widget::MultilineInput(_))
+    pub fn is_text_box(&self) -> bool {
+        matches!(self, Widget::TextBox(_))
     }
 
     pub fn is_slider(&self) -> bool {
@@ -411,7 +415,7 @@ impl Button {
 #[derive(
     Serialize, Deserialize, Getters, MutGetters, CopyGetters, Setters, PartialEq, Clone, Debug,
 )]
-pub struct MultilineInput {
+pub struct TextBox {
     #[getset(get = "pub")]
     key: String,
     #[getset(get_copy = "pub")]
@@ -421,7 +425,7 @@ pub struct MultilineInput {
     content: ImStringWrapper,
 }
 
-impl MultilineInput {
+impl TextBox {
     pub fn new(key: String, capacity: usize, size: [f32; 2]) -> Self {
         Self {
             key,
@@ -851,25 +855,25 @@ mod tests {
         }
     }
 
-    mod multiline_input {
+    mod text_box {
         use super::*;
 
         #[test]
         fn intialize() {
-            let multiline_input = MultilineInput::new("key".to_owned(), 1000, [100.0, 100.0]);
+            let text_box = TextBox::new("key".to_owned(), 1000, [100.0, 100.0]);
 
-            assert_eq!(multiline_input.key(), "key");
-            assert_eq!(multiline_input.size(), [100.0, 100.0]);
-            assert_eq!(multiline_input.content(), "");
+            assert_eq!(text_box.key(), "key");
+            assert_eq!(text_box.size(), [100.0, 100.0]);
+            assert_eq!(text_box.content(), "");
         }
 
         #[test]
         fn change_content() {
-            let mut multiline_input = MultilineInput::new("key".to_owned(), 1000, [100.0, 100.0]);
+            let mut text_box = TextBox::new("key".to_owned(), 1000, [100.0, 100.0]);
 
-            multiline_input.set_content("text".to_owned());
+            text_box.set_content("text".to_owned());
 
-            assert_eq!(multiline_input.content(), "text");
+            assert_eq!(text_box.content(), "text");
         }
     }
 
@@ -1168,8 +1172,8 @@ mod tests {
                         },
                     ],
                     widgets: vec![
-                        c::MultilineInput {
-                            key: "multiline_input".to_owned(),
+                        c::TextBox {
+                            key: "text_box".to_owned(),
                             capacity: 1000,
                             size: [300.0, 100.0],
                         },
@@ -1213,11 +1217,7 @@ mod tests {
                     Pin::new("Output".to_owned(), "output1".to_owned(), Direction::Output),
                 ],
                 vec![
-                    Widget::MultilineInput(MultilineInput::new(
-                        "multiline_input".to_owned(),
-                        1000,
-                        [300.0, 100.0],
-                    )),
+                    Widget::TextBox(TextBox::new("text_box".to_owned(), 1000, [300.0, 100.0])),
                     Widget::Slider(Slider::new(
                         "slider".to_owned(),
                         0.0,

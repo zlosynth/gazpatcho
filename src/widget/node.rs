@@ -4,15 +4,15 @@ use crate::vec2;
 use crate::widget::button::Button;
 use crate::widget::dropdown::DropDown;
 use crate::widget::label::Label;
-use crate::widget::multiline_input::MultilineInput;
 use crate::widget::pin_group::PinGroup;
 use crate::widget::slider::Slider;
+use crate::widget::text_box::TextBox;
 
 pub enum Component<'a> {
     Label(Label<'a>),
     PinGroup(PinGroup<'a>),
     Space(f32),
-    MultilineInput(MultilineInput),
+    TextBox(TextBox),
     Button(Button),
     Slider(Slider),
     DropDown(DropDown),
@@ -103,9 +103,9 @@ impl<'a> Node<'a> {
                 Component::Space(space) => {
                     cursor[1] += space;
                 }
-                Component::MultilineInput(multiline_input) => {
-                    let component_height = multiline_input.get_height();
-                    multiline_input.position(cursor).build(ui, width);
+                Component::TextBox(text_box) => {
+                    let component_height = text_box.get_height();
+                    text_box.position(cursor).build(ui, width);
                     cursor[1] += component_height;
                 }
                 Component::Button(button) => {
@@ -137,7 +137,7 @@ impl<'a> Node<'a> {
                 Component::Label(label) => label.get_width(ui),
                 Component::PinGroup(pin_group) => pin_group.get_min_width(ui),
                 Component::Space(_) => 0.0,
-                Component::MultilineInput(multiline_input) => multiline_input.get_min_width(),
+                Component::TextBox(text_box) => text_box.get_min_width(),
                 Component::Button(button) => button.get_min_width(ui),
                 Component::Slider(slider) => slider.get_min_width(),
                 Component::DropDown(dropdown) => dropdown.get_min_width(ui),
@@ -152,7 +152,7 @@ impl<'a> Node<'a> {
                 Component::Label(label) => label.get_height(ui),
                 Component::PinGroup(pin_group) => pin_group.get_height(),
                 Component::Space(space) => *space,
-                Component::MultilineInput(multiline_input) => multiline_input.get_height(),
+                Component::TextBox(text_box) => text_box.get_height(),
                 Component::Button(button) => button.get_height(ui),
                 Component::Slider(slider) => slider.get_height(),
                 Component::DropDown(dropdown) => dropdown.get_height(),
