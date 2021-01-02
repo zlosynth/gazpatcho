@@ -1,8 +1,4 @@
-//! TODO: Docs
-
-// TODO:
-// write serialization converting templates, nodes, patches and offset
-// write deserialization reading that, assuring compatible runtime, merging it into state
+//! Saving and loading the current state of the graph.
 
 extern crate serde;
 

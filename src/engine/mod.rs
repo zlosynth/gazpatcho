@@ -12,13 +12,14 @@
 //! 2. UI is rendered based on the state.
 //! 3. UI returns actions based on user interaction.
 //! 4. These actions are sent to reducer which modifies the state.
-//! 5. Back to step 2.
+//! 5. Request sent by user through a channel are applied on the state.
+//! 6. Back to step 2.
 
+pub mod action;
 pub mod reducer;
 pub mod state;
 pub mod system;
 pub mod view;
 pub mod window;
 
-mod action;
 mod snapshot;

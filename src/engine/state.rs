@@ -15,6 +15,7 @@ use imgui::ImString;
 use serde::{Deserialize, Serialize};
 
 use crate::config as c;
+use crate::model as m;
 use crate::report as r;
 
 #[derive(Getters, MutGetters, Setters, PartialEq, Clone, Default, Debug)]
@@ -108,13 +109,13 @@ impl From<c::Widget> for Widget {
 impl From<&State> for r::Report {
     fn from(state: &State) -> Self {
         Self {
-            nodes: state.nodes.iter().map(r::Node::from).collect(),
-            patches: state.patches.iter().map(r::Patch::from).collect(),
+            nodes: state.nodes.iter().map(m::Node::from).collect(),
+            patches: state.patches.iter().map(m::Patch::from).collect(),
         }
     }
 }
 
-impl From<&Node> for r::Node {
+impl From<&Node> for m::Node {
     fn from(state: &Node) -> Self {
         Self {
             id: state.id().to_string(),
@@ -122,13 +123,13 @@ impl From<&Node> for r::Node {
             data: state
                 .widgets
                 .iter()
-                .map(|w| (w.key().to_string(), r::Value::from(w)))
+                .map(|w| (w.key().to_string(), m::Value::from(w)))
                 .collect(),
         }
     }
 }
 
-impl From<&Widget> for r::Value {
+impl From<&Widget> for m::Value {
     fn from(state: &Widget) -> Self {
         match state {
             Widget::DropDown(dropdown) => Self::String(dropdown.value().to_string()),
@@ -141,14 +142,14 @@ impl From<&Widget> for r::Value {
     }
 }
 
-impl From<&Patch> for r::Patch {
+impl From<&Patch> for m::Patch {
     fn from(state: &Patch) -> Self {
         Self {
-            source: r::PinAddress {
+            source: m::PinAddress {
                 node_id: state.source.node_id.clone(),
                 pin_class: state.source.pin_class.clone(),
             },
-            destination: r::PinAddress {
+            destination: m::PinAddress {
                 node_id: state.destination.node_id.clone(),
                 pin_class: state.destination.pin_class.clone(),
             },
@@ -342,23 +343,6 @@ pub enum Widget {
     MultilineInput(MultilineInput),
     Slider(Slider),
     DropDown(DropDown),
-}
-
-#[derive(Serialize, Deserialize, Getters, Clone, Hash, PartialEq, Eq, Debug)]
-pub struct WidgetAddress {
-    #[getset(get = "pub")]
-    node_id: String,
-    #[getset(get = "pub")]
-    widget_key: String,
-}
-
-impl WidgetAddress {
-    pub fn new(node_id: String, widget_key: String) -> Self {
-        Self {
-            node_id,
-            widget_key,
-        }
-    }
 }
 
 impl Widget {

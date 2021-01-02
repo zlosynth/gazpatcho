@@ -1,6 +1,8 @@
 extern crate gazpatcho;
 
 use gazpatcho::config::*;
+use gazpatcho::model::*;
+use gazpatcho::request::*;
 
 fn main() {
     let comment = NodeTemplate {
@@ -101,7 +103,22 @@ fn main() {
         node_templates: vec![comment, oscillator, mixer],
     };
 
-    gazpatcho::run("Gazpatcho", config, |report| {
+    gazpatcho::run_with_callback("Gazpatcho", config, |report| {
+        // When oscillator trigger is clicked, set oscillator slider value to 10.0
+        let requests = report
+            .nodes
+            .iter()
+            .filter(|n| n.class == "oscillator" && n.data["trigger"].unwrap_bool())
+            .map(|n| Request::SetValue {
+                node_id: n.id.to_owned(),
+                key: "slider".to_owned(),
+                value: Value::F32(10.0),
+            })
+            .collect();
+
+        // Do somthing useful with the data
         dbg!(report);
+
+        requests
     });
 }

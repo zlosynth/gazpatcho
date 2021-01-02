@@ -72,9 +72,14 @@ fn main() {
         ],
     };
 
-    gazpatcho::run("Application Name", config, |report| {
+    gazpatcho::run_with_callback("Application Name", config, |report| {
         // Act upon the current report
         dbg!(report);
+
+        // Respond with change requests
+        vec![
+            // Request::SetValue { ... }
+        ]
     });
 }
 ```

@@ -10,10 +10,10 @@ use std::f32;
 use std::ptr;
 use std::rc::Rc;
 
-use crate::engine::action::Action;
+use crate::engine::action::{Action, Value};
 use crate::engine::state::{
     Button, ButtonActivationMode, Direction, DropDown, FileDialogMode, MultilineInput, Node, Patch,
-    PinAddress, Slider, State, Widget, WidgetAddress,
+    PinAddress, Slider, State, Widget,
 };
 use crate::vec2;
 use crate::widget;
@@ -355,7 +355,8 @@ fn new_multiline_input_widget(
     actions: &Rc<RefCell<Vec<Action>>>,
 ) -> widget::multiline_input::MultilineInput {
     let id = imgui::ImString::from(format!("##{}:{}", node_id, multiline_input.key()));
-    let widget_address = WidgetAddress::new(node_id.to_string(), multiline_input.key().to_string());
+    let node_id = node_id.to_string();
+    let widget_key = multiline_input.key().to_string();
     let original_content = multiline_input.content_im().clone();
     let mut buffer = multiline_input.content_im().clone();
     buffer.reserve(multiline_input.capacity() - buffer.capacity());
@@ -368,9 +369,10 @@ fn new_multiline_input_widget(
     )
     .content_callback(Box::new(move |c| {
         if *c != original_content {
-            actions.borrow_mut().push(Action::SetMultilineInputContent {
-                widget_address,
-                content: c.to_str().to_owned(),
+            actions.borrow_mut().push(Action::SetValue {
+                node_id,
+                key: widget_key,
+                value: Value::String(c.to_str().to_owned()),
             })
         }
     }))
@@ -384,17 +386,25 @@ fn new_button_widget(
     let label_id =
         imgui::ImString::from(format!("{}##{}:{}", button.label(), node_id, button.key()));
     let mut button_widget = widget::button::Button::new(label_id);
-
-    let widget_address = WidgetAddress::new(node_id.to_string(), button.key().to_string());
+    let node_id = node_id.to_string();
+    let widget_key = button.key().to_string();
     let was_active = button.active();
     let actions = Rc::clone(&actions);
     button_widget = match button.activation_mode() {
         ButtonActivationMode::OnClick => button_widget.ui_callback(Box::new(move |ui| {
             if ui.is_item_active() && ui.is_mouse_clicked(imgui::MouseButton::Left) {
                 actions.borrow_mut().push(if was_active {
-                    Action::SetButtonInactive { widget_address }
+                    Action::SetValue {
+                        node_id,
+                        key: widget_key,
+                        value: Value::Bool(false),
+                    }
                 } else {
-                    Action::SetButtonActive { widget_address }
+                    Action::SetValue {
+                        node_id,
+                        key: widget_key,
+                        value: Value::Bool(true),
+                    }
                 });
             }
         })),
@@ -402,9 +412,17 @@ fn new_button_widget(
             let is_active = ui.is_item_active();
             if is_active != was_active {
                 actions.borrow_mut().push(if is_active {
-                    Action::SetButtonActive { widget_address }
+                    Action::SetValue {
+                        node_id,
+                        key: widget_key,
+                        value: Value::Bool(true),
+                    }
                 } else {
-                    Action::SetButtonInactive { widget_address }
+                    Action::SetValue {
+                        node_id,
+                        key: widget_key,
+                        value: Value::Bool(false),
+                    }
                 });
             }
         })),
@@ -421,7 +439,8 @@ fn new_slider_widget(
     actions: &Rc<RefCell<Vec<Action>>>,
 ) -> widget::slider::Slider {
     let id = imgui::ImString::from(format!("##{}:{}", node_id, slider.key()));
-    let widget_address = WidgetAddress::new(node_id.to_string(), slider.key().to_string());
+    let node_id = node_id.to_string();
+    let widget_key = slider.key().to_string();
     let original_value = slider.value();
     let actions = Rc::clone(&actions);
     widget::slider::Slider::new(id, slider.min(), slider.max(), slider.value())
@@ -430,9 +449,10 @@ fn new_slider_widget(
         .value_callback(Box::new(move |new_value| {
             if (new_value - original_value).abs() > 0.000000001 {
                 actions.borrow_mut().push({
-                    Action::SetSliderValue {
-                        widget_address,
-                        value: new_value,
+                    Action::SetValue {
+                        node_id,
+                        key: widget_key,
+                        value: Value::F32(new_value),
                     }
                 });
             }
@@ -445,7 +465,8 @@ fn new_dropdown_widget(
     actions: &Rc<RefCell<Vec<Action>>>,
 ) -> widget::dropdown::DropDown {
     let id = imgui::ImString::from(format!("##{}:{}", node_id, dropdown.key()));
-    let widget_address = WidgetAddress::new(node_id.to_string(), dropdown.key().to_string());
+    let node_id = node_id.to_string();
+    let widget_key = dropdown.key().to_string();
     let items = dropdown.items().clone();
     let original_value = dropdown.value().to_owned();
     let original_value_index = items
@@ -467,9 +488,10 @@ fn new_dropdown_widget(
     .value_callback(Box::new(move |i| {
         let value = items[i].value().clone();
         if value != original_value {
-            actions.borrow_mut().push(Action::SetDropDownValue {
-                widget_address,
-                value,
+            actions.borrow_mut().push(Action::SetValue {
+                node_id,
+                key: widget_key,
+                value: Value::String(value),
             });
         }
     }))

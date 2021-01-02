@@ -4,9 +4,9 @@ extern crate serde_json;
 
 use std::fs;
 
-use crate::engine::action::Action;
+use crate::engine::action::{Action, Value};
 use crate::engine::snapshot::Snapshot;
-use crate::engine::state::{FileDialogMode, Patch, PinAddress, State, Widget, WidgetAddress};
+use crate::engine::state::{FileDialogMode, Node, Patch, PinAddress, State, Widget};
 use crate::vec2;
 
 /// Type signalizing the effect of a reduce function.
@@ -28,7 +28,6 @@ impl ReduceResult {
 }
 
 pub fn reduce(state: &mut State, action: Action) -> ReduceResult {
-    dbg!(&action);
     match action {
         Action::Scroll { offset } => scroll(state, offset),
         Action::AddNode { class, position } => add_node(state, class, position),
@@ -41,24 +40,11 @@ pub fn reduce(state: &mut State, action: Action) -> ReduceResult {
         Action::ResetTriggeredPin => reset_triggered_pin(state),
         Action::SetTriggeredPatch { patch } => set_triggered_patch(state, patch),
         Action::ResetTriggeredPatch => reset_triggered_patch(state),
-        Action::SetMultilineInputContent {
-            widget_address,
-            content,
-        } => set_multiline_input_content(state, widget_address, content),
-        Action::SetButtonActive { widget_address } => {
-            set_button_active(state, widget_address, true)
-        }
-        Action::SetButtonInactive { widget_address } => {
-            set_button_active(state, widget_address, false)
-        }
-        Action::SetSliderValue {
-            widget_address,
+        Action::SetValue {
+            node_id,
+            key,
             value,
-        } => set_slider_value(state, widget_address, value),
-        Action::SetDropDownValue {
-            widget_address,
-            value,
-        } => set_dropdown_value(state, widget_address, value),
+        } => set_value(state, node_id, key, value),
         Action::OpenFileLoadDialog => open_file_dialog(state, FileDialogMode::Load),
         Action::OpenFileSaveDialog => open_file_dialog(state, FileDialogMode::Save),
         Action::SetFileDialogBuffer { value } => set_file_dialog_buffer(state, value),
@@ -159,68 +145,64 @@ fn reset_triggered_patch(state: &mut State) -> ReduceResult {
     ModelUnchanged
 }
 
-fn find_widget(state: &mut State, widget_address: WidgetAddress) -> &mut Widget {
-    state
-        .nodes_mut()
+fn set_value(state: &mut State, node_id: String, key: String, value: Value) -> ReduceResult {
+    let node = if let Some(node) = find_node(state, &node_id) {
+        node
+    } else {
+        // In case the noded was removed since the action was sent, gracefuly ignore.
+        return ModelUnchanged;
+    };
+
+    match find_widget(node, &key) {
+        Widget::Button(button) => {
+            let value =
+                value.expect_bool("Given widget is a Button and accepts only values of type bool");
+            if button.active() != value {
+                button.set_active(value);
+                ModelChanged
+            } else {
+                ModelUnchanged
+            }
+        }
+        Widget::DropDown(drop_down) => {
+            let value = value
+                .expect_string("Given widget is a DropDown and accepts only values of type String");
+            if drop_down.value() != &value {
+                drop_down.set_value(value);
+                ModelChanged
+            } else {
+                ModelUnchanged
+            }
+        }
+        Widget::MultilineInput(multiline_input) => {
+            let value = value.expect_string(
+                "Given widget is a MultilineInput and accepts only values of type String",
+            );
+            if multiline_input.content() != value {
+                multiline_input.set_content(value);
+                ModelChanged
+            } else {
+                ModelUnchanged
+            }
+        }
+        Widget::Slider(slider) => {
+            let value =
+                value.expect_f32("Given widget is a Slider and accepts only values of type f32");
+            slider.set_value(value);
+            ModelChanged
+        }
+    }
+}
+
+fn find_widget<'a>(node: &'a mut Node, widget_key: &'_ str) -> &'a mut Widget {
+    node.widgets_mut()
         .iter_mut()
-        .find(|n| n.id() == widget_address.node_id())
-        .expect("node_id must match an existing node")
-        .widgets_mut()
-        .iter_mut()
-        .find(|w| w.key() == widget_address.widget_key())
+        .find(|w| w.key() == widget_key)
         .expect("widget_key must match an existing widget")
 }
 
-fn set_multiline_input_content(
-    state: &mut State,
-    widget_address: WidgetAddress,
-    content: String,
-) -> ReduceResult {
-    if let Widget::MultilineInput(multiline_input) = find_widget(state, widget_address) {
-        multiline_input.set_content(content);
-    } else {
-        panic!("Widget of the given key has an invalid type");
-    }
-
-    ModelChanged
-}
-
-fn set_button_active(
-    state: &mut State,
-    widget_address: WidgetAddress,
-    active: bool,
-) -> ReduceResult {
-    if let Widget::Button(button) = find_widget(state, widget_address) {
-        button.set_active(active);
-    } else {
-        panic!("Widget of the given key has an invalid type");
-    }
-
-    ModelChanged
-}
-
-fn set_slider_value(state: &mut State, widget_address: WidgetAddress, value: f32) -> ReduceResult {
-    if let Widget::Slider(slider) = find_widget(state, widget_address) {
-        slider.set_value(value);
-    } else {
-        panic!("Widget of the given key has an invalid type");
-    }
-
-    ModelChanged
-}
-
-fn set_dropdown_value(
-    state: &mut State,
-    widget_address: WidgetAddress,
-    value: String,
-) -> ReduceResult {
-    if let Widget::DropDown(dropdown) = find_widget(state, widget_address) {
-        dropdown.set_value(value);
-    } else {
-        panic!("Widget of the given key has an invalid type");
-    }
-
-    ModelChanged
+fn find_node<'a>(state: &'a mut State, node_id: &'_ str) -> Option<&'a mut Node> {
+    state.nodes_mut().iter_mut().find(|n| n.id() == node_id)
 }
 
 fn open_file_dialog(state: &mut State, mode: FileDialogMode) -> ReduceResult {
@@ -628,7 +610,7 @@ mod tests {
     }
 
     #[test]
-    fn set_mutliline_input_content() {
+    fn set_multiline_input_content() {
         let mut state = State::default();
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
@@ -644,9 +626,10 @@ mod tests {
 
         assert!(reduce(
             &mut state,
-            Action::SetMultilineInputContent {
-                widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
-                content: "hello world".to_owned(),
+            Action::SetValue {
+                node_id: "class:0".to_owned(),
+                key: "key".to_owned(),
+                value: Value::String("hello world".to_owned()),
             },
         )
         .model_changed());
@@ -675,8 +658,10 @@ mod tests {
 
         assert!(reduce(
             &mut state,
-            Action::SetButtonActive {
-                widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
+            Action::SetValue {
+                node_id: "class:0".to_owned(),
+                key: "key".to_owned(),
+                value: Value::Bool(true),
             },
         )
         .model_changed());
@@ -689,8 +674,10 @@ mod tests {
 
         assert!(reduce(
             &mut state,
-            Action::SetButtonInactive {
-                widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
+            Action::SetValue {
+                node_id: "class:0".to_owned(),
+                key: "key".to_owned(),
+                value: Value::Bool(false),
             },
         )
         .model_changed());
@@ -722,9 +709,10 @@ mod tests {
 
         assert!(reduce(
             &mut state,
-            Action::SetSliderValue {
-                widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
-                value: 6.0,
+            Action::SetValue {
+                node_id: "class:0".to_owned(),
+                key: "key".to_owned(),
+                value: Value::F32(6.0),
             },
         )
         .model_changed());
@@ -755,9 +743,10 @@ mod tests {
 
         assert!(reduce(
             &mut state,
-            Action::SetDropDownValue {
-                widget_address: WidgetAddress::new("class:0".to_owned(), "key".to_owned(),),
-                value: "value2".to_owned(),
+            Action::SetValue {
+                node_id: "class:0".to_owned(),
+                key: "key".to_owned(),
+                value: Value::String("value2".to_owned()),
             },
         )
         .model_changed());

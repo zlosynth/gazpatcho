@@ -2,7 +2,7 @@
 //! passed to reduce function which, based on the action type, applies requested
 //! changes on the state.
 
-use crate::engine::state::{Patch, PinAddress, WidgetAddress};
+use crate::engine::state::{Patch, PinAddress};
 
 #[derive(Debug)]
 pub enum Action {
@@ -35,23 +35,10 @@ pub enum Action {
         patch: Patch,
     },
     ResetTriggeredPatch,
-    SetMultilineInputContent {
-        widget_address: WidgetAddress,
-        content: String,
-    },
-    SetButtonActive {
-        widget_address: WidgetAddress,
-    },
-    SetButtonInactive {
-        widget_address: WidgetAddress,
-    },
-    SetSliderValue {
-        widget_address: WidgetAddress,
-        value: f32,
-    },
-    SetDropDownValue {
-        widget_address: WidgetAddress,
-        value: String,
+    SetValue {
+        node_id: String,
+        key: String,
+        value: Value,
     },
     OpenFileLoadDialog,
     OpenFileSaveDialog,
@@ -65,4 +52,37 @@ pub enum Action {
         path: String,
     },
     CloseFileDialog,
+}
+
+#[derive(Clone, Debug)]
+pub enum Value {
+    String(String),
+    F32(f32),
+    Bool(bool),
+}
+
+impl Value {
+    pub fn expect_bool(self, message: &str) -> bool {
+        if let Self::Bool(value) = self {
+            value
+        } else {
+            panic!("{}", message);
+        }
+    }
+
+    pub fn expect_f32(self, message: &str) -> f32 {
+        if let Self::F32(value) = self {
+            value
+        } else {
+            panic!("{}", message);
+        }
+    }
+
+    pub fn expect_string(self, message: &str) -> String {
+        if let Self::String(value) = self {
+            value
+        } else {
+            panic!("{}", message);
+        }
+    }
 }
