@@ -13,6 +13,7 @@
 //! ```
 //! use gazpatcho::config::*;
 //! use gazpatcho::request::*;
+//! use gazpatcho::report::*;
 //!
 //! let config = Config {
 //!     node_templates: vec![
