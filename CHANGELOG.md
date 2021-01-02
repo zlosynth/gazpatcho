@@ -1,6 +1,6 @@
 # Changelog
 
-## Main
+## 1.2.0
 
 * `MultilineInput` widget was renamed to `TextBox`. The original is kept for
   backward compatibility.

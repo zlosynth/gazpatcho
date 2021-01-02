@@ -36,7 +36,7 @@ Add the following to your `Cargo.toml`:
 
 ``` toml
 [dependencies]
-gazpatcho = "1.0"
+gazpatcho = "1.2"
 ```
 
 The following code runs an instance of Gazpatcho UI. There will be a single type
