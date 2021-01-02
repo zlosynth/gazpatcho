@@ -44,12 +44,12 @@ impl<'a> PinGroup<'a> {
             .pins
             .iter()
             .filter(move |p| *p.get_orientation() == pin::Orientation::Left)
-            .fold((0 as usize, 0.0), |x, p| (x.0 + 1, x.1 + p.get_height()));
+            .fold((0, 0.0), |x, p| (x.0 + 1, x.1 + p.get_height()));
         let (right_pins_length, right_pins_height) = self
             .pins
             .iter()
             .filter(move |p| *p.get_orientation() == pin::Orientation::Right)
-            .fold((0 as usize, 0.0), |x, p| (x.0 + 1, x.1 + p.get_height()));
+            .fold((0, 0.0), |x, p| (x.0 + 1, x.1 + p.get_height()));
 
         let max_pins_length = left_pins_length.max(right_pins_length);
         let max_pins_height = left_pins_height.max(right_pins_height);
