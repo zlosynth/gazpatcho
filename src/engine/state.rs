@@ -109,6 +109,7 @@ impl From<c::Widget> for Widget {
                     .map(|i| DropDownItem::new(i.label, i.value))
                     .collect(),
             )),
+            c::Widget::Canvas { key, size } => Widget::Canvas(Canvas::new(key, size)),
         }
     }
 }
@@ -143,6 +144,7 @@ impl From<&Widget> for m::Value {
             Widget::TextBox(text_box) => Self::String(text_box.content().to_string()),
             Widget::Slider(slider) => Self::F32(slider.value()),
             Widget::Button(button) => Self::Bool(button.active()),
+            Widget::Canvas(_) => Self::Unavailable,
         }
     }
 }
@@ -208,6 +210,7 @@ impl NodeTemplate {
                     Widget::TextBox(widget) => widget.key(),
                     Widget::Slider(widget) => widget.key(),
                     Widget::DropDown(widget) => widget.key(),
+                    Widget::Canvas(widget) => widget.key(),
                 };
                 assert!(keys.insert(key), "Each widget must have its unique key");
             });
@@ -348,6 +351,7 @@ pub enum Widget {
     TextBox(TextBox),
     Slider(Slider),
     DropDown(DropDown),
+    Canvas(Canvas),
 }
 
 impl Widget {
@@ -357,6 +361,7 @@ impl Widget {
             Widget::TextBox(text_box) => text_box.key(),
             Widget::Slider(slider) => slider.key(),
             Widget::DropDown(drop_down) => drop_down.key(),
+            Widget::Canvas(canvas) => canvas.key(),
         }
     }
 
@@ -374,6 +379,10 @@ impl Widget {
 
     pub fn is_dropdown(&self) -> bool {
         matches!(self, Widget::DropDown(_))
+    }
+
+    pub fn is_canvas(&self) -> bool {
+        matches!(self, Widget::Canvas(_))
     }
 }
 
@@ -548,6 +557,26 @@ pub struct DropDownItem {
 impl DropDownItem {
     pub fn new(label: String, value: String) -> Self {
         Self { label, value }
+    }
+}
+
+#[derive(Serialize, Deserialize, Getters, CopyGetters, Setters, Clone, PartialEq, Debug)]
+pub struct Canvas {
+    #[getset(get = "pub")]
+    key: String,
+    #[getset(get_copy = "pub")]
+    size: [f32; 2],
+    #[getset(get = "pub", set = "pub")]
+    dots: Vec<(f32, f32)>,
+}
+
+impl Canvas {
+    pub fn new(key: String, size: [f32; 2]) -> Self {
+        Self {
+            key,
+            size,
+            dots: Vec::new(),
+        }
     }
 }
 
@@ -1004,6 +1033,18 @@ mod tests {
             );
 
             drop_down.set_value("non_existent_value".to_owned());
+        }
+    }
+
+    mod canvas {
+        use super::*;
+
+        #[test]
+        fn initialize() {
+            let canvas = Canvas::new("key".to_owned(), [100.0, 100.0]);
+
+            assert_eq!(canvas.key(), "key");
+            assert!(canvas.dots().is_empty());
         }
     }
 

@@ -59,6 +59,7 @@ pub enum Value {
     String(String),
     F32(f32),
     Bool(bool),
+    VecF32F32(Vec<(f32, f32)>),
 }
 
 impl Value {
@@ -80,6 +81,14 @@ impl Value {
 
     pub fn expect_string(self, message: &str) -> String {
         if let Self::String(value) = self {
+            value
+        } else {
+            panic!("{}", message);
+        }
+    }
+
+    pub fn expect_vec_f32_f32(self, message: &str) -> Vec<(f32, f32)> {
+        if let Self::VecF32F32(value) = self {
             value
         } else {
             panic!("{}", message);

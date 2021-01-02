@@ -22,6 +22,8 @@ pub enum Value {
     String(String),
     F32(f32),
     Bool(bool),
+    VecF32F32(Vec<(f32, f32)>),
+    Unavailable,
 }
 
 impl Value {
@@ -71,6 +73,8 @@ impl Into<action::Value> for Value {
             Self::Bool(value) => action::Value::Bool(value),
             Self::F32(value) => action::Value::F32(value),
             Self::String(value) => action::Value::String(value),
+            Self::VecF32F32(value) => action::Value::VecF32F32(value),
+            Self::Unavailable => panic!("Unavailable Value cannot be converted"),
         }
     }
 }

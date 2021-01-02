@@ -62,6 +62,10 @@
 //!                         },
 //!                     ],
 //!                 },
+//!                 Canvas {
+//!                     key: "canvas".to_owned(),
+//!                     size: [300.0, 100.0],
+//!                 },
 //!             ],
 //!         },
 //!     ],
@@ -191,6 +195,15 @@ pub enum Widget {
         key: String,
         /// List of values to choose from.
         items: Vec<DropDownItem>,
+    },
+    /// Canvas is a visualization widget that can be fed with coordinates of
+    /// to-be-enabled pixels.
+    Canvas {
+        key: String,
+        /// Width and height of the widget shown in a node. The width will be
+        /// treated as a minimal weight that may be increased in case there is
+        /// another widget that is wider.
+        size: [f32; 2],
     },
 }
 

@@ -1,16 +1,18 @@
 extern crate gazpatcho;
 
+use std::f32::consts::PI;
+
 use gazpatcho::config::*;
 use gazpatcho::model::*;
 use gazpatcho::request::*;
 
 fn main() {
-    let statistics = NodeTemplate {
-        label: "Statistics".to_owned(),
-        class: "statistics".to_owned(),
+    let stats = NodeTemplate {
+        label: "Stats".to_owned(),
+        class: "stats".to_owned(),
         pins: vec![],
         widgets: vec![TextBox {
-            key: "statistics".to_owned(),
+            key: "stats".to_owned(),
             capacity: 1000,
             size: [200.0, 100.0],
             read_only: true,
@@ -26,6 +28,20 @@ fn main() {
             capacity: 1000,
             size: [300.0, 100.0],
             read_only: false,
+        }],
+    };
+
+    let scope = NodeTemplate {
+        label: "Scope".to_owned(),
+        class: "scope".to_owned(),
+        pins: vec![Pin {
+            label: "Input".to_owned(),
+            class: "input".to_owned(),
+            direction: Input,
+        }],
+        widgets: vec![Canvas {
+            key: "scope".to_owned(),
+            size: [300.0, 100.0],
         }],
     };
 
@@ -113,30 +129,54 @@ fn main() {
     };
 
     let config = Config {
-        node_templates: vec![statistics, comment, oscillator, mixer],
+        node_templates: vec![stats, comment, scope, oscillator, mixer],
     };
 
     gazpatcho::run_with_callback("Gazpatcho", config, |report| {
-        let current_statistics = format!(
-            "Number of nodes: {}\nNumber of patches: {}",
-            report.nodes.len(),
-            report.patches.len()
-        );
+        // Process the report and generate requests based on it
+        let requests = {
+            let mut requests = Vec::new();
 
-        let requests = report
-            .nodes
-            .iter()
-            .filter(|n| n.class == "statistics")
-            .map(|n| Request::SetValue {
-                node_id: n.id.to_owned(),
-                key: "statistics".to_owned(),
-                value: Value::String(current_statistics.to_owned()),
-            })
-            .collect();
+            let current_statistics = format!(
+                "Number of nodes: {}\nNumber of patches: {}",
+                report.nodes.len(),
+                report.patches.len()
+            );
+            let rendered_sine = draw_sine(300.0, 100.0, report.nodes.len() as f32);
 
-        // Do somthing useful with the data
+            requests.extend(report.nodes.iter().filter(|n| n.class == "stats").map(|n| {
+                Request::SetValue {
+                    node_id: n.id.to_owned(),
+                    key: "stats".to_owned(),
+                    value: Value::String(current_statistics.to_owned()),
+                }
+            }));
+            requests.extend(report.nodes.iter().filter(|n| n.class == "scope").map(|n| {
+                Request::SetValue {
+                    node_id: n.id.to_owned(),
+                    key: "scope".to_owned(),
+                    value: Value::VecF32F32(rendered_sine.clone()),
+                }
+            }));
+
+            requests
+        };
+
+        // Do more useful stuff with the data
         dbg!(report);
 
         requests
     });
+}
+
+fn draw_sine(width: f32, height: f32, frequency: f32) -> Vec<(f32, f32)> {
+    let mut dots = Vec::new();
+
+    for x in 0..width as usize {
+        let relative_y = (x as f32 / width * frequency * 2.0 * PI).sin();
+        let y = (relative_y + 1.0) * height / 2.0;
+        dots.push((x as f32, y));
+    }
+
+    dots
 }

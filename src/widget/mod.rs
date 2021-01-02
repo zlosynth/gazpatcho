@@ -3,6 +3,7 @@
 //! to set arbitrary values per each node.
 
 pub mod button;
+pub mod canvas;
 pub mod dropdown;
 pub mod label;
 pub mod node;

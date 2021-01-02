@@ -4,7 +4,9 @@
 
 * `MultilineInput` widget was renamed to `TextBox`. The original is kept for
   backward compatibility.
-* Add read-only mode to `TextBox`.
+* Added read-only mode to `TextBox`.
+* Added `Canvas`, a visualization widget that can be fed with coordinates of
+  to-be-enabled pixels.
 
 ## 1.1.0
 

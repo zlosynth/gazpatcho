@@ -12,8 +12,8 @@ use std::rc::Rc;
 
 use crate::engine::action::{Action, Value};
 use crate::engine::state::{
-    Button, ButtonActivationMode, Direction, DropDown, FileDialogMode, Node, Patch, PinAddress,
-    Slider, State, TextBox, Widget,
+    Button, ButtonActivationMode, Canvas, Direction, DropDown, FileDialogMode, Node, Patch,
+    PinAddress, Slider, State, TextBox, Widget,
 };
 use crate::vec2;
 use crate::widget;
@@ -242,6 +242,9 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
                     dropdown,
                     &actions,
                 )))
+                .add_component(widget::node::Component::Space(10.0)),
+            Widget::Canvas(canvas) => n
+                .add_component(widget::node::Component::Canvas(new_canvas_widget(canvas)))
                 .add_component(widget::node::Component::Space(10.0)),
         });
 
@@ -498,6 +501,10 @@ fn new_dropdown_widget(
             });
         }
     }))
+}
+
+fn new_canvas_widget(canvas: &Canvas) -> widget::canvas::Canvas {
+    widget::canvas::Canvas::new(canvas.dots(), canvas.size()[0], canvas.size()[1])
 }
 
 fn draw_patches(

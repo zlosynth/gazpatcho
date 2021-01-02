@@ -2,6 +2,7 @@ extern crate imgui;
 
 use crate::vec2;
 use crate::widget::button::Button;
+use crate::widget::canvas::Canvas;
 use crate::widget::dropdown::DropDown;
 use crate::widget::label::Label;
 use crate::widget::pin_group::PinGroup;
@@ -16,6 +17,7 @@ pub enum Component<'a> {
     Button(Button),
     Slider(Slider),
     DropDown(DropDown),
+    Canvas(Canvas<'a>),
 }
 
 pub struct Node<'a> {
@@ -123,6 +125,11 @@ impl<'a> Node<'a> {
                     dropdown.position(cursor).build(ui, width);
                     cursor[1] += component_height;
                 }
+                Component::Canvas(canvas) => {
+                    let component_height = canvas.get_height();
+                    canvas.position(cursor).build(ui, width);
+                    cursor[1] += component_height;
+                }
             };
         }
 
@@ -141,6 +148,7 @@ impl<'a> Node<'a> {
                 Component::Button(button) => button.get_min_width(ui),
                 Component::Slider(slider) => slider.get_min_width(),
                 Component::DropDown(dropdown) => dropdown.get_min_width(ui),
+                Component::Canvas(canvas) => canvas.get_min_width(),
             })
             .fold(0.0, f32::max)
     }
@@ -156,6 +164,7 @@ impl<'a> Node<'a> {
                 Component::Button(button) => button.get_height(ui),
                 Component::Slider(slider) => slider.get_height(),
                 Component::DropDown(dropdown) => dropdown.get_height(),
+                Component::Canvas(canvas) => canvas.get_height(),
             })
             .sum()
     }

@@ -190,6 +190,17 @@ fn set_value(state: &mut State, node_id: String, key: String, value: Value) -> R
             slider.set_value(value);
             ModelChanged
         }
+        Widget::Canvas(canvas) => {
+            let value = value.expect_vec_f32_f32(
+                "Given widget is a Canvas and accepts only values of type Vec<(f32, f32)>",
+            );
+            if canvas.dots() != &value {
+                canvas.set_dots(value);
+                ModelChanged
+            } else {
+                ModelUnchanged
+            }
+        }
     }
 }
 
@@ -284,8 +295,8 @@ mod tests {
     use super::*;
 
     use crate::state::{
-        Button, ButtonActivationMode, Direction, DropDown, DropDownItem, NodeTemplate, Pin, Slider,
-        TextBox,
+        Button, ButtonActivationMode, Canvas, Direction, DropDown, DropDownItem, NodeTemplate, Pin,
+        Slider, TextBox,
     };
 
     #[test]
@@ -753,6 +764,37 @@ mod tests {
 
         if let Widget::DropDown(dropdown) = &state.nodes()[0].widgets()[0] {
             assert_eq!(dropdown.value(), "value2");
+        } else {
+            panic!("invalid widget type");
+        }
+    }
+
+    #[test]
+    fn set_canvas_value() {
+        let mut state = State::default();
+        state.add_node_template(NodeTemplate::new(
+            "Label".to_owned(),
+            "class".to_owned(),
+            vec![],
+            vec![Widget::Canvas(Canvas::new(
+                "key".to_owned(),
+                [100.0, 100.0],
+            ))],
+        ));
+        state.add_node(state.node_templates()[0].instantiate([0.0, 0.0]));
+
+        assert!(reduce(
+            &mut state,
+            Action::SetValue {
+                node_id: "class:0".to_owned(),
+                key: "key".to_owned(),
+                value: Value::VecF32F32(vec![(1.0, 2.0)]),
+            },
+        )
+        .model_changed());
+
+        if let Widget::Canvas(canvas) = &state.nodes()[0].widgets()[0] {
+            assert_eq!(canvas.dots(), &[(1.0, 2.0)]);
         } else {
             panic!("invalid widget type");
         }
