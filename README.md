@@ -10,7 +10,7 @@ This library can be used as to draw a user interface, allowing users to model
 graphs that would be later interpreed and acted upon by the backend of the
 application.
 
-There are three main parts of the API:
+There are four main parts of the API:
 
 * `Config` structure defined on the start of the application. This structure
   specifies all the available node types, their inputs, outputs and widgets
@@ -21,6 +21,8 @@ There are three main parts of the API:
   data.
 * `run` function which has two parameters: The `Config` and a closure taking
   current `Report` as its argument.
+* `Request` enumeration of all operations that can be sent to the running
+  instance of the graph to alter its state.
 
 Documentation:
 
