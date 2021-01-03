@@ -38,11 +38,11 @@ impl Button {
     }
 
     pub fn get_min_width(&self, ui: &imgui::Ui) -> f32 {
-        ui.calc_text_size(&self.label, false, 0.0)[0] + PADDING * 2.0 + HORIZONTAL_MARGIN * 2.0
+        ui.calc_text_size(&self.label, true, 0.0)[0] + PADDING * 2.0 + HORIZONTAL_MARGIN * 2.0
     }
 
     pub fn get_height(&self, ui: &imgui::Ui) -> f32 {
-        ui.calc_text_size(&self.label, false, 0.0)[1] + PADDING * 2.0
+        ui.calc_text_size(&self.label, true, 0.0)[1] + PADDING * 2.0
     }
 
     pub fn build(self, ui: &imgui::Ui, width: f32) {

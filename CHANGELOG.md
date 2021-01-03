@@ -1,5 +1,9 @@
 # Changelog
 
+## Main
+
+* Fix calculation of button width - make them narrower.
+
 ## 1.3.0
 
 * The heading on nodes can now be hidden.
