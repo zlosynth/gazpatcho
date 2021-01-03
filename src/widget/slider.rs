@@ -64,7 +64,7 @@ impl Slider {
         ui.set_cursor_screen_pos(vec2::sum(&[self.position, [HORIZONTAL_MARGIN, 0.0]]));
         ui.push_item_width(width - 2.0 * HORIZONTAL_MARGIN);
         imgui::Slider::new(&self.id)
-            .range(-self.min..=self.max)
+            .range(self.min..=self.max)
             .display_format(&self.display_format)
             .build(ui, &mut self.value);
 

@@ -120,7 +120,7 @@ fn main() {
         }],
         widgets: vec![Slider {
             key: "slider".to_owned(),
-            min: 0.0,
+            min: -100.0,
             max: 100.0,
             format: "%.1f".to_owned(),
             width: 150.0,
