@@ -3,7 +3,8 @@
 ## Main
 
 * The heading on nodes can now be hidden.
-* Fixed a bug where the slider could not go to negative numbers.
+* Fix a bug where the slider could not go to negative numbers.
+* Gracefully ignore attempts to set slider value outside its limits.
 
 ## 1.2.0
 

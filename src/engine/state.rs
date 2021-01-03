@@ -513,11 +513,13 @@ impl Slider {
     }
 
     pub fn set_value(&mut self, value: f32) {
-        assert!(
-            self.min <= value && value <= self.max,
-            "Value must be within min and max"
-        );
-        self.value = value;
+        if value < self.min {
+            self.value = self.min;
+        } else if value > self.max {
+            self.value = self.max;
+        } else {
+            self.value = value;
+        }
     }
 
     pub fn display_format(&self) -> &str {
@@ -972,21 +974,23 @@ mod tests {
         }
 
         #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_set_invalid_value_below_limit() {
+        fn set_value_below_limit() {
             let mut slider =
                 Slider::new("key".to_owned(), 0.0, 10.0, 5.0, "%.2f".to_owned(), 120.0);
 
             slider.set_value(-20.0);
+
+            assert_eq!(slider.value(), 0.0);
         }
 
         #[test]
-        #[should_panic(expected = "Value must be within min and max")]
-        fn panic_on_set_invalid_value_above_limit() {
+        fn set_value_above_limit() {
             let mut slider =
                 Slider::new("key".to_owned(), 0.0, 10.0, 5.0, "%.2f".to_owned(), 120.0);
 
             slider.set_value(20.0);
+
+            assert_eq!(slider.value(), 10.0);
         }
     }
 
