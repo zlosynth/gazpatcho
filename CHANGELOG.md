@@ -1,6 +1,6 @@
 # Changelog
 
-## Main
+## 1.3.0
 
 * The heading on nodes can now be hidden.
 * Fix a bug where the `Slider` could not go to negative numbers.
