@@ -39,6 +39,7 @@
 //!                     key: "slider".to_owned(),
 //!                     min: 0.0,
 //!                     max: 10.0,
+//!                     default: 5.0,
 //!                     format: "%.1f".to_owned(),
 //!                     width: 150.0,
 //!                 },
@@ -173,6 +174,8 @@ pub enum Widget {
         min: f32,
         /// Maximum allowed value.
         max: f32,
+        /// Initially set value.
+        default: f32,
         /// Format of the shown value as C-format string. e.g. `%.3f`.
         format: String,
         /// Minimal width of the widget. The width may be increased in case the

@@ -94,9 +94,10 @@ impl From<c::Widget> for Widget {
                 key,
                 min,
                 max,
+                default,
                 format,
                 width,
-            } => Widget::Slider(Slider::new(key, min, max, min, format, width)),
+            } => Widget::Slider(Slider::new(key, min, max, default, format, width)),
             c::Widget::Trigger { key, label } => {
                 Widget::Button(Button::new(label, key, ButtonActivationMode::OnHold))
             }
@@ -1253,6 +1254,7 @@ mod tests {
                             key: "slider".to_owned(),
                             min: 0.0,
                             max: 10.0,
+                            default: 5.0,
                             format: "%.1f".to_owned(),
                             width: 150.0,
                         },
@@ -1300,7 +1302,7 @@ mod tests {
                         "slider".to_owned(),
                         0.0,
                         10.0,
-                        0.0,
+                        5.0,
                         "%.1f".to_owned(),
                         150.0,
                     )),
