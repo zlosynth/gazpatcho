@@ -192,7 +192,8 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
 
     state.nodes().iter().for_each(|node| {
         let mut node_widget = widget::node::Node::new(node.id_im())
-            .position(vec2::sum(&[node.position, state.offset]));
+            .position(vec2::sum(&[node.position, state.offset]))
+            .add_component(widget::node::Component::Space(10.0));
 
         if let Some(triggered_node_id) = state.triggered_node() {
             if triggered_node_id == node.id() {
@@ -200,12 +201,13 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
             }
         }
 
-        node_widget = node_widget
-            .add_component(widget::node::Component::Space(10.0))
-            .add_component(widget::node::Component::Label(widget::label::Label::new(
-                node.label_im(),
-            )))
-            .add_component(widget::node::Component::Space(10.0));
+        if node.display_heading {
+            node_widget = node_widget
+                .add_component(widget::node::Component::Label(widget::label::Label::new(
+                    node.label_im(),
+                )))
+                .add_component(widget::node::Component::Space(10.0));
+        }
 
         if !node.pins().is_empty() {
             let pin_group = new_pin_group_widget(node, &pin_positions, &newly_triggered_pin);

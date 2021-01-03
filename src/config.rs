@@ -15,6 +15,7 @@
 //!         NodeTemplate {
 //!             label: "Oscillator".to_owned(),
 //!             class: "oscillator".to_owned(),
+//!             display_heading: true,
 //!             pins: vec![
 //!                 Pin {
 //!                     label: "Frequency".to_owned(),
@@ -96,6 +97,8 @@ pub struct NodeTemplate {
     /// Class serves as an identificator marking all node instances created from
     /// the given template.
     pub class: String,
+    /// Whether the label should be shown on the top of the node.
+    pub display_heading: bool,
     /// Input and output `Pins` serve as contact points for inter-node patches.
     pub pins: Vec<Pin>,
     /// Widgets can be manipulated by users to select or record values.

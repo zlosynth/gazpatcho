@@ -10,6 +10,7 @@ fn main() {
     let stats = NodeTemplate {
         label: "Stats".to_owned(),
         class: "stats".to_owned(),
+        display_heading: true,
         pins: vec![],
         widgets: vec![TextBox {
             key: "stats".to_owned(),
@@ -22,6 +23,7 @@ fn main() {
     let comment = NodeTemplate {
         label: "Comment".to_owned(),
         class: "comment".to_owned(),
+        display_heading: true,
         pins: vec![],
         widgets: vec![TextBox {
             key: "comment".to_owned(),
@@ -34,6 +36,7 @@ fn main() {
     let scope = NodeTemplate {
         label: "Scope".to_owned(),
         class: "scope".to_owned(),
+        display_heading: true,
         pins: vec![Pin {
             label: "Input".to_owned(),
             class: "input".to_owned(),
@@ -48,6 +51,7 @@ fn main() {
     let oscillator = NodeTemplate {
         label: "Oscillator".to_owned(),
         class: "oscillator".to_owned(),
+        display_heading: true,
         pins: vec![
             Pin {
                 label: "Frequency".to_owned(),
@@ -105,9 +109,28 @@ fn main() {
         ],
     };
 
+    let generator = NodeTemplate {
+        label: "Generator".to_owned(),
+        class: "generator".to_owned(),
+        display_heading: false,
+        pins: vec![Pin {
+            label: "Output".to_owned(),
+            class: "output".to_owned(),
+            direction: Output,
+        }],
+        widgets: vec![Slider {
+            key: "slider".to_owned(),
+            min: 0.0,
+            max: 100.0,
+            format: "%.1f".to_owned(),
+            width: 150.0,
+        }],
+    };
+
     let mixer = NodeTemplate {
         label: "Mixer".to_owned(),
         class: "mixer".to_owned(),
+        display_heading: true,
         pins: vec![
             Pin {
                 label: "Input 1".to_owned(),
@@ -129,7 +152,7 @@ fn main() {
     };
 
     let config = Config {
-        node_templates: vec![stats, comment, scope, oscillator, mixer],
+        node_templates: vec![stats, comment, generator, scope, oscillator, mixer],
     };
 
     gazpatcho::run_with_callback("Gazpatcho", config, |report| {

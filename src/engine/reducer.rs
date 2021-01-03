@@ -316,6 +316,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![],
             vec![],
         ));
@@ -341,6 +342,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![
                 Pin::new("Input".to_owned(), "in".to_owned(), Direction::Input),
                 Pin::new("Output".to_owned(), "out".to_owned(), Direction::Output),
@@ -374,6 +376,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![],
             vec![],
         ));
@@ -417,6 +420,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![Pin::new(
                 "Input".to_owned(),
                 "in".to_owned(),
@@ -448,6 +452,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![],
             vec![],
         ));
@@ -474,6 +479,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![
                 Pin::new("Input".to_owned(), "in".to_owned(), Direction::Input),
                 Pin::new("Output".to_owned(), "out".to_owned(), Direction::Output),
@@ -515,6 +521,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![Pin::new(
                 "Input".to_owned(),
                 "in".to_owned(),
@@ -547,6 +554,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![
                 Pin::new("Input".to_owned(), "in".to_owned(), Direction::Input),
                 Pin::new("Output".to_owned(), "out".to_owned(), Direction::Output),
@@ -590,6 +598,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![
                 Pin::new("Input".to_owned(), "in".to_owned(), Direction::Input),
                 Pin::new("Output".to_owned(), "out".to_owned(), Direction::Output),
@@ -625,6 +634,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![],
             vec![Widget::TextBox(TextBox::new(
                 "key".to_owned(),
@@ -658,6 +668,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![],
             vec![Widget::Button(Button::new(
                 "Button".to_owned(),
@@ -706,6 +717,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![],
             vec![Widget::Slider(Slider::new(
                 "key".to_owned(),
@@ -741,6 +753,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![],
             vec![Widget::DropDown(DropDown::new(
                 "key".to_owned(),
@@ -775,6 +788,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![],
             vec![Widget::Canvas(Canvas::new(
                 "key".to_owned(),
@@ -920,6 +934,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Label".to_owned(),
             "class".to_owned(),
+            true,
             vec![],
             vec![Widget::DropDown(DropDown::new(
                 "key".to_owned(),
@@ -978,6 +993,7 @@ mod tests {
             state.add_node_template(NodeTemplate::new(
                 "Label".to_owned(),
                 "class".to_owned(),
+                true,
                 vec![],
                 vec![Widget::DropDown(DropDown::new(
                     "key".to_owned(),
@@ -995,6 +1011,7 @@ mod tests {
             state.add_node_template(NodeTemplate::new(
                 "Label".to_owned(),
                 "class".to_owned(),
+                true,
                 vec![],
                 vec![Widget::DropDown(DropDown::new(
                     "key".to_owned(),

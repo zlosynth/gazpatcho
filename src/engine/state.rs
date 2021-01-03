@@ -55,6 +55,7 @@ impl From<c::NodeTemplate> for NodeTemplate {
         NodeTemplate::new(
             config.label,
             config.class,
+            config.display_heading,
             config.pins.into_iter().map(Pin::from).collect(),
             config.widgets.into_iter().map(Widget::from).collect(),
         )
@@ -169,6 +170,7 @@ pub struct NodeTemplate {
     label: ImStringWrapper,
     #[getset(get = "pub")]
     class: String,
+    display_heading: bool,
     #[getset(get = "pub")]
     id_counter: RefCell<usize>,
     pins: Vec<Pin>,
@@ -191,7 +193,13 @@ impl State {
 }
 
 impl NodeTemplate {
-    pub fn new(label: String, class: String, pins: Vec<Pin>, widgets: Vec<Widget>) -> Self {
+    pub fn new(
+        label: String,
+        class: String,
+        display_heading: bool,
+        pins: Vec<Pin>,
+        widgets: Vec<Widget>,
+    ) -> Self {
         {
             let mut classes = HashSet::new();
             pins.iter().for_each(|p| {
@@ -219,6 +227,7 @@ impl NodeTemplate {
         NodeTemplate {
             label: ImStringWrapper::from(label),
             class,
+            display_heading,
             id_counter: RefCell::new(0),
             pins,
             widgets,
@@ -232,6 +241,7 @@ impl NodeTemplate {
             id,
             label: self.label.clone(),
             class: self.class.clone(),
+            display_heading: self.display_heading,
             position,
             pins: self.pins.clone(),
             widgets: self.widgets.clone(),
@@ -253,6 +263,8 @@ pub struct Node {
     label: ImStringWrapper,
     #[getset(get = "pub")]
     class: String,
+
+    pub display_heading: bool,
 
     pub position: [f32; 2],
 
@@ -712,6 +724,7 @@ mod tests {
             state.add_node_template(NodeTemplate::new(
                 "Label".to_owned(),
                 "class".to_owned(),
+                true,
                 vec![],
                 vec![],
             ));
@@ -727,12 +740,14 @@ mod tests {
             state.add_node_template(NodeTemplate::new(
                 "Label 1".to_owned(),
                 "class".to_owned(),
+                true,
                 vec![],
                 vec![],
             ));
             state.add_node_template(NodeTemplate::new(
                 "Label 2".to_owned(),
                 "class".to_owned(),
+                true,
                 vec![],
                 vec![],
             ));
@@ -744,6 +759,7 @@ mod tests {
             state.add_node_template(NodeTemplate::new(
                 "Label".to_owned(),
                 "class".to_owned(),
+                true,
                 vec![],
                 vec![],
             ));
@@ -772,6 +788,7 @@ mod tests {
             let node_template = NodeTemplate::new(
                 "Label".to_owned(),
                 "class1".to_owned(),
+                true,
                 vec![
                     Pin::new("Input 1".to_owned(), "in1".to_owned(), Direction::Input),
                     Pin::new("Output 1".to_owned(), "out1".to_owned(), Direction::Output),
@@ -810,6 +827,7 @@ mod tests {
             let mut _node_template = NodeTemplate::new(
                 "Label".to_owned(),
                 "class1".to_owned(),
+                true,
                 vec![
                     Pin::new("Input 1".to_owned(), "in".to_owned(), Direction::Input),
                     Pin::new("Input 2".to_owned(), "in".to_owned(), Direction::Input),
@@ -824,6 +842,7 @@ mod tests {
             let mut _node_template = NodeTemplate::new(
                 "Label".to_owned(),
                 "class1".to_owned(),
+                true,
                 vec![],
                 vec![
                     Widget::Slider(Slider::new(
@@ -1057,6 +1076,7 @@ mod tests {
             state.add_node_template(NodeTemplate::new(
                 "Label".to_owned(),
                 "node".to_owned(),
+                true,
                 vec![
                     Pin::new("Input 1".to_owned(), "in1".to_owned(), Direction::Input),
                     Pin::new("Output 1".to_owned(), "out1".to_owned(), Direction::Output),
@@ -1205,6 +1225,7 @@ mod tests {
                 node_templates: vec![c::NodeTemplate {
                     label: "Node Label".to_owned(),
                     class: "node_class".to_owned(),
+                    display_heading: true,
                     pins: vec![
                         c::Pin {
                             label: "Input".to_owned(),
@@ -1259,6 +1280,7 @@ mod tests {
             expected_state.add_node_template(NodeTemplate::new(
                 "Node Label".to_owned(),
                 "node_class".to_owned(),
+                true,
                 vec![
                     Pin::new("Input".to_owned(), "input1".to_owned(), Direction::Input),
                     Pin::new("Output".to_owned(), "output1".to_owned(), Direction::Output),

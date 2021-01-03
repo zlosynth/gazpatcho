@@ -63,6 +63,7 @@ mod tests {
         state.add_node_template(NodeTemplate::new(
             "Node".to_owned(),
             "node".to_owned(),
+            true,
             vec![
                 Pin::new("Input 1".to_owned(), "in1".to_owned(), Direction::Input),
                 Pin::new("Output 1".to_owned(), "out1".to_owned(), Direction::Output),
@@ -88,6 +89,7 @@ mod tests {
         let template = NodeTemplate::new(
             "Node".to_owned(),
             "node".to_owned(),
+            true,
             vec![
                 Pin::new("Input 1".to_owned(), "in1".to_owned(), Direction::Input),
                 Pin::new("Output 1".to_owned(), "out1".to_owned(), Direction::Output),
@@ -126,6 +128,7 @@ mod tests {
     {
       \"label\": \"Node\",
       \"class\": \"node\",
+      \"display_heading\": true,
       \"id_counter\": 2,
       \"pins\": [
         {
@@ -156,6 +159,7 @@ mod tests {
       \"id\": \"node:0\",
       \"label\": \"Node\",
       \"class\": \"node\",
+      \"display_heading\": true,
       \"position\": [
         0.0,
         0.0
@@ -187,6 +191,7 @@ mod tests {
       \"id\": \"node:1\",
       \"label\": \"Node\",
       \"class\": \"node\",
+      \"display_heading\": true,
       \"position\": [
         0.0,
         0.0

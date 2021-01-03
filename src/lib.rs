@@ -20,6 +20,7 @@
 //!         NodeTemplate {
 //!             label: "Example node".to_owned(),
 //!             class: "example_node".to_owned(),
+//!             display_heading: true,
 //!             pins: vec![
 //!                 Pin {
 //!                     label: "Input".to_owned(),
