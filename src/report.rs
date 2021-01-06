@@ -64,7 +64,7 @@ use crate::model::{Node, Patch};
 /// graph represented in the UI. It does not report details about the widgets
 /// that were used nor about positions of items on the canvas. It is limited to
 /// the minimal amount of information needed to convert the state into a graph.
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Report {
     /// All instantiated nodes with their values set via widgets.
     pub nodes: Vec<Node>,

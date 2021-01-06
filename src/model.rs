@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::engine::action;
 
 /// A structure representing a node and its associated values.
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Node {
     /// Unique identificator of this node.
     pub id: String,
@@ -17,7 +17,7 @@ pub struct Node {
 }
 
 /// Enum encapsulating possible values of an item attached to a node.
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Value {
     String(String),
     F32(f32),
@@ -80,7 +80,7 @@ impl Into<action::Value> for Value {
 }
 
 /// A structure representing a patch between two pins of available nodes.
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct Patch {
     /// Output pin where the patch originates from.
     pub source: PinAddress,
@@ -90,7 +90,7 @@ pub struct Patch {
 
 /// Uniquely represents a pin by referencing node by its ID an pin by
 /// its class.
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct PinAddress {
     pub node_id: String,
     pub pin_class: String,
