@@ -14,6 +14,7 @@
 //!     vec![
 //!         Request::SetValue { ... },
 //!         Request::RemovePatch { ... },
+//!         Request::RemoveNode { ... },
 //!         ...
 //!     ]
 //! });
@@ -29,6 +30,7 @@
 //! thread::spawn(move || {
 //!     request_tx.send(Request::SetValue { ... }).unwrap();
 //!     request_tx.send(Request::RemovePatch { ... }).unwrap();
+//!     request_tx.send(Request::RemoveNode { ... }).unwrap();
 //! });
 //!
 //! gazpatcho::run_with_mpsc("Application Name", config, report_tx, request_rx);
@@ -44,6 +46,8 @@ use crate::model::{Patch, PinAddress, Value};
 /// `Request`.
 #[derive(Debug)]
 pub enum Request {
+    /// Remove given node.
+    RemoveNode { node_id: String },
     /// Remove a connection between two pins.
     RemovePatch { patch: Patch },
     /// Set value on a node's widget.
@@ -57,6 +61,7 @@ pub enum Request {
 impl From<Request> for action::Action {
     fn from(request: Request) -> Self {
         match request {
+            Request::RemoveNode { node_id } => Self::RemoveNode { node_id },
             Request::RemovePatch { patch } => Self::RemovePatch {
                 patch: patch.into(),
             },
