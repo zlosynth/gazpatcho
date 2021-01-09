@@ -1,8 +1,10 @@
 # Changelog
 
-## Main
+## 1.4.0
 
 * Fix calculation of button width - make them narrower.
+* Implement `Eq` and `Hash` traits on models.
+* Add node removal `Request`.
 
 ## 1.3.0
 
