@@ -1,6 +1,9 @@
 # Changelog
 
 ## 1.4.0
+* Pin the version of `winit` to prevent depdendency mismatch.
+
+## 1.4.0
 
 * Fix calculation of button width - make them narrower.
 * Implement `Eq` and `Hash` traits on models.
