@@ -148,7 +148,7 @@ fn draw_file_dialog(state: &State, ui: &imgui::Ui) -> Option<Action> {
 
             match state.file_dialog.mode {
                 FileDialogMode::Load => {
-                    if ui.is_key_pressed(ui.key_index(imgui::Key::Enter))
+                    if ui.is_key_pressed(imgui::Key::Enter)
                         || ui.button(im_str!("Load"), [0.0, 0.0])
                     {
                         action = Some(Action::LoadFile {
@@ -158,7 +158,7 @@ fn draw_file_dialog(state: &State, ui: &imgui::Ui) -> Option<Action> {
                     }
                 }
                 FileDialogMode::Save => {
-                    if ui.is_key_pressed(ui.key_index(imgui::Key::Enter))
+                    if ui.is_key_pressed(imgui::Key::Enter)
                         || ui.button(im_str!("Save"), [0.0, 0.0])
                     {
                         action = Some(Action::SaveFile {
@@ -172,9 +172,7 @@ fn draw_file_dialog(state: &State, ui: &imgui::Ui) -> Option<Action> {
 
             ui.same_line(0.0);
 
-            if ui.is_key_pressed(ui.key_index(imgui::Key::Escape))
-                || ui.button(im_str!("Cancel"), [0.0, 0.0])
-            {
+            if ui.is_key_pressed(imgui::Key::Escape) || ui.button(im_str!("Cancel"), [0.0, 0.0]) {
                 action = Some(Action::CloseFileDialog);
                 ui.close_current_popup();
             }
@@ -286,13 +284,13 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
     });
 
     if let Some(previously_triggered_node_id) = state.triggered_node() {
-        if ui.is_key_pressed(ui.key_index(imgui::Key::Delete)) {
+        if ui.is_key_pressed(imgui::Key::Delete) {
             actions.borrow_mut().push(Action::RemoveNode {
                 node_id: previously_triggered_node_id.to_string(),
             });
         } else if ui.is_mouse_clicked(imgui::MouseButton::Left)
             || ui.is_mouse_clicked(imgui::MouseButton::Right)
-            || ui.is_key_pressed(ui.key_index(imgui::Key::Escape))
+            || ui.is_key_pressed(imgui::Key::Escape)
         {
             actions.borrow_mut().push(Action::ResetTriggeredNode)
         }
@@ -305,8 +303,7 @@ fn draw_nodes(state: &State, ui: &imgui::Ui) -> (Vec<Action>, HashMap<PinAddress
             pin_address: newly_triggered_pin_address,
         }]);
     } else if state.triggered_pin().is_some()
-        && (ui.is_mouse_clicked(imgui::MouseButton::Left)
-            || ui.is_key_pressed(ui.key_index(imgui::Key::Escape)))
+        && (ui.is_mouse_clicked(imgui::MouseButton::Left) || ui.is_key_pressed(imgui::Key::Escape))
     {
         actions.borrow_mut().push(Action::ResetTriggeredPin)
     }
@@ -546,12 +543,12 @@ fn draw_patches(
     }
 
     if let Some(previously_triggered_patch) = state.triggered_patch() {
-        if ui.is_key_pressed(ui.key_index(imgui::Key::Delete)) {
+        if ui.is_key_pressed(imgui::Key::Delete) {
             actions.push(Action::RemovePatch {
                 patch: previously_triggered_patch.clone(),
             });
         } else if ui.is_mouse_clicked(imgui::MouseButton::Left)
-            || ui.is_key_pressed(ui.key_index(imgui::Key::Escape))
+            || ui.is_key_pressed(imgui::Key::Escape)
         {
             actions.push(Action::ResetTriggeredPatch);
         }

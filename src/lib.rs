@@ -137,6 +137,9 @@
 //! If you prefer to go directly for a code examples, take a look at the
 //! [examples folder](https://github.com/zlosynth/gazpatcho/tree/main/examples).
 
+// Avoid complaints on im_str! calls
+#![allow(clippy::transmute_ptr_to_ptr)]
+
 #[macro_use]
 extern crate imgui;
 
