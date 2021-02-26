@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.4.2
 
-* Bump imgui version to 0.7.
+* Bump imgui version to 0.7 to further prevent `winit` depdendency mismatch.
 
-## 1.4.0
+## 1.4.1
 
 * Pin the version of `winit` to prevent depdendency mismatch.
 
